@@ -1,0 +1,28 @@
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
+
+@Entity('user_social_links')
+@Unique('uq_user_social_links_profile_platform', ['userProfileId', 'rscSocialPlatformId'])
+export class PlayerSocialLinkEntity {
+  @PrimaryGeneratedColumn()
+  id!: number;
+
+  @Index()
+  @Column({ name: 'user_profile_id', type: 'uuid' })
+  userProfileId!: string;
+
+  @Index()
+  @Column({ name: 'platform_id' })
+  rscSocialPlatformId!: number;
+
+ @Column({ type: 'varchar', length: 120 })
+  username!: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  url!: string;
+
+  @CreateDateColumn({ name: 'created_at', select: false })
+  createdAt!: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', select: false })
+  updatedAt!: Date;
+}

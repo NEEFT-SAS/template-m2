@@ -1,8 +1,8 @@
-/*
-#########################
-# Tests: HttpExceptionFilter -> code/message/fields/details
-#########################
-*/
+/***************************
+ *
+ * Tests: HttpExceptionFilter -> code/message/fields/details
+ *
+ ***************************/
 
 import { BadRequestException, HttpException, UnauthorizedException } from '@nestjs/common';
 import { DomainError } from '../../errors/domain-error';
@@ -33,7 +33,7 @@ describe('HttpExceptionFilter', () => {
     filter = new HttpExceptionFilter();
   });
 
-  it('handles DomainError', () => {
+  it('handles DomainError (no fields)', () => {
     const { host, response } = createHostMocks({ url: '/auth/login' });
 
     const error = new DomainError({
@@ -48,6 +48,34 @@ describe('HttpExceptionFilter', () => {
     expect(response.send).toHaveBeenCalledWith({
       code: 'AUTH_INVALID_CREDENTIALS',
       message: 'Invalid credentials',
+      fields: undefined,
+      details: undefined,
+    });
+  });
+
+  it('handles DomainError (with fields)', () => {
+    const { host, response } = createHostMocks({ url: '/auth/login' });
+
+    const error = new DomainError({
+      code: 'AUTH_INVALID_CREDENTIALS',
+      message: 'Invalid credentials',
+      statusCode: 401,
+      fields: {
+        email: ['Invalid credentials'],
+        password: ['Invalid credentials'],
+      },
+    });
+
+    filter.catch(error, host as any);
+
+    expect(response.status).toHaveBeenCalledWith(401);
+    expect(response.send).toHaveBeenCalledWith({
+      code: 'AUTH_INVALID_CREDENTIALS',
+      message: 'Invalid credentials',
+      fields: {
+        email: ['Invalid credentials'],
+        password: ['Invalid credentials'],
+      },
       details: undefined,
     });
   });
