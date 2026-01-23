@@ -1,3 +1,4 @@
+import { BillingPlanKeyEnum } from '@/contexts/billing/infra/entitlements/billing-plans.registry';
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('user_profiles')
@@ -44,6 +45,18 @@ export class UserProfileEntity {
  
   // @Column({ name: 'referred_by_user_id', type: 'int', nullable: true })
   // referredByUserId!: number | null;
+
+  @Index({ unique: true })
+  @Column({ name: 'stripe_customer_id', type: 'varchar', length: 255, nullable: true, select: false })
+  stripeCustomerId!: string | null;
+
+  @Column({
+    name: 'billing_plan_key',
+    type: 'enum',
+    enum: BillingPlanKeyEnum,
+    default: BillingPlanKeyEnum.FREE,
+  })
+  billingPlanKey!: BillingPlanKeyEnum;
 
   @CreateDateColumn({ name: 'created_at', select: false })
   createdAt!: Date;

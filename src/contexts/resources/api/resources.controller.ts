@@ -11,7 +11,10 @@ export class ResourcesController {
 
     return {
       data: {
+        rscCountries: snapshot.rscCountries,
+        rscLanguages: snapshot.rscLanguages,
         rscSocialPlatforms: snapshot.rscSocialPlatforms,
+        rscProfileBadges: snapshot.rscProfileBadges,
       },
       meta: {
         version: snapshot.version,

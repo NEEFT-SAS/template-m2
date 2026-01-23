@@ -4,7 +4,7 @@
  *
  ***************************/
 
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './api/auth.controller';
 import { UserRegisterUsecase } from './app/usecases/register.usecase';
@@ -21,18 +21,22 @@ import { UserLoginUsecase } from './app/usecases/login.usecase';
 import { AUTH_MAILER } from './app/ports/auth-mailer.port';
 import { AuthMailerCoreAdapter } from './mailer/auth-mailer.core.adapter';
 import { SendUserRegisteredEmailHandler } from './app/handlers/send-user-registered.handler';
+import { GetUserSessionUseCase } from './app/usecases/session.usecase';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [TypeOrmModule.forFeature([
       UserCredentialsEntity,
       UserProfileEntity
     ]),
-    JwtModule.register({})
+    JwtModule.register({}),
+    forwardRef(() => BillingModule),
   ],
   controllers: [AuthController],
   providers: [
     UserRegisterUsecase,
     UserLoginUsecase,
+    GetUserSessionUseCase,
     SendUserRegisteredEmailHandler,
     { provide: AUTH_REPOSITORY, useClass: AuthRepositoryTypeorm },
     { provide: TOKEN_SERVICE, useClass: JwtTokenService },

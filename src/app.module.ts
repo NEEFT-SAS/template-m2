@@ -8,6 +8,7 @@ import { MailerModule } from './core/mailer/mailer.module';
 import { EventsModule } from './core/events/event.modules';
 import { PlayerModule } from './contexts/players/player.module';
 import { ResourcesModule } from './contexts/resources/resources.module';
+import { BillingModule } from './contexts/billing/billing.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ResourcesModule } from './contexts/resources/resources.module';
     MailerModule,
     EventsModule,
     AuthModule,
+    BillingModule,
     PlayerModule,
     ResourcesModule
   ],

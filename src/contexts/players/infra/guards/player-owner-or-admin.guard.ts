@@ -12,14 +12,14 @@ import { toLowerCase } from '@neeft-sas/shared';
 export class PlayerOwnerOrAdminGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
-    const user = req.user as { slug: string } | undefined;
+    const user = req.user as { slug: string; roles?: string[] } | undefined;
     
     if (!user) {
       throw new ForbiddenException({ code: 'AUTH_FORBIDDEN', message: 'Access denied' });
     }
 
-    // const roles = Array.isArray(user.roles) ? user.roles : [];
-    // if (roles.includes('admin')) return true;
+    const roles = Array.isArray(user.roles) ? user.roles : [];
+    if (roles.includes('admin')) return true;
 
     const targetProfileSlug = req?.params?.slug;
     if (!targetProfileSlug) {
