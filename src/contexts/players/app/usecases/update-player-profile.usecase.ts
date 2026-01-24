@@ -7,6 +7,8 @@ import { PlayerInvalidLanguagesError, PlayerInvalidNationalityError, PlayerNotFo
 import { PLAYER_REPOSITORY, PlayerCredentialsUpdateInput, PlayerProfileUpdateInput, PlayerRepositoryPort } from '../ports/player.repository.port';
 import { DomainError } from '@/core/errors/domain-error';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
+import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
+import { PlayerSearchSyncEvent } from '../../domain/events/player-search-sync.event';
 
 @Injectable()
 export class UpdatePlayerProfileUseCase {
@@ -14,6 +16,7 @@ export class UpdatePlayerProfileUseCase {
     @Inject(PLAYER_REPOSITORY) private readonly repo: PlayerRepositoryPort,
     @Inject(AUTH_REPOSITORY) private readonly authRepo: AuthRepositoryPort,
     private readonly resourcesStore: ResourcesStore,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
   async execute(slug: string, dto: UpdatePlayerProfileDTO, isAdmin: boolean): Promise<PlayerPrivateProfilePresenter> {
@@ -86,6 +89,8 @@ export class UpdatePlayerProfileUseCase {
     if (!updated) {
       throw new PlayerNotFoundError(slug);
     }
+
+    await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug }));
 
     return plainToInstance(PlayerPrivateProfilePresenter, updated, { excludeExtraneousValues: true });
   }

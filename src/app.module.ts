@@ -9,6 +9,7 @@ import { EventsModule } from './core/events/event.modules';
 import { PlayerModule } from './contexts/players/player.module';
 import { ResourcesModule } from './contexts/resources/resources.module';
 import { BillingModule } from './contexts/billing/billing.module';
+import { SearchModule } from './contexts/search/search.module';
 
 @Module({
   imports: [
@@ -19,7 +20,8 @@ import { BillingModule } from './contexts/billing/billing.module';
     AuthModule,
     BillingModule,
     PlayerModule,
-    ResourcesModule
+    ResourcesModule,
+    SearchModule
   ],
   controllers: [AppController],
   providers: [AppService],

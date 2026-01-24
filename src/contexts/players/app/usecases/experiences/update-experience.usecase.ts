@@ -4,11 +4,14 @@ import { PlayerExperiencePresenter, UpdatePlayerExperienceDTO } from '@neeft-sas
 import { PLAYER_REPOSITORY, PlayerExperienceUpdateInput, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '../../../domain/errors/player-profile.errors';
 import { PlayerExperienceInvalidDatesError, PlayerExperienceNotFoundError } from '../../../domain/errors/player-experience.errors';
+import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
+import { PlayerSearchSyncEvent } from '../../../domain/events/player-search-sync.event';
 
 @Injectable()
 export class UpdatePlayerExperienceUseCase {
   constructor(
     @Inject(PLAYER_REPOSITORY) private readonly repo: PlayerRepositoryPort,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
   async execute(userSlug: string, experienceId: number, dto: UpdatePlayerExperienceDTO): Promise<PlayerExperiencePresenter> {
@@ -41,6 +44,7 @@ export class UpdatePlayerExperienceUseCase {
     }
 
     const updated = await this.repo.updateExperience(profileId, experienceId, updates);
+    await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
     return plainToInstance(PlayerExperiencePresenter, updated, { excludeExtraneousValues: true });
   }
 }

@@ -1,0 +1,21 @@
+export type PlayerSearchDocument = {
+  id: string;
+  username: string;
+  slug: string;
+  profilePicture?: string;
+  bannerPicture?: string;
+  description?: string;
+  citation?: string;
+  nationalityId?: string;
+  languageIds?: string[];
+  badgeIds?: number[];
+  hasProfilePicture: boolean;
+  hasBannerPicture: boolean;
+  experienceCount: number;
+  educationCount: number;
+  professionalExperienceCount: number;
+  socialLinksCount: number;
+  badgesCount: number;
+  profileScore: number;
+  createdAt: number;
+};

@@ -4,11 +4,14 @@ import { PlayerProfessionalExperiencePresenter, UpdatePlayerProfessionalExperien
 import { PLAYER_REPOSITORY, PlayerProfessionalExperienceUpdateInput, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '../../../domain/errors/player-profile.errors';
 import { PlayerExperienceInvalidDatesError, PlayerExperienceNotFoundError } from '../../../domain/errors/player-experience.errors';
+import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
+import { PlayerSearchSyncEvent } from '../../../domain/events/player-search-sync.event';
 
 @Injectable()
 export class UpdatePlayerProfessionalExperienceUseCase {
   constructor(
     @Inject(PLAYER_REPOSITORY) private readonly repo: PlayerRepositoryPort,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
   async execute(userSlug: string, experienceId: number, dto: UpdatePlayerProfessionalExperienceDTO): Promise<PlayerProfessionalExperiencePresenter> {
@@ -44,6 +47,7 @@ export class UpdatePlayerProfessionalExperienceUseCase {
     }
 
     const updated = await this.repo.updateProfessionalExperience(profileId, experienceId, updates);
+    await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
     return plainToInstance(PlayerProfessionalExperiencePresenter, updated, { excludeExtraneousValues: true });
   }
 }

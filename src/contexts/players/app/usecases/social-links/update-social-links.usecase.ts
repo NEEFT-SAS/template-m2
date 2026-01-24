@@ -7,6 +7,8 @@ import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store
 import { SocialLinksNormalizer } from '@/contexts/players/infra/normalizers/social-links.normalizer';
 import { plainToInstance } from 'class-transformer';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
+import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
+import { PlayerSearchSyncEvent } from '@/contexts/players/domain/events/player-search-sync.event';
 
 @Injectable()
 export class UpdatePlayerSocialLinksUseCase {
@@ -14,6 +16,7 @@ export class UpdatePlayerSocialLinksUseCase {
     @Inject(PLAYER_REPOSITORY) private readonly repo: PlayerRepositoryPort,
     private readonly resourcesStore: ResourcesStore,
     private readonly normalizer: SocialLinksNormalizer,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
   async execute(userSlug: string, links: PlayerSocialLinkToUpdateDTO[]) {
@@ -40,6 +43,8 @@ export class UpdatePlayerSocialLinksUseCase {
     }
 
     const newLinks = await this.repo.replaceSocialLinks(playerProfileId, normalizedLinks);
+
+    await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
     
     return plainToInstance(PlayerSocialLinkPresenter, newLinks, { excludeExtraneousValues: true });
   }
