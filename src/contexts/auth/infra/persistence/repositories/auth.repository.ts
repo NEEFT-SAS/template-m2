@@ -46,7 +46,7 @@ export class AuthRepositoryTypeorm implements AuthRepositoryPort {
 
   async findProfileByReferralCode(referralCode: string): Promise<UserProfileEntity | null> {
     const profile = await this.profileRepo.findOne({ where: { referralCode } });
-    return profile ? null as any : null;
+    return profile ? profile : null;
   }
 
   /***
@@ -79,7 +79,7 @@ export class AuthRepositoryTypeorm implements AuthRepositoryPort {
           slug: input.profile.slug,
           birthDate: input.profile.birthDate,
           referralCode: input.profile.referralCode,
-          // referredByUserId: input.referredByUserId,
+          referredByUserId: input.referredByUserId,
         }),
       );
 

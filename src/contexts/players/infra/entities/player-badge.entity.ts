@@ -1,13 +1,11 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 
 @Entity('user_badges')
-@Index(['userProfileId', 'rscBadgeId'], { unique: true })
+@Index(['userProfile', 'rscBadgeId'], { unique: true })
 export class PlayerBadgeEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
-
-  @Column({ name: 'user_profile_id', type: 'uuid' })
-  userProfileId!: string;
 
   @Column({ name: 'rsc_badge_id', type: 'int' })
   rscBadgeId!: number;
@@ -17,4 +15,8 @@ export class PlayerBadgeEntity {
 
   @UpdateDateColumn({ name: 'updated_at', select: false })
   updatedAt!: Date;
+
+  @ManyToOne(() => UserProfileEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_profile_id' })
+  userProfile!: UserProfileEntity;
 }

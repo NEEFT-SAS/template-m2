@@ -1141,10 +1141,10 @@
     date-fns "^4.1.0"
     reflect-metadata "^0.2.2"
 
-"@neeft-sas/shared@^0.0.43":
-  version "0.0.43"
-  resolved "https://npm.pkg.github.com/download/@neeft-sas/shared/0.0.43/d873bef2a41f6b4429ebdd49ded0b7168eeda94b#d873bef2a41f6b4429ebdd49ded0b7168eeda94b"
-  integrity sha512-kFNaa/GwznmUvw3uZRIJ2lKOWBRWs6na/uSt8nPKbfCUOb2u/gsdkFoNiyne1hoWC5HpXiyg2UvXLZGYt+MBRA==
+"@neeft-sas/shared@^0.0.47":
+  version "0.0.47"
+  resolved "https://npm.pkg.github.com/download/@neeft-sas/shared/0.0.47/6d48a790f460541d3afbcbc91bb25c53361f743a#6d48a790f460541d3afbcbc91bb25c53361f743a"
+  integrity sha512-KnKlzke3JUGCa0xpadGAVSpo+O6RR3xuOo4Lj3M4kgHuw7pqmK0SU3LO9gHNObqYY4/8QBZeAT375eTvjOH3cA==
   dependencies:
     "@neeft-sas/shared" "^0.0.20"
     class-transformer "^0.5.1"

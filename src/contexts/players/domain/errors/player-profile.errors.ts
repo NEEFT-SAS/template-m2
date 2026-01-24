@@ -22,3 +22,27 @@ export class PlayerNotFoundError extends DomainError {
     });
   }
 }
+
+export class PlayerInvalidNationalityError extends DomainError {
+  constructor(slug: string, nationalityId: string) {
+    super({
+      code: 'PLAYER_INVALID_NATIONALITY',
+      message: 'Invalid nationality',
+      statusCode: 400,
+      fields: { nationalityId: ['invalid_country'] },
+      details: { slug, nationalityId },
+    });
+  }
+}
+
+export class PlayerInvalidLanguagesError extends DomainError {
+  constructor(slug: string, invalidIds: string[]) {
+    super({
+      code: 'PLAYER_INVALID_LANGUAGES',
+      message: 'Invalid languages',
+      statusCode: 400,
+      fields: { languageIds: ['invalid_language'] },
+      details: { slug, invalidIds },
+    });
+  }
+}

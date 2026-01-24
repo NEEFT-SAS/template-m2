@@ -3,15 +3,17 @@ import { plainToInstance } from 'class-transformer';
 import { PlayerPrivateProfilePresenter, UpdatePlayerProfileDTO } from '@neeft-sas/shared';
 import { AUTH_REPOSITORY, AuthRepositoryPort } from '@/contexts/auth/app/ports/auth.repository.port';
 import { AuthEmailAlreadyUsedError } from '@/contexts/auth/domain/errors/auth.errors';
-import { PlayerNotFoundError } from '../../domain/errors/player-profile.errors';
+import { PlayerInvalidLanguagesError, PlayerInvalidNationalityError, PlayerNotFoundError } from '../../domain/errors/player-profile.errors';
 import { PLAYER_REPOSITORY, PlayerCredentialsUpdateInput, PlayerProfileUpdateInput, PlayerRepositoryPort } from '../ports/player.repository.port';
 import { DomainError } from '@/core/errors/domain-error';
+import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 
 @Injectable()
 export class UpdatePlayerProfileUseCase {
   constructor(
     @Inject(PLAYER_REPOSITORY) private readonly repo: PlayerRepositoryPort,
     @Inject(AUTH_REPOSITORY) private readonly authRepo: AuthRepositoryPort,
+    private readonly resourcesStore: ResourcesStore,
   ) {}
 
   async execute(slug: string, dto: UpdatePlayerProfileDTO, isAdmin: boolean): Promise<PlayerPrivateProfilePresenter> {
@@ -49,6 +51,28 @@ export class UpdatePlayerProfileUseCase {
     if (dto.citation !== undefined) profileUpdates.citation = dto.citation;
     if (dto.profilePicture !== undefined) profileUpdates.profilePicture = dto.profilePicture;
     if (dto.bannerPicture !== undefined) profileUpdates.bannerPicture = dto.bannerPicture;
+
+    if (dto.nationalityId !== undefined || dto.languageIds !== undefined) {
+      const snapshot = this.resourcesStore.getSnapshot();
+
+      if (dto.nationalityId !== undefined && dto.nationalityId !== null) {
+        const allowedCountries = new Set(snapshot.rscCountries.map((country) => country.id));
+        if (!allowedCountries.has(dto.nationalityId)) {
+          throw new PlayerInvalidNationalityError(slug, dto.nationalityId);
+        }
+      }
+
+      if (dto.languageIds !== undefined && dto.languageIds !== null) {
+        const allowedLanguages = new Set(snapshot.rscLanguages.map((language) => language.id));
+        const invalidIds = dto.languageIds.filter((id) => !allowedLanguages.has(id));
+        if (invalidIds.length) {
+          throw new PlayerInvalidLanguagesError(slug, invalidIds);
+        }
+      }
+    }
+
+    if (dto.nationalityId !== undefined) profileUpdates.nationalityId = dto.nationalityId;
+    if (dto.languageIds !== undefined) profileUpdates.languageIds = dto.languageIds;
 
     const credentialsUpdates: PlayerCredentialsUpdateInput = {};
     if (dto.email !== undefined) credentialsUpdates.email = dto.email;

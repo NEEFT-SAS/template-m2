@@ -1,6 +1,6 @@
 import { UserAccountAccessStatus, UserRegisterDto } from "@neeft-sas/shared";
 import { Inject, Injectable } from "@nestjs/common";
-import { AuthEmailAlreadyUsedError, AuthUsernameAlreadyUsedError, AuthUserTooYoungError } from "../../domain/errors/auth.errors";
+import { AuthEmailAlreadyUsedError, AuthReferralCodeNotFoundError, AuthUsernameAlreadyUsedError, AuthUserTooYoungError } from "../../domain/errors/auth.errors";
 import { getAgeParts, slugifyUnique, UserRegisteredPresenter } from "@neeft-sas/shared";
 import { AUTH_REPOSITORY, AuthRepositoryPort } from "../ports/auth.repository.port";
 import { PASSWORD_HASHER, PasswordHasherPort } from "../ports/password-hasher.port";
@@ -37,7 +37,12 @@ export class UserRegisterUsecase {
     const usernameTaken = await this.authRepo.existsProfileByUsername(dto.username);
     if (usernameTaken) throw new AuthUsernameAlreadyUsedError({ username: dto.username });
 
-    // TODO : check referral code
+    let referredByUserId: string | null = null;
+    if (dto.referralCode) {
+      const referredByProfile = await this.authRepo.findProfileByReferralCode(dto.referralCode);
+      if (!referredByProfile) throw new AuthReferralCodeNotFoundError({ referralCode: dto.referralCode });
+      referredByUserId = referredByProfile.id;
+    }
 
     const slug = await slugifyUnique(dto.username,
       async (candidate) => this.authRepo.existsProfileBySlug(candidate),
@@ -58,7 +63,7 @@ export class UserRegisterUsecase {
         birthDate: dto.birthdate,
         referralCode: this.generateReferralCode(slug),
       },
-      referredByUserId: null,
+      referredByUserId,
     });
 
     await this.eventBus.publish(UserRegisteredEvent.create({

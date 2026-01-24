@@ -1,14 +1,11 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
+import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 
 @Entity('user_social_links')
-@Unique('uq_user_social_links_profile_platform', ['userProfileId', 'rscSocialPlatformId'])
+@Unique('uq_user_social_links_profile_platform', ['userProfile', 'rscSocialPlatformId'])
 export class PlayerSocialLinkEntity {
   @PrimaryGeneratedColumn()
   id!: number;
-
-  @Index()
-  @Column({ name: 'user_profile_id', type: 'uuid' })
-  userProfileId!: string;
 
   @Index()
   @Column({ name: 'platform_id' })
@@ -25,4 +22,9 @@ export class PlayerSocialLinkEntity {
 
   @UpdateDateColumn({ name: 'updated_at', select: false })
   updatedAt!: Date;
+
+  @Index()
+  @ManyToOne(() => UserProfileEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_profile_id' })
+  userProfile!: UserProfileEntity;
 }

@@ -20,11 +20,7 @@ describe('buildGlobalValidationPipe', () => {
   it('throws VALIDATION_ERROR with fields', async () => {
     const pipe = buildGlobalValidationPipe();
 
-    const metadata: ArgumentMetadata = {
-      type: 'body',
-      metatype: RegisterDto,
-      data: '',
-    };
+    const metadata: ArgumentMetadata = { type: 'body', metatype: RegisterDto, data: '' };
 
     try {
       await pipe.transform({ email: 'bad', password: '123' }, metadata);

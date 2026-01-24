@@ -1,15 +1,12 @@
 import { USER_PROFILE_AVAILABILITY_SLOTS, USER_PROFILE_AVAILABILITY_WEEKDAYS, UserProfileAvailabilitySlot, UserProfileAvailabilityWeekday } from '@neeft-sas/shared';
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique, UpdateDateColumn } from 'typeorm';
+import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 
 @Entity('user_profile_availabilities')
-@Unique('uq_user_profile_availabilities_profile_weekday_slot', ['userProfileId', 'weekday', 'slot'])
+@Unique('uq_user_profile_availabilities_profile_weekday_slot', ['userProfile', 'weekday', 'slot'])
 export class UserProfileAvailabilityEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
-
-  @Index()
-  @Column({ name: 'user_profile_id', type: 'uuid' })
-  userProfileId!: string;
 
   @Column({ type: 'enum', enum: USER_PROFILE_AVAILABILITY_WEEKDAYS })
   weekday!: UserProfileAvailabilityWeekday;
@@ -22,4 +19,9 @@ export class UserProfileAvailabilityEntity {
 
   @UpdateDateColumn({ name: 'updated_at', select: false })
   updatedAt!: Date;
+
+  @Index()
+  @ManyToOne(() => UserProfileEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'user_profile_id' })
+  userProfile!: UserProfileEntity;
 }

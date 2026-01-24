@@ -1,5 +1,7 @@
 import { BillingPlanKeyEnum } from '@/contexts/billing/infra/entitlements/billing-plans.registry';
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { RscCountryEntity } from '@/contexts/resources/infra/persistence/entities/rsc-countries.entity';
+import { RscLanguageEntity } from '@/contexts/resources/infra/persistence/entities/rsc-languages.entity';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('user_profiles')
 export class UserProfileEntity {
@@ -42,9 +44,9 @@ export class UserProfileEntity {
   @Index({ unique: true })
   @Column({ name: 'referral_code', type: 'varchar', length: 32 })
   referralCode!: string;
- 
-  // @Column({ name: 'referred_by_user_id', type: 'int', nullable: true })
-  // referredByUserId!: number | null;
+
+  @Column({ name: 'referred_by_user_id', type: 'uuid', nullable: true, select: false })
+  referredByUserId!: string | null;
 
   @Index({ unique: true })
   @Column({ name: 'stripe_customer_id', type: 'varchar', length: 255, nullable: true, select: false })
@@ -63,4 +65,16 @@ export class UserProfileEntity {
 
   @UpdateDateColumn({ name: 'updated_at', select: false })
   updatedAt!: Date;
+
+  @ManyToOne(() => RscCountryEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'nationality_id' })
+  nationality!: RscCountryEntity | null;
+
+  @ManyToMany(() => RscLanguageEntity)
+  @JoinTable({
+    name: 'user_profile_languages',
+    joinColumn: { name: 'user_profile_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'language_id', referencedColumnName: 'id' },
+  })
+  languages!: RscLanguageEntity[];
 }
