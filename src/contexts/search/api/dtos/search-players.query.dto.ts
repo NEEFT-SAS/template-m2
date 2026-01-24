@@ -57,4 +57,43 @@ export class SearchPlayersQueryDto {
   @IsInt()
   @Min(0)
   minProfileScore?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === undefined || value === null || value === '' ? undefined : toInt(value, 0)))
+  @IsInt()
+  @Min(1)
+  gameId?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === undefined || value === null || value === '' ? undefined : toInt(value, 0)))
+  @IsInt()
+  @Min(0)
+  rankMin?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => (value === undefined || value === null || value === '' ? undefined : toInt(value, 0)))
+  @IsInt()
+  @Min(0)
+  rankMax?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => toNumberArray(value))
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  positionIds?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => toNumberArray(value))
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  platformIds?: number[];
+
+  @IsOptional()
+  @Transform(({ value }) => toNumberArray(value))
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  characterIds?: number[];
 }

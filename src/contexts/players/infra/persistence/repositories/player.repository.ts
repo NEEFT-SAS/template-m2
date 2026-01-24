@@ -1,19 +1,32 @@
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
-import { PlayerProfileContext, PlayerProfileUpdatePayload, PlayerRepositoryPort } from '@/contexts/players/app/ports/player.repository.port';
+import { PlayerGameCreateInput, PlayerGameUpdateInput, PlayerProfileContext, PlayerProfileUpdatePayload, PlayerRepositoryPort } from '@/contexts/players/app/ports/player.repository.port';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
-import { PlayerSocialLinkEntity } from '../../entities/player-social-link.entity';
+import { DataSource, In, Repository } from 'typeorm';
+import { UserSocialLinkEntity } from '../../entities/profile/user-social-link.entity';
 import { PlayerAvailabilityPresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportStatus, PlayerSocialLinkPresenter } from '@neeft-sas/shared';
+import type { PlayerGamePresenter } from '@neeft-sas/shared';
 import { plainToInstance } from 'class-transformer';
 import { UserCredentialsEntity } from '@/contexts/auth/infra/persistence/entities/user-credentials.entity';
-import { PlayerBadgeEntity } from '../../entities/player-badge.entity';
-import { UserProfileAvailabilityEntity } from '../../entities/user-profile-availability.entity';
-import { UserProfileSchoolExperienceEntity } from '../../entities/user-profile-school-experience.entity';
-import { UserProfileExperienceEntity } from '../../entities/user-profile-experience.entity';
-import { UserProfileProfessionalExperienceEntity } from '../../entities/user-profile-professional-experience.entity';
+import { UserBadgeEntity } from '../../entities/profile/user-badge.entity';
+import { UserProfileAvailabilityEntity } from '../../entities/profile/user-profile-availability.entity';
+import { UserProfileSchoolExperienceEntity } from '../../entities/profile/user-profile-school-experience.entity';
+import { UserProfileExperienceEntity } from '../../entities/profile/user-profile-experience.entity';
+import { UserProfileProfessionalExperienceEntity } from '../../entities/profile/user-profile-professional-experience.entity';
 import { PlayerEducationExperienceInput, PlayerEducationExperienceUpdateInput, PlayerExperienceInput, PlayerExperienceUpdateInput, PlayerProfessionalExperienceInput, PlayerProfessionalExperienceUpdateInput, PlayerReportCreateInput } from '@/contexts/players/app/ports/player.repository.port';
-import { PlayerReportEntity } from '../../entities/player-report.entity';
+import { UserReportEntity } from '../../entities/profile/user-report.entity';
+import { UserGameEntity } from '../../entities/game/user-game.entity';
+import { UserGameLeagueOfLegendsEntity } from '../../entities/game/user-game-league-of-legends.entity';
+import { UserGameRocketLeagueEntity } from '../../entities/game/user-game-rocket-league.entity';
+import { UserGameValorantEntity } from '../../entities/game/user-game-valorant.entity';
+import { UserGameBrawlStarsEntity } from '../../entities/game/user-game-brawl-stars.entity';
+import { UserGameFortniteEntity } from '../../entities/game/user-game-fortnite.entity';
+import { UserGamePositionEntity } from '../../entities/game/user-game-position.entity';
+import { UserGamePlatformEntity } from '../../entities/game/user-game-platform.entity';
+import { UserGameCharacterEntity } from '../../entities/game/user-game-character.entity';
+import { UserGameModeRankEntity } from '../../entities/game/user-game-mode-rank.entity';
+import { RscGameModeEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-modes.entity';
+import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-ranks.entity';
 
 
 @Injectable()
@@ -21,12 +34,13 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
   constructor(
     @InjectRepository(UserProfileEntity) private readonly repo: Repository<UserProfileEntity>,
     @InjectRepository(UserCredentialsEntity) private readonly credentialsRepo: Repository<UserCredentialsEntity>,
-    @InjectRepository(PlayerSocialLinkEntity) private readonly linksRepo: Repository<PlayerSocialLinkEntity>,
+    @InjectRepository(UserSocialLinkEntity) private readonly linksRepo: Repository<UserSocialLinkEntity>,
     @InjectRepository(UserProfileExperienceEntity) private readonly experiencesRepo: Repository<UserProfileExperienceEntity>,
     @InjectRepository(UserProfileSchoolExperienceEntity) private readonly schoolExperiencesRepo: Repository<UserProfileSchoolExperienceEntity>,
     @InjectRepository(UserProfileProfessionalExperienceEntity) private readonly professionalExperiencesRepo: Repository<UserProfileProfessionalExperienceEntity>,
-    @InjectRepository(PlayerReportEntity) private readonly reportsRepo: Repository<PlayerReportEntity>,
-    @InjectRepository(PlayerBadgeEntity) private readonly badgesRepo: Repository<PlayerBadgeEntity>,
+    @InjectRepository(UserReportEntity) private readonly reportsRepo: Repository<UserReportEntity>,
+    @InjectRepository(UserBadgeEntity) private readonly badgesRepo: Repository<UserBadgeEntity>,
+    @InjectRepository(UserGameEntity) private readonly playerGamesRepo: Repository<UserGameEntity>,
     @InjectDataSource() private readonly dataSource: DataSource
   ) {}
 
@@ -131,9 +145,9 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
   } 
   
-  async replaceSocialLinks(userProfileId: string, links: PlayerSocialLinkPresenter[]): Promise<PlayerSocialLinkEntity[]> {
+  async replaceSocialLinks(userProfileId: string, links: PlayerSocialLinkPresenter[]): Promise<UserSocialLinkEntity[]> {
     return this.dataSource.transaction(async (manager) => {
-      const repo = manager.getRepository(PlayerSocialLinkEntity);
+      const repo = manager.getRepository(UserSocialLinkEntity);
 
       console.log(links);
       
@@ -397,7 +411,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
   async updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<PlayerReportPresenter | null> {
     const res = await this.reportsRepo
       .createQueryBuilder()
-      .update(PlayerReportEntity)
+      .update(UserReportEntity)
       .set({ status })
       .where('id = :reportId', { reportId })
       .andWhere('target_profile_id = :targetProfileId', { targetProfileId: userProfileId })
@@ -443,6 +457,444 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       select: ['rscBadgeId'],
     });
     return rows.map((r) => r.rscBadgeId);
+  }
+
+  async findPlayerGameIdByProfileAndGame(userProfileId: string, gameId: number): Promise<number | null> {
+    const entity = await this.playerGamesRepo.findOne({
+      where: { profile: { id: userProfileId }, rscGame: { id: gameId } },
+      select: ['id'],
+    });
+
+    return entity ? entity.id : null;
+  }
+
+  async createPlayerGame(userProfileId: string, input: PlayerGameCreateInput): Promise<PlayerGamePresenter> {
+    const created = await this.dataSource.transaction(async (manager) => {
+      const gameRepo = manager.getRepository(UserGameEntity);
+      const modeRepo = manager.getRepository(RscGameModeEntity);
+      const rankRepo = manager.getRepository(RscGameRankEntity);
+      const positionRepo = manager.getRepository(UserGamePositionEntity);
+      const platformRepo = manager.getRepository(UserGamePlatformEntity);
+      const characterRepo = manager.getRepository(UserGameCharacterEntity);
+      const modeRankRepo = manager.getRepository(UserGameModeRankEntity);
+      const lolRepo = manager.getRepository(UserGameLeagueOfLegendsEntity);
+      const rocketRepo = manager.getRepository(UserGameRocketLeagueEntity);
+      const valorantRepo = manager.getRepository(UserGameValorantEntity);
+      const brawlRepo = manager.getRepository(UserGameBrawlStarsEntity);
+      const fortniteRepo = manager.getRepository(UserGameFortniteEntity);
+
+      const modeRanks = input.modeRanks ?? [];
+      const modeIds = [...new Set(modeRanks.map((item) => item.modeId))];
+      const rankIds = [...new Set(modeRanks.map((item) => item.rankId))];
+
+      const modeRows = modeIds.length
+        ? await modeRepo.find({
+            where: { gameId: input.gameId, rscModeId: In(modeIds) },
+          })
+        : [];
+
+      const rankRows = rankIds.length
+        ? await rankRepo.find({
+            where: { gameId: input.gameId, rscRankId: In(rankIds) },
+          })
+        : [];
+
+      const modeById = new Map(modeRows.map((row) => [row.rscModeId, row]));
+      const rankById = new Map(rankRows.map((row) => [row.rscRankId, row]));
+
+      const modeRankEntities = modeRanks.map((item) => {
+        const mode = modeById.get(item.modeId);
+        const rank = rankById.get(item.rankId);
+        if (!mode || !rank) {
+          throw new Error('Player game mode rank relation is missing');
+        }
+        return { mode, rank };
+      });
+
+      const entity = gameRepo.create({
+        profile: { id: userProfileId },
+        rscGame: { id: input.gameId },
+        isRecruitable: input.isRecruitable,
+        isFavoriteGame: input.isFavoriteGame,
+        trackerUrl: input.trackerUrl ?? null,
+      });
+
+      const saved = await gameRepo.save(entity);
+
+      if (input.positionIds?.length) {
+        await positionRepo.save(
+          input.positionIds.map((id) =>
+            positionRepo.create({
+              game: saved,
+              position: { id },
+            }),
+          ),
+        );
+      }
+
+      if (input.platformIds?.length) {
+        await platformRepo.save(
+          input.platformIds.map((id) =>
+            platformRepo.create({
+              game: saved,
+              platform: { id },
+            }),
+          ),
+        );
+      }
+
+      if (input.characterIds?.length) {
+        await characterRepo.save(
+          input.characterIds.map((id) =>
+            characterRepo.create({
+              game: saved,
+              character: { id },
+            }),
+          ),
+        );
+      }
+
+      if (modeRankEntities.length) {
+        await modeRankRepo.save(
+          modeRankEntities.map((relation) =>
+            modeRankRepo.create({
+              game: saved,
+              mode: relation.mode,
+              rank: relation.rank,
+            }),
+          ),
+        );
+      }
+
+      if (input.account) {
+        switch (input.account.type) {
+          case 'league-of-legends':
+            await lolRepo.save(
+              lolRepo.create({
+                game: saved,
+                username: input.account.username,
+                tagLine: input.account.tagLine,
+                region: input.account.region ?? null,
+                puuid: input.account.puuid ?? null,
+              }),
+            );
+            break;
+          case 'rocket-league':
+            await rocketRepo.save(
+              rocketRepo.create({
+                game: saved,
+                username: input.account.username,
+              }),
+            );
+            break;
+          case 'valorant':
+            await valorantRepo.save(
+              valorantRepo.create({
+                game: saved,
+                username: input.account.username,
+                tagLine: input.account.tagLine,
+              }),
+            );
+            break;
+          case 'brawl-stars':
+            await brawlRepo.save(
+              brawlRepo.create({
+                game: saved,
+                username: input.account.username,
+              }),
+            );
+            break;
+          case 'fortnite':
+            await fortniteRepo.save(
+              fortniteRepo.create({
+                game: saved,
+                username: input.account.username,
+              }),
+            );
+            break;
+        }
+      }
+
+      const reloaded = await gameRepo.findOne({ where: { id: saved.id } });
+      return reloaded ?? saved;
+    });
+
+    return this.mapPlayerGamePresenter(created);
+  }
+
+  async findPlayerGames(userProfileId: string): Promise<PlayerGamePresenter[]> {
+    const games = await this.playerGamesRepo.find({
+      where: { profile: { id: userProfileId } },
+      order: { id: 'ASC' },
+    });
+
+    return games.map((game) => this.mapPlayerGamePresenter(game));
+  }
+
+  async findPlayerGameByProfileAndGame(userProfileId: string, gameId: number): Promise<PlayerGamePresenter | null> {
+    const game = await this.playerGamesRepo.findOne({
+      where: { profile: { id: userProfileId }, rscGame: { id: gameId } },
+    });
+
+    return game ? this.mapPlayerGamePresenter(game) : null;
+  }
+
+  async updatePlayerGame(userProfileId: string, gameId: number, input: PlayerGameUpdateInput): Promise<PlayerGamePresenter> {
+    const updated = await this.dataSource.transaction(async (manager) => {
+      const gameRepo = manager.getRepository(UserGameEntity);
+      const modeRepo = manager.getRepository(RscGameModeEntity);
+      const rankRepo = manager.getRepository(RscGameRankEntity);
+      const positionRepo = manager.getRepository(UserGamePositionEntity);
+      const platformRepo = manager.getRepository(UserGamePlatformEntity);
+      const characterRepo = manager.getRepository(UserGameCharacterEntity);
+      const modeRankRepo = manager.getRepository(UserGameModeRankEntity);
+      const lolRepo = manager.getRepository(UserGameLeagueOfLegendsEntity);
+      const rocketRepo = manager.getRepository(UserGameRocketLeagueEntity);
+      const valorantRepo = manager.getRepository(UserGameValorantEntity);
+      const brawlRepo = manager.getRepository(UserGameBrawlStarsEntity);
+      const fortniteRepo = manager.getRepository(UserGameFortniteEntity);
+
+      const entity = await gameRepo.findOne({
+        where: { profile: { id: userProfileId }, rscGame: { id: gameId } },
+      });
+
+      if (!entity) {
+        throw new Error('Player game not found');
+      }
+
+      const updates: Partial<UserGameEntity> = { id: entity.id };
+      if (input.isRecruitable !== undefined) updates.isRecruitable = input.isRecruitable;
+      if (input.isFavoriteGame !== undefined) updates.isFavoriteGame = input.isFavoriteGame;
+      if (input.trackerUrl !== undefined) updates.trackerUrl = input.trackerUrl ?? null;
+
+      if (Object.keys(updates).length > 1) {
+        await gameRepo.save(updates);
+      }
+
+      if (input.positionIds !== undefined) {
+        await positionRepo.delete({ game: { id: entity.id } });
+        const positionIds = input.positionIds ?? [];
+        if (positionIds.length) {
+          await positionRepo.save(
+            positionIds.map((id) =>
+              positionRepo.create({
+                game: entity,
+                position: { id },
+              }),
+            ),
+          );
+        }
+      }
+
+      if (input.platformIds !== undefined) {
+        await platformRepo.delete({ game: { id: entity.id } });
+        const platformIds = input.platformIds ?? [];
+        if (platformIds.length) {
+          await platformRepo.save(
+            platformIds.map((id) =>
+              platformRepo.create({
+                game: entity,
+                platform: { id },
+              }),
+            ),
+          );
+        }
+      }
+
+      if (input.characterIds !== undefined) {
+        await characterRepo.delete({ game: { id: entity.id } });
+        const characterIds = input.characterIds ?? [];
+        if (characterIds.length) {
+          await characterRepo.save(
+            characterIds.map((id) =>
+              characterRepo.create({
+                game: entity,
+                character: { id },
+              }),
+            ),
+          );
+        }
+      }
+
+      if (input.modeRanks !== undefined) {
+        await modeRankRepo.delete({ game: { id: entity.id } });
+        const modeRanks = input.modeRanks ?? [];
+        if (modeRanks.length) {
+          const modeIds = [...new Set(modeRanks.map((item) => item.modeId))];
+          const rankIds = [...new Set(modeRanks.map((item) => item.rankId))];
+
+          const modeRows = modeIds.length
+            ? await modeRepo.find({
+                where: { gameId, rscModeId: In(modeIds) },
+              })
+            : [];
+
+          const rankRows = rankIds.length
+            ? await rankRepo.find({
+                where: { gameId, rscRankId: In(rankIds) },
+              })
+            : [];
+
+          const modeById = new Map(modeRows.map((row) => [row.rscModeId, row]));
+          const rankById = new Map(rankRows.map((row) => [row.rscRankId, row]));
+
+          const modeRankEntities = modeRanks.map((item) => {
+            const mode = modeById.get(item.modeId);
+            const rank = rankById.get(item.rankId);
+            if (!mode || !rank) {
+              throw new Error('Player game mode rank relation is missing');
+            }
+            return { mode, rank };
+          });
+
+          await modeRankRepo.save(
+            modeRankEntities.map((relation) =>
+              modeRankRepo.create({
+                game: entity,
+                mode: relation.mode,
+                rank: relation.rank,
+              }),
+            ),
+          );
+        }
+      }
+
+      if (input.account !== undefined) {
+        await lolRepo.delete({ game: { id: entity.id } });
+        await rocketRepo.delete({ game: { id: entity.id } });
+        await valorantRepo.delete({ game: { id: entity.id } });
+        await brawlRepo.delete({ game: { id: entity.id } });
+        await fortniteRepo.delete({ game: { id: entity.id } });
+
+        if (input.account) {
+          switch (input.account.type) {
+            case 'league-of-legends':
+              await lolRepo.save(
+                lolRepo.create({
+                  game: entity,
+                  username: input.account.username,
+                  tagLine: input.account.tagLine,
+                  region: input.account.region ?? null,
+                  puuid: input.account.puuid ?? null,
+                }),
+              );
+              break;
+            case 'rocket-league':
+              await rocketRepo.save(
+                rocketRepo.create({
+                  game: entity,
+                  username: input.account.username,
+                }),
+              );
+              break;
+            case 'valorant':
+              await valorantRepo.save(
+                valorantRepo.create({
+                  game: entity,
+                  username: input.account.username,
+                  tagLine: input.account.tagLine,
+                }),
+              );
+              break;
+            case 'brawl-stars':
+              await brawlRepo.save(
+                brawlRepo.create({
+                  game: entity,
+                  username: input.account.username,
+                }),
+              );
+              break;
+            case 'fortnite':
+              await fortniteRepo.save(
+                fortniteRepo.create({
+                  game: entity,
+                  username: input.account.username,
+                }),
+              );
+              break;
+          }
+        }
+      }
+
+      const reloaded = await gameRepo.findOne({ where: { id: entity.id } });
+      return reloaded ?? entity;
+    });
+
+    return this.mapPlayerGamePresenter(updated);
+  }
+
+  async deletePlayerGame(userProfileId: string, gameId: number): Promise<void> {
+    await this.playerGamesRepo.delete({
+      profile: { id: userProfileId },
+      rscGame: { id: gameId },
+    });
+  }
+
+  private mapPlayerGamePresenter(entity: UserGameEntity): PlayerGamePresenter {
+    const toIdList = <T>(items: T[] | null | undefined, mapper: (item: T) => number | null | undefined) => {
+      if (!Array.isArray(items)) return [];
+      return items
+        .map(mapper)
+        .filter((id): id is number => Number.isInteger(id) && id > 0);
+    };
+
+    const modeRanks = (entity.modeRanks ?? [])
+      .map((relation) => {
+        const modeId = relation.mode?.rscModeId;
+        const rankId = relation.rank?.rscRankId;
+        if (!modeId || !rankId) return null;
+        return { modeId, rankId };
+      })
+      .filter((item): item is { modeId: number; rankId: number } => Boolean(item));
+
+    return {
+      id: entity.id,
+      gameId: entity.rscGame?.id ?? 0,
+      isRecruitable: entity.isRecruitable,
+      isFavoriteGame: entity.isFavoriteGame,
+      trackerUrl: entity.trackerUrl ?? null,
+      positionIds: toIdList(entity.positions, (relation) => relation.position?.id),
+      platformIds: toIdList(entity.platforms, (relation) => relation.platform?.id),
+      characterIds: toIdList(entity.characters, (relation) => relation.character?.id),
+      modeRanks,
+      account: this.mapPlayerGameAccount(entity),
+    };
+  }
+
+  private mapPlayerGameAccount(entity: UserGameEntity): PlayerGamePresenter['account'] {
+    const slug = entity.rscGame?.slug?.toLowerCase();
+    if (!slug) return null;
+
+    switch (slug) {
+      case 'league-of-legends': {
+        const profile = entity.leagueOfLegendsProfile;
+        if (!profile?.username || !profile.tagLine) return null;
+        return {
+          username: profile.username,
+          tagLine: profile.tagLine,
+          ...(profile.region ? { region: profile.region } : {}),
+        };
+      }
+      case 'rocket-league': {
+        const profile = entity.rocketLeagueProfile;
+        return profile?.username ? { username: profile.username } : null;
+      }
+      case 'valorant': {
+        const profile = entity.valorantProfile;
+        if (!profile?.username || !profile.tagLine) return null;
+        return { username: profile.username, tagLine: profile.tagLine };
+      }
+      case 'brawl-stars': {
+        const profile = entity.brawlStarsProfile;
+        return profile?.username ? { username: profile.username } : null;
+      }
+      case 'fortnite': {
+        const profile = entity.fortniteProfile;
+        return profile?.username ? { username: profile.username } : null;
+      }
+      default:
+        return null;
+    }
   }
   
 }

@@ -3,7 +3,7 @@ import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, Primary
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 
 @Entity('player_reports')
-export class PlayerReportEntity {
+export class UserReportEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

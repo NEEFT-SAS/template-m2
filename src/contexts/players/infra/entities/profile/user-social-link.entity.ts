@@ -3,7 +3,7 @@ import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/us
 
 @Entity('user_social_links')
 @Unique('uq_user_social_links_profile_platform', ['userProfile', 'rscSocialPlatformId'])
-export class PlayerSocialLinkEntity {
+export class UserSocialLinkEntity {
   @PrimaryGeneratedColumn()
   id!: number;
 

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
+import { UserGameEntity } from '@/contexts/players/infra/entities/game/user-game.entity';
 import { SearchController } from './api/search.controller';
 import { SearchPlayersQuery } from './app/queries/search-players.query';
 import { PlayerSearchIndexer } from './infra/typesense/player-search.indexer';
@@ -12,7 +13,7 @@ import { SyncPlayerSearchOnUpdateHandler } from './app/handlers/sync-player-sear
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserProfileEntity]),
+    TypeOrmModule.forFeature([UserProfileEntity, UserGameEntity]),
     AuthModule,
     ResourcesModule,
   ],

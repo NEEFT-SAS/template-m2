@@ -3,7 +3,7 @@ import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/us
 
 @Entity('user_badges')
 @Index(['userProfile', 'rscBadgeId'], { unique: true })
-export class PlayerBadgeEntity {
+export class UserBadgeEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 

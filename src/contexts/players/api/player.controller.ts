@@ -6,7 +6,7 @@ import { PlayerOwnerOrAdminGuard } from "../infra/guards/player-owner-or-admin.g
 import { OptionalAuthGuard } from "@/contexts/auth/infra/guards/optional-auth.guard";
 import { GetPlayerSocialLinksUsecase } from "../app/usecases/social-links/get-social-links.use.case";
 import { UpdatePlayerSocialLinksUseCase } from "../app/usecases/social-links/update-social-links.usecase";
-import { CreatePlayerEducationExperienceDTO, CreatePlayerExperienceDTO, CreatePlayerProfessionalExperienceDTO, CreatePlayerReportDTO, UpdatePlayerAvailabilitiesDTO, UpdatePlayerEducationExperienceDTO, UpdatePlayerExperienceDTO, UpdatePlayerProfessionalExperienceDTO, UpdatePlayerProfileDTO, UpdatePlayerReportStatusDTO, UpdatePlayerSocialLinksDTO } from "@neeft-sas/shared";
+import { CreatePlayerEducationExperienceDTO, CreatePlayerExperienceDTO, CreatePlayerGameDTO, CreatePlayerProfessionalExperienceDTO, CreatePlayerReportDTO, UpdatePlayerAvailabilitiesDTO, UpdatePlayerEducationExperienceDTO, UpdatePlayerExperienceDTO, UpdatePlayerGameDTO, UpdatePlayerProfessionalExperienceDTO, UpdatePlayerProfileDTO, UpdatePlayerReportStatusDTO, UpdatePlayerSocialLinksDTO } from "@neeft-sas/shared";
 import { GetPlayerBadgesUsecase } from "../app/usecases/badges/get-player-badges.usecase";
 import { UpdatePlayerProfileUseCase } from "../app/usecases/update-player-profile.usecase";
 import { UpdatePlayerAvailabilitiesUseCase } from "../app/usecases/availabilities/update-availabilities.usecase";
@@ -29,6 +29,11 @@ import { Request } from "express";
 import { CreatePlayerReportUseCase } from "../app/usecases/reports/create-player-report.usecase";
 import { GetPlayerReportsUseCase } from "../app/usecases/reports/get-player-reports.usecase";
 import { UpdatePlayerReportStatusUseCase } from "../app/usecases/reports/update-player-report-status.usecase";
+import { CreatePlayerGameUseCase } from "../app/usecases/games/create-player-game.usecase";
+import { DeletePlayerGameUseCase } from "../app/usecases/games/delete-player-game.usecase";
+import { GetPlayerGamesUseCase } from "../app/usecases/games/get-player-games.usecase";
+import { GetPlayerGameUseCase } from "../app/usecases/games/get-player-game.usecase";
+import { UpdatePlayerGameUseCase } from "../app/usecases/games/update-player-game.usecase";
 
 type JwtUser = {
   slug: string;
@@ -70,6 +75,11 @@ export class PlayerController {
     private readonly createPlayerReportUseCase: CreatePlayerReportUseCase,
     private readonly getPlayerReportsUseCase: GetPlayerReportsUseCase,
     private readonly updatePlayerReportStatusUseCase: UpdatePlayerReportStatusUseCase,
+    private readonly createPlayerGameUseCase: CreatePlayerGameUseCase,
+    private readonly deletePlayerGameUseCase: DeletePlayerGameUseCase,
+    private readonly getPlayerGamesUseCase: GetPlayerGamesUseCase,
+    private readonly getPlayerGameUseCase: GetPlayerGameUseCase,
+    private readonly updatePlayerGameUseCase: UpdatePlayerGameUseCase,
   ) {}
 
 
@@ -93,6 +103,44 @@ export class PlayerController {
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
   updatePlayerAvailabilities(@Param('slug') slug: string, @Body() body: UpdatePlayerAvailabilitiesDTO) {
     return this.updatePlayerAvailabilitiesUseCase.execute(slug, body.availabilities);
+  }
+
+  @Post(':slug/games')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
+  addPlayerGame(@Param('slug') slug: string, @Body() body: CreatePlayerGameDTO) {
+    return this.createPlayerGameUseCase.execute(slug, body);
+  }
+
+  @Get(':slug/games')
+  @HttpCode(HttpStatus.OK)
+  getPlayerGames(@Param('slug') slug: string) {
+    return this.getPlayerGamesUseCase.execute(slug);
+  }
+
+  @Get(':slug/games/:gameId')
+  @HttpCode(HttpStatus.OK)
+  getPlayerGame(@Param('slug') slug: string, @Param('gameId', ParseIntPipe) gameId: number) {
+    return this.getPlayerGameUseCase.execute(slug, gameId);
+  }
+
+  @Patch(':slug/games/:gameId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
+  updatePlayerGame(
+    @Param('slug') slug: string,
+    @Param('gameId', ParseIntPipe) gameId: number,
+    @Body() body: UpdatePlayerGameDTO,
+  ) {
+    return this.updatePlayerGameUseCase.execute(slug, gameId, body);
+  }
+
+  @Delete(':slug/games/:gameId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
+  async deletePlayerGame(@Param('slug') slug: string, @Param('gameId', ParseIntPipe) gameId: number) {
+    await this.deletePlayerGameUseCase.execute(slug, gameId);
+    return { deleted: true };
   }
 
   /*************

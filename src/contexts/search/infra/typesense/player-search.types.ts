@@ -9,6 +9,13 @@ export type PlayerSearchDocument = {
   nationalityId?: string;
   languageIds?: string[];
   badgeIds?: number[];
+  hasGame: boolean;
+  hasRecruitableGame: boolean;
+  gameIds?: number[];
+  gamePositionKeys?: number[];
+  gamePlatformKeys?: number[];
+  gameCharacterKeys?: number[];
+  gameRankOrderKeys?: number[];
   hasProfilePicture: boolean;
   hasBannerPicture: boolean;
   experienceCount: number;

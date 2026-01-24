@@ -30,32 +30,57 @@ import { GetPlayerSocialLinksUsecase } from "./app/usecases/social-links/get-soc
 import { UpdatePlayerSocialLinksUseCase } from "./app/usecases/social-links/update-social-links.usecase";
 import { ResourcesModule } from "../resources/resources.module";
 import { SocialLinksNormalizer } from "./infra/normalizers/social-links.normalizer";
-import { PlayerSocialLinkEntity } from "./infra/entities/player-social-link.entity";
-import { UserProfileAvailabilityEntity } from "./infra/entities/user-profile-availability.entity";
-import { UserProfileSchoolExperienceEntity } from "./infra/entities/user-profile-school-experience.entity";
-import { UserProfileExperienceEntity } from "./infra/entities/user-profile-experience.entity";
-import { UserProfileProfessionalExperienceEntity } from "./infra/entities/user-profile-professional-experience.entity";
-import { PlayerBadgeEntity } from "./infra/entities/player-badge.entity";
+import { UserSocialLinkEntity } from "./infra/entities/profile/user-social-link.entity";
+import { UserProfileAvailabilityEntity } from "./infra/entities/profile/user-profile-availability.entity";
+import { UserProfileSchoolExperienceEntity } from "./infra/entities/profile/user-profile-school-experience.entity";
+import { UserProfileExperienceEntity } from "./infra/entities/profile/user-profile-experience.entity";
+import { UserProfileProfessionalExperienceEntity } from "./infra/entities/profile/user-profile-professional-experience.entity";
+import { UserBadgeEntity } from "./infra/entities/profile/user-badge.entity";
 import { GetPlayerBadgesUsecase } from "./app/usecases/badges/get-player-badges.usecase";
 import { PlayerBadgesResolver } from "./app/services/player-badges.resolver";
 import { CreatePlayerReportUseCase } from "./app/usecases/reports/create-player-report.usecase";
-import { PlayerReportEntity } from "./infra/entities/player-report.entity";
+import { UserReportEntity } from "./infra/entities/profile/user-report.entity";
 import { SendPlayerReportEmailHandler } from "./app/handlers/send-player-report-email.handler";
 import { GetPlayerReportsUseCase } from "./app/usecases/reports/get-player-reports.usecase";
 import { UpdatePlayerReportStatusUseCase } from "./app/usecases/reports/update-player-report-status.usecase";
+import { UserGameEntity } from "./infra/entities/game/user-game.entity";
+import { UserGameCharacterEntity } from "./infra/entities/game/user-game-character.entity";
+import { UserGamePlatformEntity } from "./infra/entities/game/user-game-platform.entity";
+import { UserGamePositionEntity } from "./infra/entities/game/user-game-position.entity";
+import { UserGameModeRankEntity } from "./infra/entities/game/user-game-mode-rank.entity";
+import { UserGameLeagueOfLegendsEntity } from "./infra/entities/game/user-game-league-of-legends.entity";
+import { UserGameRocketLeagueEntity } from "./infra/entities/game/user-game-rocket-league.entity";
+import { UserGameValorantEntity } from "./infra/entities/game/user-game-valorant.entity";
+import { UserGameBrawlStarsEntity } from "./infra/entities/game/user-game-brawl-stars.entity";
+import { UserGameFortniteEntity } from "./infra/entities/game/user-game-fortnite.entity";
+import { CreatePlayerGameUseCase } from "./app/usecases/games/create-player-game.usecase";
+import { DeletePlayerGameUseCase } from "./app/usecases/games/delete-player-game.usecase";
+import { GetPlayerGamesUseCase } from "./app/usecases/games/get-player-games.usecase";
+import { GetPlayerGameUseCase } from "./app/usecases/games/get-player-game.usecase";
+import { UpdatePlayerGameUseCase } from "./app/usecases/games/update-player-game.usecase";
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       UserCredentialsEntity,
       UserProfileEntity,
-      PlayerSocialLinkEntity,
-      PlayerBadgeEntity,
+      UserSocialLinkEntity,
+      UserBadgeEntity,
       UserProfileAvailabilityEntity,
       UserProfileSchoolExperienceEntity,
       UserProfileProfessionalExperienceEntity,
       UserProfileExperienceEntity,
-      PlayerReportEntity
+      UserReportEntity,
+      UserGameEntity,
+      UserGameCharacterEntity,
+      UserGamePlatformEntity,
+      UserGamePositionEntity,
+      UserGameModeRankEntity,
+      UserGameLeagueOfLegendsEntity,
+      UserGameRocketLeagueEntity,
+      UserGameValorantEntity,
+      UserGameBrawlStarsEntity,
+      UserGameFortniteEntity
     ]),
     ResourcesModule,
     AuthModule
@@ -95,6 +120,11 @@ import { UpdatePlayerReportStatusUseCase } from "./app/usecases/reports/update-p
     GetPlayerReportsUseCase,
     UpdatePlayerReportStatusUseCase,
     SendPlayerReportEmailHandler,
+    CreatePlayerGameUseCase,
+    DeletePlayerGameUseCase,
+    GetPlayerGamesUseCase,
+    GetPlayerGameUseCase,
+    UpdatePlayerGameUseCase,
 
     { provide: PLAYER_REPOSITORY, useClass: PlayerRepositoryTypeorm },
   ],

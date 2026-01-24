@@ -1,4 +1,4 @@
-import { PlayerAvailabilityPresenter, PlayerBadgePresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter, UserProfileAttendanceMode, UserProfileEducationStatus } from "@neeft-sas/shared";
+import type { PlayerAvailabilityPresenter, PlayerBadgePresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerGamePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter, UserProfileAttendanceMode, UserProfileEducationStatus } from "@neeft-sas/shared";
 
 export const PLAYER_REPOSITORY = Symbol('PLAYER_REPOSITORY');
 
@@ -94,6 +94,60 @@ export type PlayerProfessionalExperienceUpdateInput = {
   location?: string | null;
 };
 
+export type PlayerGameModeRankInput = {
+  modeId: number;
+  rankId: number;
+};
+
+export type PlayerGameAccountInput =
+  | {
+      type: 'league-of-legends';
+      username: string;
+      tagLine: string;
+      region?: string | null;
+      puuid?: string | null;
+    }
+  | {
+      type: 'rocket-league';
+      username: string;
+    }
+  | {
+      type: 'valorant';
+      username: string;
+      tagLine: string;
+    }
+  | {
+      type: 'brawl-stars';
+      username: string;
+    }
+  | {
+      type: 'fortnite';
+      username: string;
+    };
+
+export type PlayerGameCreateInput = {
+  gameId: number;
+  isRecruitable: boolean;
+  isFavoriteGame: boolean;
+  trackerUrl?: string | null;
+  positionIds?: number[] | null;
+  platformIds?: number[] | null;
+  characterIds?: number[] | null;
+  modeRanks?: PlayerGameModeRankInput[] | null;
+  account?: PlayerGameAccountInput | null;
+};
+
+export type PlayerGameUpdateInput = {
+  isRecruitable?: boolean;
+  isFavoriteGame?: boolean;
+  trackerUrl?: string | null;
+  positionIds?: number[] | null;
+  platformIds?: number[] | null;
+  characterIds?: number[] | null;
+  modeRanks?: PlayerGameModeRankInput[] | null;
+  account?: PlayerGameAccountInput | null;
+};
+
 export type PlayerReportCreateInput = {
   reporterProfileId: string;
   targetProfileId: string;
@@ -127,6 +181,12 @@ export interface PlayerRepositoryPort {
   findProfessionalExperienceById(userProfileId: string, experienceId: string): Promise<PlayerProfessionalExperiencePresenter | null>;
   updateProfessionalExperience(userProfileId: string, experienceId: string, input: PlayerProfessionalExperienceUpdateInput): Promise<PlayerProfessionalExperiencePresenter>;
   deleteProfessionalExperience(userProfileId: string, experienceId: string): Promise<void>;
+  findPlayerGameIdByProfileAndGame(userProfileId: string, gameId: number): Promise<number | null>;
+  createPlayerGame(userProfileId: string, input: PlayerGameCreateInput): Promise<PlayerGamePresenter>;
+  findPlayerGames(userProfileId: string): Promise<PlayerGamePresenter[]>;
+  findPlayerGameByProfileAndGame(userProfileId: string, gameId: number): Promise<PlayerGamePresenter | null>;
+  updatePlayerGame(userProfileId: string, gameId: number, input: PlayerGameUpdateInput): Promise<PlayerGamePresenter>;
+  deletePlayerGame(userProfileId: string, gameId: number): Promise<void>;
 
   findPlayerBadgeContextBySlug(userSlug: string): Promise<any | null>;
   findAssignedBadgeIds(userProfileId: string): Promise<number[]>;
