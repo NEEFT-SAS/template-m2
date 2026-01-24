@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { PlayerGamePresenter } from '@neeft-sas/shared';
+import { PlayerGamePresenter } from '@neeft-sas/shared';
+import { plainToInstance } from 'class-transformer';
 import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
 
@@ -15,6 +16,7 @@ export class GetPlayerGamesUseCase {
       throw new PlayerNotFoundError(userSlug);
     }
 
-    return this.repo.findPlayerGames(profileId);
+    const games = await this.repo.findPlayerGames(profileId);
+    return plainToInstance(PlayerGamePresenter, games, { excludeExtraneousValues: true });
   }
 }

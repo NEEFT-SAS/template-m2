@@ -92,6 +92,10 @@ export class UpdatePlayerProfileUseCase {
 
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug }));
 
-    return plainToInstance(PlayerPrivateProfilePresenter, updated, { excludeExtraneousValues: true });
+    return plainToInstance(
+      PlayerPrivateProfilePresenter,
+      { ...updated.profile, email: updated.credentials.email },
+      { excludeExtraneousValues: true },
+    );
   }
 }

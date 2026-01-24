@@ -4,9 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { UserSocialLinkEntity } from '../../entities/profile/user-social-link.entity';
-import { PlayerAvailabilityPresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportStatus, PlayerSocialLinkPresenter } from '@neeft-sas/shared';
-import type { PlayerGamePresenter } from '@neeft-sas/shared';
-import { plainToInstance } from 'class-transformer';
+import { PlayerAvailabilityPresenter, PlayerReportStatus, PlayerSocialLinkPresenter } from '@neeft-sas/shared';
 import { UserCredentialsEntity } from '@/contexts/auth/infra/persistence/entities/user-credentials.entity';
 import { UserBadgeEntity } from '../../entities/profile/user-badge.entity';
 import { UserProfileAvailabilityEntity } from '../../entities/profile/user-profile-availability.entity';
@@ -44,16 +42,18 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     @InjectDataSource() private readonly dataSource: DataSource
   ) {}
 
-  async findPublicProfileBySlug(slug: string): Promise<PlayerProfilePresenter | null> {
+  async findPublicProfileBySlug(slug: string): Promise<UserProfileEntity | null> {
     const entity = await this.repo.findOne({
       where: { slug },
       relations: { nationality: true, languages: true },
     });
 
-    return entity ? plainToInstance(PlayerProfilePresenter, entity, { excludeExtraneousValues: true }) : null;
+    return entity ?? null;
   }
 
-  async findPrivateProfileBySlug(slug: string): Promise<PlayerPrivateProfilePresenter | null> {
+  async findPrivateProfileBySlug(
+    slug: string,
+  ): Promise<{ profile: UserProfileEntity; credentials: UserCredentialsEntity } | null> {
     const entity = await this.repo.findOne({
       where: { slug },
       relations: { nationality: true, languages: true },
@@ -68,11 +68,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
 
     if (!credentials) return null;
 
-    return plainToInstance(
-      PlayerPrivateProfilePresenter,
-      { ...entity, email: credentials.email },
-      { excludeExtraneousValues: true },
-    );
+    return { profile: entity, credentials };
   }
   
   async findProfileIdBySlug(slug: string): Promise<string | null> {
@@ -168,7 +164,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
   }
 
-  async replaceAvailabilities(userProfileId: string, availabilities: PlayerAvailabilityPresenter[]): Promise<PlayerAvailabilityPresenter[]> {
+  async replaceAvailabilities(userProfileId: string, availabilities: PlayerAvailabilityPresenter[]): Promise<UserProfileAvailabilityEntity[]> {
     return this.dataSource.transaction(async (manager) => {
       const repo = manager.getRepository(UserProfileAvailabilityEntity);
 
@@ -192,7 +188,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
    * Module : Experiences
    * 
    ***********************************/
-  async addExperience(userProfileId: string, input: PlayerExperienceInput): Promise<PlayerExperiencePresenter> {
+  async addExperience(userProfileId: string, input: PlayerExperienceInput): Promise<UserProfileExperienceEntity> {
     const entity = this.experiencesRepo.create({
       userProfile: { id: userProfileId },
       teamName: input.teamName ?? null,
@@ -203,23 +199,23 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
 
     const saved = await this.experiencesRepo.save(entity);
-    return plainToInstance(PlayerExperiencePresenter, saved, { excludeExtraneousValues: true });
+    return saved;
   }
 
-  async findExperiences(userProfileId: string): Promise<PlayerExperiencePresenter[]> {
+  async findExperiences(userProfileId: string): Promise<UserProfileExperienceEntity[]> {
     return this.experiencesRepo.find({
       where: { userProfile: { id: userProfileId } },
       order: { startDate: 'DESC', endDate: 'DESC', id: 'DESC' },
     });
   }
 
-  async findExperienceById(userProfileId: string, experienceId: number): Promise<PlayerExperiencePresenter | null> {
+  async findExperienceById(userProfileId: string, experienceId: number): Promise<UserProfileExperienceEntity | null> {
     return this.experiencesRepo.findOne({
       where: { id: experienceId, userProfile: { id: userProfileId } },
     });
   }
 
-  async updateExperience(userProfileId: string, experienceId: number, input: PlayerExperienceUpdateInput): Promise<PlayerExperiencePresenter> {
+  async updateExperience(userProfileId: string, experienceId: number, input: PlayerExperienceUpdateInput): Promise<UserProfileExperienceEntity> {
     await this.experiencesRepo.save({
       id: experienceId,
       userProfile: { id: userProfileId },
@@ -248,7 +244,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
    * Module : Education Experiences
    * 
    ***********************************/
-  async addEducationExperience(userProfileId: string, input: PlayerEducationExperienceInput): Promise<PlayerEducationExperiencePresenter> {
+  async addEducationExperience(userProfileId: string, input: PlayerEducationExperienceInput): Promise<UserProfileSchoolExperienceEntity> {
     const entity = this.schoolExperiencesRepo.create({
       profile: { id: userProfileId },
       schoolName: input.schoolName,
@@ -264,23 +260,23 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
 
     const saved = await this.schoolExperiencesRepo.save(entity);
-    return plainToInstance(PlayerEducationExperiencePresenter, saved, { excludeExtraneousValues: true });
+    return saved;
   }
 
-  async findEducationExperiences(userProfileId: string): Promise<PlayerEducationExperiencePresenter[]> {
+  async findEducationExperiences(userProfileId: string): Promise<UserProfileSchoolExperienceEntity[]> {
     return this.schoolExperiencesRepo.find({
       where: { profile: { id: userProfileId } },
       order: { startDate: 'DESC', endDate: 'DESC', createdAt: 'DESC' },
     });
   }
 
-  async findEducationExperienceById(userProfileId: string, experienceId: string): Promise<PlayerEducationExperiencePresenter | null> {
+  async findEducationExperienceById(userProfileId: string, experienceId: string): Promise<UserProfileSchoolExperienceEntity | null> {
     return this.schoolExperiencesRepo.findOne({
       where: { id: experienceId, profile: { id: userProfileId } },
     });
   }
 
-  async updateEducationExperience(userProfileId: string, experienceId: string, input: PlayerEducationExperienceUpdateInput): Promise<PlayerEducationExperiencePresenter> {
+  async updateEducationExperience(userProfileId: string, experienceId: string, input: PlayerEducationExperienceUpdateInput): Promise<UserProfileSchoolExperienceEntity> {
     await this.schoolExperiencesRepo.save({
       id: experienceId,
       profile: { id: userProfileId },
@@ -309,7 +305,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
    * Module : Professional Experiences
    * 
    ***********************************/
-  async addProfessionalExperience(userProfileId: string, input: PlayerProfessionalExperienceInput): Promise<PlayerProfessionalExperiencePresenter> {
+  async addProfessionalExperience(userProfileId: string, input: PlayerProfessionalExperienceInput): Promise<UserProfileProfessionalExperienceEntity> {
     const entity = this.professionalExperiencesRepo.create({
       profile: { id: userProfileId },
       companyName: input.companyName,
@@ -324,23 +320,23 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
 
     const saved = await this.professionalExperiencesRepo.save(entity);
-    return plainToInstance(PlayerProfessionalExperiencePresenter, saved, { excludeExtraneousValues: true });
+    return saved;
   }
 
-  async findProfessionalExperiences(userProfileId: string): Promise<PlayerProfessionalExperiencePresenter[]> {
+  async findProfessionalExperiences(userProfileId: string): Promise<UserProfileProfessionalExperienceEntity[]> {
     return this.professionalExperiencesRepo.find({
       where: { profile: { id: userProfileId } },
       order: { startDate: 'DESC', endDate: 'DESC', createdAt: 'DESC' },
     });
   }
 
-  async findProfessionalExperienceById(userProfileId: string, experienceId: string): Promise<PlayerProfessionalExperiencePresenter | null> {
+  async findProfessionalExperienceById(userProfileId: string, experienceId: string): Promise<UserProfileProfessionalExperienceEntity | null> {
     return this.professionalExperiencesRepo.findOne({
       where: { id: experienceId, profile: { id: userProfileId } },
     });
   }
 
-  async updateProfessionalExperience(userProfileId: string, experienceId: string, input: PlayerProfessionalExperienceUpdateInput): Promise<PlayerProfessionalExperiencePresenter> {
+  async updateProfessionalExperience(userProfileId: string, experienceId: string, input: PlayerProfessionalExperienceUpdateInput): Promise<UserProfileProfessionalExperienceEntity> {
     await this.professionalExperiencesRepo.save({
       id: experienceId,
       profile: { id: userProfileId },
@@ -369,7 +365,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
    * Module : Reports
    * 
    ***********************************/
-  async findPlayerReports(userProfileId: string): Promise<PlayerReportPresenter[]> {
+  async findPlayerReports(userProfileId: string): Promise<UserReportEntity[]> {
     return this.reportsRepo.find({
       where: { targetProfile: { id: userProfileId } },
       order: { createdAt: 'DESC', id: 'DESC' },
@@ -383,7 +379,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
   }
 
-  async findPlayerReportById(userProfileId: string, reportId: string): Promise<PlayerReportPresenter | null> {
+  async findPlayerReportById(userProfileId: string, reportId: string): Promise<UserReportEntity | null> {
     return this.reportsRepo.findOne({
       where: { id: reportId, targetProfile: { id: userProfileId } },
       select: {
@@ -396,7 +392,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
   }
 
-  async createPlayerReport(input: PlayerReportCreateInput): Promise<PlayerReportPresenter> {
+  async createPlayerReport(input: PlayerReportCreateInput): Promise<UserReportEntity> {
     const entity = this.reportsRepo.create({
       reporterProfile: { id: input.reporterProfileId },
       targetProfile: { id: input.targetProfileId },
@@ -405,10 +401,10 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
 
     const saved = await this.reportsRepo.save(entity);
-    return plainToInstance(PlayerReportPresenter, saved, { excludeExtraneousValues: true });
+    return saved;
   }
 
-  async updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<PlayerReportPresenter | null> {
+  async updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<UserReportEntity | null> {
     const res = await this.reportsRepo
       .createQueryBuilder()
       .update(UserReportEntity)
@@ -468,7 +464,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     return entity ? entity.id : null;
   }
 
-  async createPlayerGame(userProfileId: string, input: PlayerGameCreateInput): Promise<PlayerGamePresenter> {
+  async createPlayerGame(userProfileId: string, input: PlayerGameCreateInput): Promise<UserGameEntity> {
     const created = await this.dataSource.transaction(async (manager) => {
       const gameRepo = manager.getRepository(UserGameEntity);
       const modeRepo = manager.getRepository(RscGameModeEntity);
@@ -619,27 +615,27 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       return reloaded ?? saved;
     });
 
-    return this.mapPlayerGamePresenter(created);
+    return created;
   }
 
-  async findPlayerGames(userProfileId: string): Promise<PlayerGamePresenter[]> {
+  async findPlayerGames(userProfileId: string): Promise<UserGameEntity[]> {
     const games = await this.playerGamesRepo.find({
       where: { profile: { id: userProfileId } },
       order: { id: 'ASC' },
     });
 
-    return games.map((game) => this.mapPlayerGamePresenter(game));
+    return games;
   }
 
-  async findPlayerGameByProfileAndGame(userProfileId: string, gameId: number): Promise<PlayerGamePresenter | null> {
+  async findPlayerGameByProfileAndGame(userProfileId: string, gameId: number): Promise<UserGameEntity | null> {
     const game = await this.playerGamesRepo.findOne({
       where: { profile: { id: userProfileId }, rscGame: { id: gameId } },
     });
 
-    return game ? this.mapPlayerGamePresenter(game) : null;
+    return game ?? null;
   }
 
-  async updatePlayerGame(userProfileId: string, gameId: number, input: PlayerGameUpdateInput): Promise<PlayerGamePresenter> {
+  async updatePlayerGame(userProfileId: string, gameId: number, input: PlayerGameUpdateInput): Promise<UserGameEntity> {
     const updated = await this.dataSource.transaction(async (manager) => {
       const gameRepo = manager.getRepository(UserGameEntity);
       const modeRepo = manager.getRepository(RscGameModeEntity);
@@ -820,7 +816,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       return reloaded ?? entity;
     });
 
-    return this.mapPlayerGamePresenter(updated);
+    return updated;
   }
 
   async deletePlayerGame(userProfileId: string, gameId: number): Promise<void> {
@@ -830,71 +826,4 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
   }
 
-  private mapPlayerGamePresenter(entity: UserGameEntity): PlayerGamePresenter {
-    const toIdList = <T>(items: T[] | null | undefined, mapper: (item: T) => number | null | undefined) => {
-      if (!Array.isArray(items)) return [];
-      return items
-        .map(mapper)
-        .filter((id): id is number => Number.isInteger(id) && id > 0);
-    };
-
-    const modeRanks = (entity.modeRanks ?? [])
-      .map((relation) => {
-        const modeId = relation.mode?.rscModeId;
-        const rankId = relation.rank?.rscRankId;
-        if (!modeId || !rankId) return null;
-        return { modeId, rankId };
-      })
-      .filter((item): item is { modeId: number; rankId: number } => Boolean(item));
-
-    return {
-      id: entity.id,
-      gameId: entity.rscGame?.id ?? 0,
-      isRecruitable: entity.isRecruitable,
-      isFavoriteGame: entity.isFavoriteGame,
-      trackerUrl: entity.trackerUrl ?? null,
-      positionIds: toIdList(entity.positions, (relation) => relation.position?.id),
-      platformIds: toIdList(entity.platforms, (relation) => relation.platform?.id),
-      characterIds: toIdList(entity.characters, (relation) => relation.character?.id),
-      modeRanks,
-      account: this.mapPlayerGameAccount(entity),
-    };
-  }
-
-  private mapPlayerGameAccount(entity: UserGameEntity): PlayerGamePresenter['account'] {
-    const slug = entity.rscGame?.slug?.toLowerCase();
-    if (!slug) return null;
-
-    switch (slug) {
-      case 'league-of-legends': {
-        const profile = entity.leagueOfLegendsProfile;
-        if (!profile?.username || !profile.tagLine) return null;
-        return {
-          username: profile.username,
-          tagLine: profile.tagLine,
-          ...(profile.region ? { region: profile.region } : {}),
-        };
-      }
-      case 'rocket-league': {
-        const profile = entity.rocketLeagueProfile;
-        return profile?.username ? { username: profile.username } : null;
-      }
-      case 'valorant': {
-        const profile = entity.valorantProfile;
-        if (!profile?.username || !profile.tagLine) return null;
-        return { username: profile.username, tagLine: profile.tagLine };
-      }
-      case 'brawl-stars': {
-        const profile = entity.brawlStarsProfile;
-        return profile?.username ? { username: profile.username } : null;
-      }
-      case 'fortnite': {
-        const profile = entity.fortniteProfile;
-        return profile?.username ? { username: profile.username } : null;
-      }
-      default:
-        return null;
-    }
-  }
-  
 }

@@ -10,6 +10,7 @@ import { PlayerModule } from './contexts/players/player.module';
 import { ResourcesModule } from './contexts/resources/resources.module';
 import { BillingModule } from './contexts/billing/billing.module';
 import { SearchModule } from './contexts/search/search.module';
+import { TeamsModule } from './contexts/teams/teams.module';
 
 @Module({
   imports: [
@@ -21,7 +22,8 @@ import { SearchModule } from './contexts/search/search.module';
     BillingModule,
     PlayerModule,
     ResourcesModule,
-    SearchModule
+    SearchModule,
+    TeamsModule
   ],
   controllers: [AppController],
   providers: [AppService],

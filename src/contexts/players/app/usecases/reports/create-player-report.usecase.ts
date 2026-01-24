@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CreatePlayerReportDTO, PlayerReportPresenter } from '@neeft-sas/shared';
+import { plainToInstance } from 'class-transformer';
 import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
 import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '../../../domain/errors/player-profile.errors';
@@ -48,6 +49,6 @@ export class CreatePlayerReportUseCase {
       }),
     );
 
-    return report;
+    return plainToInstance(PlayerReportPresenter, report, { excludeExtraneousValues: true });
   }
 }

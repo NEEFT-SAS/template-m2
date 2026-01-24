@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { UpdatePlayerGameDTO } from '@neeft-sas/shared';
-import type { PlayerGamePresenter } from '@neeft-sas/shared';
+import { UpdatePlayerGameDTO, PlayerGamePresenter } from '@neeft-sas/shared';
+import { plainToInstance } from 'class-transformer';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
 import { PlayerGameDuplicateSelectionError, PlayerGameInvalidCharactersError, PlayerGameInvalidGameError, PlayerGameInvalidModeRanksError, PlayerGameInvalidPlatformsError, PlayerGameInvalidPositionsError, PlayerGameNotFoundError } from '@/contexts/players/domain/errors/player-game.errors';
@@ -119,11 +119,11 @@ export class UpdatePlayerGameUseCase {
     }
 
     if (!Object.keys(updates).length) {
-      return existing;
+      return plainToInstance(PlayerGamePresenter, existing, { excludeExtraneousValues: true });
     }
 
     const updated = await this.repo.updatePlayerGame(profileId, gameId, updates);
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
-    return updated;
+    return plainToInstance(PlayerGamePresenter, updated, { excludeExtraneousValues: true });
   }
 }

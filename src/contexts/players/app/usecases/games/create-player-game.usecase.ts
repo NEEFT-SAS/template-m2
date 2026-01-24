@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreatePlayerGameDTO } from '@neeft-sas/shared';
-import type { PlayerGamePresenter } from '@neeft-sas/shared';
+import { CreatePlayerGameDTO, PlayerGamePresenter } from '@neeft-sas/shared';
+import { plainToInstance } from 'class-transformer';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
 import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../../ports/player.repository.port';
@@ -103,6 +103,6 @@ export class CreatePlayerGameUseCase {
 
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
 
-    return created;
+    return plainToInstance(PlayerGamePresenter, created, { excludeExtraneousValues: true });
   }
 }

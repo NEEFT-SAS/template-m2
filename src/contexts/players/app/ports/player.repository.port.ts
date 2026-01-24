@@ -1,10 +1,24 @@
-import type { PlayerAvailabilityPresenter, PlayerBadgePresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerGamePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter, UserProfileAttendanceMode, UserProfileEducationStatus } from "@neeft-sas/shared";
+import type { PlayerAvailabilityPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter, UserProfileAttendanceMode, UserProfileEducationStatus } from "@neeft-sas/shared";
+import type { UserCredentialsEntity } from "@/contexts/auth/infra/persistence/entities/user-credentials.entity";
+import type { UserProfileEntity } from "@/contexts/auth/infra/persistence/entities/user-profile.entity";
+import type { UserProfileAvailabilityEntity } from "../../infra/entities/profile/user-profile-availability.entity";
+import type { UserProfileExperienceEntity } from "../../infra/entities/profile/user-profile-experience.entity";
+import type { UserProfileSchoolExperienceEntity } from "../../infra/entities/profile/user-profile-school-experience.entity";
+import type { UserProfileProfessionalExperienceEntity } from "../../infra/entities/profile/user-profile-professional-experience.entity";
+import type { UserReportEntity } from "../../infra/entities/profile/user-report.entity";
+import type { UserSocialLinkEntity } from "../../infra/entities/profile/user-social-link.entity";
+import type { UserGameEntity } from "../../infra/entities/game/user-game.entity";
 
 export const PLAYER_REPOSITORY = Symbol('PLAYER_REPOSITORY');
 
 export type PlayerProfileContext = {
   userProfileId: string;
   userCredentialId: string;
+};
+
+export type PlayerPrivateProfileSnapshot = {
+  profile: UserProfileEntity;
+  credentials: UserCredentialsEntity;
 };
 
 export type PlayerProfileUpdateInput = {
@@ -156,43 +170,43 @@ export type PlayerReportCreateInput = {
 };
 
 export interface PlayerRepositoryPort {
-  findPublicProfileBySlug(slug: string): Promise<PlayerProfilePresenter | null>; // public info only
-  findPrivateProfileBySlug(slug: string): Promise<PlayerPrivateProfilePresenter | null>; // public info + email + birthDate
+  findPublicProfileBySlug(slug: string): Promise<UserProfileEntity | null>; // public info only
+  findPrivateProfileBySlug(slug: string): Promise<PlayerPrivateProfileSnapshot | null>; // public info + email + birthDate
   findProfileIdBySlug(slug: string): Promise<string | null>; // profileId only
   findProfileContextBySlug(slug: string): Promise<PlayerProfileContext | null>; // profileId + credentialId
   updateProfile(context: PlayerProfileContext, payload: PlayerProfileUpdatePayload): Promise<void>; // update profile and optionally credentials
 
-  findSocialLinks(userProfileId: string): Promise<PlayerSocialLinkPresenter[]>;
-  replaceSocialLinks(userProfileId: string, links: PlayerSocialLinkPresenter[]): Promise<PlayerSocialLinkPresenter[]>;
-  replaceAvailabilities(userProfileId: string, availabilities: PlayerAvailabilityPresenter[]): Promise<PlayerAvailabilityPresenter[]>;
+  findSocialLinks(userProfileId: string): Promise<UserSocialLinkEntity[]>;
+  replaceSocialLinks(userProfileId: string, links: PlayerSocialLinkPresenter[]): Promise<UserSocialLinkEntity[]>;
+  replaceAvailabilities(userProfileId: string, availabilities: PlayerAvailabilityPresenter[]): Promise<UserProfileAvailabilityEntity[]>;
   
-  addExperience(userProfileId: string, input: PlayerExperienceInput): Promise<PlayerExperiencePresenter>;
-  findExperiences(userProfileId: string): Promise<PlayerExperiencePresenter[]>;
-  findExperienceById(userProfileId: string, experienceId: number): Promise<PlayerExperiencePresenter | null>;
-  updateExperience(userProfileId: string, experienceId: number, input: PlayerExperienceUpdateInput): Promise<PlayerExperiencePresenter>;
+  addExperience(userProfileId: string, input: PlayerExperienceInput): Promise<UserProfileExperienceEntity>;
+  findExperiences(userProfileId: string): Promise<UserProfileExperienceEntity[]>;
+  findExperienceById(userProfileId: string, experienceId: number): Promise<UserProfileExperienceEntity | null>;
+  updateExperience(userProfileId: string, experienceId: number, input: PlayerExperienceUpdateInput): Promise<UserProfileExperienceEntity>;
   deleteExperience(userProfileId: string, experienceId: number): Promise<void>;
-  addEducationExperience(userProfileId: string, input: PlayerEducationExperienceInput): Promise<PlayerEducationExperiencePresenter>;
-  findEducationExperiences(userProfileId: string): Promise<PlayerEducationExperiencePresenter[]>;
-  findEducationExperienceById(userProfileId: string, experienceId: string): Promise<PlayerEducationExperiencePresenter | null>;
-  updateEducationExperience(userProfileId: string, experienceId: string, input: PlayerEducationExperienceUpdateInput): Promise<PlayerEducationExperiencePresenter>;
+  addEducationExperience(userProfileId: string, input: PlayerEducationExperienceInput): Promise<UserProfileSchoolExperienceEntity>;
+  findEducationExperiences(userProfileId: string): Promise<UserProfileSchoolExperienceEntity[]>;
+  findEducationExperienceById(userProfileId: string, experienceId: string): Promise<UserProfileSchoolExperienceEntity | null>;
+  updateEducationExperience(userProfileId: string, experienceId: string, input: PlayerEducationExperienceUpdateInput): Promise<UserProfileSchoolExperienceEntity>;
   deleteEducationExperience(userProfileId: string, experienceId: string): Promise<void>;
-  addProfessionalExperience(userProfileId: string, input: PlayerProfessionalExperienceInput): Promise<PlayerProfessionalExperiencePresenter>;
-  findProfessionalExperiences(userProfileId: string): Promise<PlayerProfessionalExperiencePresenter[]>;
-  findProfessionalExperienceById(userProfileId: string, experienceId: string): Promise<PlayerProfessionalExperiencePresenter | null>;
-  updateProfessionalExperience(userProfileId: string, experienceId: string, input: PlayerProfessionalExperienceUpdateInput): Promise<PlayerProfessionalExperiencePresenter>;
+  addProfessionalExperience(userProfileId: string, input: PlayerProfessionalExperienceInput): Promise<UserProfileProfessionalExperienceEntity>;
+  findProfessionalExperiences(userProfileId: string): Promise<UserProfileProfessionalExperienceEntity[]>;
+  findProfessionalExperienceById(userProfileId: string, experienceId: string): Promise<UserProfileProfessionalExperienceEntity | null>;
+  updateProfessionalExperience(userProfileId: string, experienceId: string, input: PlayerProfessionalExperienceUpdateInput): Promise<UserProfileProfessionalExperienceEntity>;
   deleteProfessionalExperience(userProfileId: string, experienceId: string): Promise<void>;
   findPlayerGameIdByProfileAndGame(userProfileId: string, gameId: number): Promise<number | null>;
-  createPlayerGame(userProfileId: string, input: PlayerGameCreateInput): Promise<PlayerGamePresenter>;
-  findPlayerGames(userProfileId: string): Promise<PlayerGamePresenter[]>;
-  findPlayerGameByProfileAndGame(userProfileId: string, gameId: number): Promise<PlayerGamePresenter | null>;
-  updatePlayerGame(userProfileId: string, gameId: number, input: PlayerGameUpdateInput): Promise<PlayerGamePresenter>;
+  createPlayerGame(userProfileId: string, input: PlayerGameCreateInput): Promise<UserGameEntity>;
+  findPlayerGames(userProfileId: string): Promise<UserGameEntity[]>;
+  findPlayerGameByProfileAndGame(userProfileId: string, gameId: number): Promise<UserGameEntity | null>;
+  updatePlayerGame(userProfileId: string, gameId: number, input: PlayerGameUpdateInput): Promise<UserGameEntity>;
   deletePlayerGame(userProfileId: string, gameId: number): Promise<void>;
 
   findPlayerBadgeContextBySlug(userSlug: string): Promise<any | null>;
   findAssignedBadgeIds(userProfileId: string): Promise<number[]>;
 
-  findPlayerReports(userProfileId: string): Promise<PlayerReportPresenter[]>;
-  findPlayerReportById(userProfileId: string, reportId: string): Promise<PlayerReportPresenter | null>;
-  createPlayerReport(input: PlayerReportCreateInput): Promise<PlayerReportPresenter>;
-  updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<PlayerReportPresenter | null>;
+  findPlayerReports(userProfileId: string): Promise<UserReportEntity[]>;
+  findPlayerReportById(userProfileId: string, reportId: string): Promise<UserReportEntity | null>;
+  createPlayerReport(input: PlayerReportCreateInput): Promise<UserReportEntity>;
+  updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<UserReportEntity | null>;
 }
