@@ -9,6 +9,8 @@ export type CreateCredentialsInput = {
 export type CreateProfileInput = {
   userCredentialId: string;
   username: string;
+  firstname: string;
+  lastname: string;
   slug: string;
   birthDate: Date;
   referralCode: string;

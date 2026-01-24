@@ -40,6 +40,9 @@ import { GetPlayerBadgesUsecase } from "./app/usecases/badges/get-player-badges.
 import { PlayerBadgesResolver } from "./app/services/player-badges.resolver";
 import { CreatePlayerReportUseCase } from "./app/usecases/reports/create-player-report.usecase";
 import { PlayerReportEntity } from "./infra/entities/player-report.entity";
+import { SendPlayerReportEmailHandler } from "./app/handlers/send-player-report-email.handler";
+import { GetPlayerReportsUseCase } from "./app/usecases/reports/get-player-reports.usecase";
+import { UpdatePlayerReportStatusUseCase } from "./app/usecases/reports/update-player-report-status.usecase";
 
 @Module({
   imports: [
@@ -89,6 +92,9 @@ import { PlayerReportEntity } from "./infra/entities/player-report.entity";
     PlayerBadgesResolver,
     
     CreatePlayerReportUseCase,
+    GetPlayerReportsUseCase,
+    UpdatePlayerReportStatusUseCase,
+    SendPlayerReportEmailHandler,
 
     { provide: PLAYER_REPOSITORY, useClass: PlayerRepositoryTypeorm },
   ],

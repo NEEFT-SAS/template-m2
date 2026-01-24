@@ -76,6 +76,8 @@ export class AuthRepositoryTypeorm implements AuthRepositoryPort {
         profileRepository.create({
           userCredentialId: credentials.id,
           username: input.profile.username,
+          firstname: input.profile.firstname,
+          lastname: input.profile.lastname,
           slug: input.profile.slug,
           birthDate: input.profile.birthDate,
           referralCode: input.profile.referralCode,

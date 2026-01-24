@@ -1,4 +1,4 @@
-import { PlayerAvailabilityPresenter, PlayerBadgePresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerSocialLinkPresenter, PlayerReportReason } from "@neeft-sas/shared";
+import { PlayerAvailabilityPresenter, PlayerBadgePresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter } from "@neeft-sas/shared";
 
 export const PLAYER_REPOSITORY = Symbol('PLAYER_REPOSITORY');
 
@@ -125,5 +125,8 @@ export interface PlayerRepositoryPort {
   findPlayerBadgeContextBySlug(userSlug: string): Promise<any | null>;
   findAssignedBadgeIds(userProfileId: string): Promise<number[]>;
 
+  findPlayerReports(userProfileId: string): Promise<PlayerReportPresenter[]>;
+  findPlayerReportById(userProfileId: string, reportId: string): Promise<PlayerReportPresenter | null>;
   createPlayerReport(input: PlayerReportCreateInput): Promise<PlayerReportPresenter>;
+  updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<PlayerReportPresenter | null>;
 }

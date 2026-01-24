@@ -11,3 +11,15 @@ export class PlayerReportSelfError extends DomainError {
     });
   }
 }
+
+export class PlayerReportNotFoundError extends DomainError {
+  constructor(slug: string, reportId: string) {
+    super({
+      code: 'PLAYER_REPORT_NOT_FOUND',
+      message: 'Report not found',
+      statusCode: 404,
+      fields: { reportId: ['not_found'] },
+      details: { slug, reportId },
+    });
+  }
+}

@@ -59,6 +59,8 @@ export class UserRegisterUsecase {
       },
       profile: {
         username: dto.username,
+        firstname: dto.firstname,
+        lastname: dto.lastname,
         slug,
         birthDate: dto.birthdate,
         referralCode: this.generateReferralCode(slug),

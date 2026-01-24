@@ -1,11 +1,12 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { GetPlayerBySlugUseCase } from "../app/usecases/get-player-by-slug.usecase";
 import { ConnectedGuard } from "@/contexts/auth/infra/guards/connected.guard";
+import { AdminGuard } from "@/contexts/auth/infra/guards/admin.guard";
 import { PlayerOwnerOrAdminGuard } from "../infra/guards/player-owner-or-admin.guard";
 import { OptionalAuthGuard } from "@/contexts/auth/infra/guards/optional-auth.guard";
 import { GetPlayerSocialLinksUsecase } from "../app/usecases/social-links/get-social-links.use.case";
 import { UpdatePlayerSocialLinksUseCase } from "../app/usecases/social-links/update-social-links.usecase";
-import { CreatePlayerEducationExperienceDTO, CreatePlayerExperienceDTO, CreatePlayerProfessionalExperienceDTO, CreatePlayerReportDTO, UpdatePlayerAvailabilitiesDTO, UpdatePlayerEducationExperienceDTO, UpdatePlayerExperienceDTO, UpdatePlayerProfessionalExperienceDTO, UpdatePlayerProfileDTO, UpdatePlayerSocialLinksDTO } from "@neeft-sas/shared";
+import { CreatePlayerEducationExperienceDTO, CreatePlayerExperienceDTO, CreatePlayerProfessionalExperienceDTO, CreatePlayerReportDTO, UpdatePlayerAvailabilitiesDTO, UpdatePlayerEducationExperienceDTO, UpdatePlayerExperienceDTO, UpdatePlayerProfessionalExperienceDTO, UpdatePlayerProfileDTO, UpdatePlayerReportStatusDTO, UpdatePlayerSocialLinksDTO } from "@neeft-sas/shared";
 import { GetPlayerBadgesUsecase } from "../app/usecases/badges/get-player-badges.usecase";
 import { UpdatePlayerProfileUseCase } from "../app/usecases/update-player-profile.usecase";
 import { UpdatePlayerAvailabilitiesUseCase } from "../app/usecases/availabilities/update-availabilities.usecase";
@@ -26,6 +27,8 @@ import { UpdatePlayerProfessionalExperienceUseCase } from "../app/usecases/exper
 import { DeletePlayerProfessionalExperienceUseCase } from "../app/usecases/experiences/delete-professional-experience.usecase";
 import { Request } from "express";
 import { CreatePlayerReportUseCase } from "../app/usecases/reports/create-player-report.usecase";
+import { GetPlayerReportsUseCase } from "../app/usecases/reports/get-player-reports.usecase";
+import { UpdatePlayerReportStatusUseCase } from "../app/usecases/reports/update-player-report-status.usecase";
 
 type JwtUser = {
   slug: string;
@@ -65,6 +68,8 @@ export class PlayerController {
     private readonly getPlayerBadgesUseCase: GetPlayerBadgesUsecase,
 
     private readonly createPlayerReportUseCase: CreatePlayerReportUseCase,
+    private readonly getPlayerReportsUseCase: GetPlayerReportsUseCase,
+    private readonly updatePlayerReportStatusUseCase: UpdatePlayerReportStatusUseCase,
   ) {}
 
 
@@ -196,12 +201,30 @@ export class PlayerController {
   /********
    * Reports
    */
+  @Get(':slug/reports')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
+  getPlayerReports(@Param('slug') slug: string) {
+    return this.getPlayerReportsUseCase.execute(slug);
+  }
+
   @Post(':slug/reports')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(ConnectedGuard)
   reportPlayer(@Req() req: RequestWithUser, @Param('slug') slug: string, @Body() body: CreatePlayerReportDTO) {
     const reporterSlug = req.user?.slug ?? '';
     return this.createPlayerReportUseCase.execute(reporterSlug, slug, body);
+  }
+
+  @Patch(':slug/reports/:reportId')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ConnectedGuard, AdminGuard)
+  updateReportStatus(
+    @Param('slug') slug: string,
+    @Param('reportId') reportId: string,
+    @Body() body: UpdatePlayerReportStatusDTO,
+  ) {
+    return this.updatePlayerReportStatusUseCase.execute(slug, reportId, body);
   }
 
   /********

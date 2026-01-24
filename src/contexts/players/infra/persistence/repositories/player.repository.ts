@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { PlayerSocialLinkEntity } from '../../entities/player-social-link.entity';
-import { PlayerAvailabilityPresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerSocialLinkPresenter } from '@neeft-sas/shared';
+import { PlayerAvailabilityPresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportStatus, PlayerSocialLinkPresenter } from '@neeft-sas/shared';
 import { plainToInstance } from 'class-transformer';
 import { UserCredentialsEntity } from '@/contexts/auth/infra/persistence/entities/user-credentials.entity';
 import { PlayerBadgeEntity } from '../../entities/player-badge.entity';
@@ -352,6 +352,33 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
    * Module : Reports
    * 
    ***********************************/
+  async findPlayerReports(userProfileId: string): Promise<PlayerReportPresenter[]> {
+    return this.reportsRepo.find({
+      where: { targetProfile: { id: userProfileId } },
+      order: { createdAt: 'DESC', id: 'DESC' },
+      select: {
+        id: true,
+        reason: true,
+        details: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async findPlayerReportById(userProfileId: string, reportId: string): Promise<PlayerReportPresenter | null> {
+    return this.reportsRepo.findOne({
+      where: { id: reportId, targetProfile: { id: userProfileId } },
+      select: {
+        id: true,
+        reason: true,
+        details: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+  }
+
   async createPlayerReport(input: PlayerReportCreateInput): Promise<PlayerReportPresenter> {
     const entity = this.reportsRepo.create({
       reporterProfile: { id: input.reporterProfileId },
@@ -362,6 +389,19 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
 
     const saved = await this.reportsRepo.save(entity);
     return plainToInstance(PlayerReportPresenter, saved, { excludeExtraneousValues: true });
+  }
+
+  async updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<PlayerReportPresenter | null> {
+    const res = await this.reportsRepo
+      .createQueryBuilder()
+      .update(PlayerReportEntity)
+      .set({ status })
+      .where('id = :reportId', { reportId })
+      .andWhere('target_profile_id = :targetProfileId', { targetProfileId: userProfileId })
+      .execute();
+
+    if ((res.affected ?? 0) === 0) return null;
+    return this.findPlayerReportById(userProfileId, reportId);
   }
 
 
