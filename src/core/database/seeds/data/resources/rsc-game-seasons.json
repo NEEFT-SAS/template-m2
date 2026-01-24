@@ -1,0 +1,5 @@
+[
+  { "gameSlug": "league-of-legends", "rscSeasonCode": "S13", "order": 10 },
+  { "gameSlug": "league-of-legends", "rscSeasonCode": "S14", "order": 20 },
+  { "gameSlug": "league-of-legends", "rscSeasonCode": "S15", "order": 30 }
+]

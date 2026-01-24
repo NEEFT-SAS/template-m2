@@ -1141,10 +1141,10 @@
     date-fns "^4.1.0"
     reflect-metadata "^0.2.2"
 
-"@neeft-sas/shared@^0.0.54":
-  version "0.0.54"
-  resolved "https://npm.pkg.github.com/download/@neeft-sas/shared/0.0.54/11a8b5070aaaf66d10458aa7592d4cb48a0b45c4#11a8b5070aaaf66d10458aa7592d4cb48a0b45c4"
-  integrity sha512-mMGkjBfIJtDSwi6WLh3PREy7AjZK5C22y2h54ryb3bdAFp7ARxVm7Nk9WaOOM8octUWDbW8eBtihbkr6esW47Q==
+"@neeft-sas/shared@^0.0.61":
+  version "0.0.61"
+  resolved "https://npm.pkg.github.com/download/@neeft-sas/shared/0.0.61/1e28dd1985e8af8642139d22987022455816991f#1e28dd1985e8af8642139d22987022455816991f"
+  integrity sha512-TIHO2xhwujA2EnIGr2qYgLKapYaTFHISOZYjdc5MMdSiASXzJALbXageyWD+IqGQMqmNT4ds6qHBLRdJDpi8Yw==
   dependencies:
     "@neeft-sas/shared" "^0.0.20"
     class-transformer "^0.5.1"
@@ -4685,9 +4685,9 @@ levn@^0.4.1:
     type-check "~0.4.0"
 
 libphonenumber-js@^1.11.1:
-  version "1.12.34"
-  resolved "https://registry.yarnpkg.com/libphonenumber-js/-/libphonenumber-js-1.12.34.tgz#20ed9da39e930e98eff4b6e24a8d8480303658af"
-  integrity sha512-v/Ip8k8eYdp7bINpzqDh46V/PaQ8sK+qi97nMQgjZzFlb166YFqlR/HVI+MzsI9JqcyyVWCOipmmretiaSyQyw==
+  version "1.12.35"
+  resolved "https://registry.yarnpkg.com/libphonenumber-js/-/libphonenumber-js-1.12.35.tgz#149d4a66b2a7a518998c430c6d33465abaed23c4"
+  integrity sha512-T/Cz6iLcsZdb5jDncDcUNhSAJ0VlSC9TnsqtBNdpkaAmy24/R1RhErtNWVWBrcUZKs9hSgaVsBkc7HxYnazIfw==
 
 lines-and-columns@^1.1.6:
   version "1.2.4"

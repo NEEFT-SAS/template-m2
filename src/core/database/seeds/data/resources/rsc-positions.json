@@ -1,0 +1,5 @@
+[
+  { "name": "Top", "slug": "top", "icon": "positions/top.png", "order": 10 },
+  { "name": "Jungle", "slug": "jungle", "icon": "positions/jungle.png", "order": 20 },
+  { "name": "Mid", "slug": "mid", "icon": "positions/mid.png", "order": 30 }
+]

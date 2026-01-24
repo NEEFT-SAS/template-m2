@@ -1,0 +1,44 @@
+[
+  {
+    "name": "League of Legends",
+    "shortName": "LoL",
+    "slug": "league-of-legends",
+    "genre": "MOBA",
+    "developer": "Riot Games",
+    "releaseDate": "2009-10-27",
+    "edition": "Free-to-play",
+    "officialLink": "https://www.leagueoflegends.com/",
+    "apiLink": null,
+    "icon": "games/lol/icon.png",
+    "banner": "games/lol/banner.jpg",
+    "description": "Competitive 5v5 MOBA."
+  },
+  {
+    "name": "Valorant",
+    "shortName": "VAL",
+    "slug": "valorant",
+    "genre": "FPS",
+    "developer": "Riot Games",
+    "releaseDate": "2020-06-02",
+    "edition": "Free-to-play",
+    "officialLink": "https://playvalorant.com/",
+    "apiLink": null,
+    "icon": "games/valorant/icon.png",
+    "banner": "games/valorant/banner.jpg",
+    "description": "Tactical 5v5 shooter."
+  },
+  {
+    "name": "Apex Legends",
+    "shortName": "Apex",
+    "slug": "apex-legends",
+    "genre": "Battle Royale",
+    "developer": "Respawn Entertainment",
+    "releaseDate": "2019-02-04",
+    "edition": "Free-to-play",
+    "officialLink": "https://www.ea.com/games/apex-legends",
+    "apiLink": null,
+    "icon": "games/apex/icon.png",
+    "banner": "games/apex/banner.jpg",
+    "description": "Squad-based battle royale."
+  }
+]

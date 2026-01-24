@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Solo/Duo",
+    "slug": "solo-duo",
+    "description": "Ranked queue for solo or duo players",
+    "isRanked": true,
+    "order": 10
+  },
+  {
+    "name": "Flex",
+    "slug": "flex",
+    "description": "Ranked queue for teams of 3 to 5",
+    "isRanked": true,
+    "order": 20
+  },
+  {
+    "name": "ARAM",
+    "slug": "aram",
+    "description": "All Random All Mid",
+    "isRanked": false,
+    "order": 30
+  }
+]

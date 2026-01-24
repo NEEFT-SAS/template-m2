@@ -1,0 +1,5 @@
+[
+  { "gameSlug": "league-of-legends", "rscPositionSlug": "top", "order": 10 },
+  { "gameSlug": "league-of-legends", "rscPositionSlug": "jungle", "order": 20 },
+  { "gameSlug": "league-of-legends", "rscPositionSlug": "mid", "order": 30 }
+]

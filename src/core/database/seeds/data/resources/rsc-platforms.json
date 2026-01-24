@@ -1,0 +1,17 @@
+[
+  {
+    "name": "PC",
+    "slug": "pc",
+    "icon": "uil:desktop"
+  },
+  {
+    "name": "PlayStation",
+    "slug": "ps5",
+    "icon": "simple-icons:playstation"
+  },
+  {
+    "name": "Xbox",
+    "slug": "xbox",
+    "icon": "simple-icons:xbox"
+  }
+]

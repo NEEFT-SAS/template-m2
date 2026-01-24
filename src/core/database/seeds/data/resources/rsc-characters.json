@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Ahri",
+    "slug": "ahri",
+    "icon": "icons/ahri.png"
+  },
+  {
+    "name": "Reyna",
+    "slug": "reyna",
+    "icon": "icons/reyna.png"
+  },
+  {
+    "name": "Octane",
+    "slug": "octane",
+    "icon": "icons/octane.png"
+  }
+]

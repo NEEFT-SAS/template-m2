@@ -1,0 +1,5 @@
+[
+  { "gameSlug": "league-of-legends", "rscCharacterSlug": "ahri", "order": 10 },
+  { "gameSlug": "valorant", "rscCharacterSlug": "reyna", "order": 10 },
+  { "gameSlug": "apex-legends", "rscCharacterSlug": "octane", "order": 10 }
+]
