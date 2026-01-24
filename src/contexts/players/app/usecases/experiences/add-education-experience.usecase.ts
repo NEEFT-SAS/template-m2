@@ -25,14 +25,16 @@ export class AddPlayerEducationExperienceUseCase {
     }
 
     const experience = await this.repo.addEducationExperience(profileId, {
-      title: dto.title,
-      school: dto.school,
-      location: dto.location ?? null,
-      fieldOfStudy: dto.fieldOfStudy ?? null,
-      startDate: dto.startDate ?? null,
-      endDate: dto.endDate ?? null,
-      ongoing: dto.ongoing ?? false,
+      schoolName: dto.schoolName,
+      schoolLogoUrl: dto.schoolLogoUrl ?? null,
+      diplomaName: dto.diplomaName,
       description: dto.description ?? null,
+      startDate: dto.startDate,
+      endDate: dto.endDate ?? null,
+      location: dto.location ?? null,
+      educationStatus: dto.educationStatus ?? null,
+      attendanceMode: dto.attendanceMode ?? null,
+      mention: dto.mention ?? null,
     });
 
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));

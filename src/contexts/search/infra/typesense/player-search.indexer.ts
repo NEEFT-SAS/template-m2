@@ -62,8 +62,8 @@ export class PlayerSearchIndexer implements OnModuleInit {
       this.loadStringArrayMap('user_profile_languages', 'language_id'),
       this.loadIntArrayMap('user_badges', 'rsc_badge_id'),
       this.loadCountMap('user_experiences'),
-      this.loadCountMap('user_educations'),
-      this.loadCountMap('user_professional_experiences'),
+      this.loadCountMap('user_profile_school_experiences', 'profile_id'),
+      this.loadCountMap('user_profile_professional_experiences', 'profile_id'),
       this.loadCountMap('user_social_links'),
     ]);
 
@@ -93,8 +93,8 @@ export class PlayerSearchIndexer implements OnModuleInit {
         this.loadStringArrayByProfile('user_profile_languages', 'language_id', base.id),
         this.loadIntArrayByProfile('user_badges', 'rsc_badge_id', base.id),
         this.loadCountByProfile('user_experiences', base.id),
-        this.loadCountByProfile('user_educations', base.id),
-        this.loadCountByProfile('user_professional_experiences', base.id),
+        this.loadCountByProfile('user_profile_school_experiences', base.id, 'profile_id'),
+        this.loadCountByProfile('user_profile_professional_experiences', base.id, 'profile_id'),
         this.loadCountByProfile('user_social_links', base.id),
       ]);
 
@@ -146,13 +146,13 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return row ?? null;
   }
 
-  private async loadCountMap(tableName: string): Promise<Map<string, number>> {
+  private async loadCountMap(tableName: string, profileColumn = 'user_profile_id'): Promise<Map<string, number>> {
     const rows = await this.dataSource
       .createQueryBuilder()
-      .select('t.user_profile_id', 'profileId')
+      .select(`t.${profileColumn}`, 'profileId')
       .addSelect('COUNT(1)', 'count')
       .from(tableName, 't')
-      .groupBy('t.user_profile_id')
+      .groupBy(`t.${profileColumn}`)
       .getRawMany<{ profileId: string; count: string }>();
 
     const map = new Map<string, number>();
@@ -162,12 +162,12 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return map;
   }
 
-  private async loadCountByProfile(tableName: string, profileId: string): Promise<number> {
+  private async loadCountByProfile(tableName: string, profileId: string, profileColumn = 'user_profile_id'): Promise<number> {
     const row = await this.dataSource
       .createQueryBuilder()
       .select('COUNT(1)', 'count')
       .from(tableName, 't')
-      .where('t.user_profile_id = :profileId', { profileId })
+      .where(`t.${profileColumn} = :profileId`, { profileId })
       .getRawOne<{ count: string }>();
 
     return Number(row?.count ?? 0);

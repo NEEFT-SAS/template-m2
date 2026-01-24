@@ -12,7 +12,7 @@ export class DeletePlayerProfessionalExperienceUseCase {
     @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
-  async execute(userSlug: string, experienceId: number): Promise<void> {
+  async execute(userSlug: string, experienceId: string): Promise<void> {
     const profileId = await this.repo.findProfileIdBySlug(userSlug);
     if (!profileId) {
       throw new PlayerNotFoundError(userSlug);

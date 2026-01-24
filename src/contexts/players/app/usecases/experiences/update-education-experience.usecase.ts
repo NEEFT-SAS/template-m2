@@ -14,7 +14,7 @@ export class UpdatePlayerEducationExperienceUseCase {
     @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
-  async execute(userSlug: string, experienceId: number, dto: UpdatePlayerEducationExperienceDTO): Promise<PlayerEducationExperiencePresenter> {
+  async execute(userSlug: string, experienceId: string, dto: UpdatePlayerEducationExperienceDTO): Promise<PlayerEducationExperiencePresenter> {
     const profileId = await this.repo.findProfileIdBySlug(userSlug);
     if (!profileId) {
       throw new PlayerNotFoundError(userSlug);
@@ -33,14 +33,16 @@ export class UpdatePlayerEducationExperienceUseCase {
     }
 
     const updates: PlayerEducationExperienceUpdateInput = {};
-    if (dto.title !== undefined) updates.title = dto.title;
-    if (dto.school !== undefined) updates.school = dto.school;
-    if (dto.location !== undefined) updates.location = dto.location ?? null;
-    if (dto.fieldOfStudy !== undefined) updates.fieldOfStudy = dto.fieldOfStudy ?? null;
-    if (dto.startDate !== undefined) updates.startDate = dto.startDate ?? null;
-    if (dto.endDate !== undefined) updates.endDate = dto.endDate ?? null;
-    if (dto.ongoing !== undefined) updates.ongoing = dto.ongoing;
+    if (dto.schoolName !== undefined) updates.schoolName = dto.schoolName;
+    if (dto.schoolLogoUrl !== undefined) updates.schoolLogoUrl = dto.schoolLogoUrl ?? null;
+    if (dto.diplomaName !== undefined) updates.diplomaName = dto.diplomaName;
     if (dto.description !== undefined) updates.description = dto.description ?? null;
+    if (dto.startDate !== undefined) updates.startDate = dto.startDate;
+    if (dto.endDate !== undefined) updates.endDate = dto.endDate ?? null;
+    if (dto.location !== undefined) updates.location = dto.location ?? null;
+    if (dto.educationStatus !== undefined) updates.educationStatus = dto.educationStatus ?? null;
+    if (dto.attendanceMode !== undefined) updates.attendanceMode = dto.attendanceMode ?? null;
+    if (dto.mention !== undefined) updates.mention = dto.mention ?? null;
 
     if (!Object.keys(updates).length) {
       return plainToInstance(PlayerEducationExperiencePresenter, existing, { excludeExtraneousValues: true });

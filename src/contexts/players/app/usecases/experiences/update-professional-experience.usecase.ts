@@ -14,7 +14,7 @@ export class UpdatePlayerProfessionalExperienceUseCase {
     @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
-  async execute(userSlug: string, experienceId: number, dto: UpdatePlayerProfessionalExperienceDTO): Promise<PlayerProfessionalExperiencePresenter> {
+  async execute(userSlug: string, experienceId: string, dto: UpdatePlayerProfessionalExperienceDTO): Promise<PlayerProfessionalExperiencePresenter> {
     const profileId = await this.repo.findProfileIdBySlug(userSlug);
     if (!profileId) {
       throw new PlayerNotFoundError(userSlug);
@@ -33,14 +33,15 @@ export class UpdatePlayerProfessionalExperienceUseCase {
     }
 
     const updates: PlayerProfessionalExperienceUpdateInput = {};
-    if (dto.title !== undefined) updates.title = dto.title;
-    if (dto.company !== undefined) updates.company = dto.company;
-    if (dto.location !== undefined) updates.location = dto.location ?? null;
+    if (dto.companyName !== undefined) updates.companyName = dto.companyName;
+    if (dto.companyLogoUrl !== undefined) updates.companyLogoUrl = dto.companyLogoUrl ?? null;
+    if (dto.positionTitle !== undefined) updates.positionTitle = dto.positionTitle;
     if (dto.contractType !== undefined) updates.contractType = dto.contractType ?? null;
-    if (dto.startDate !== undefined) updates.startDate = dto.startDate ?? null;
-    if (dto.endDate !== undefined) updates.endDate = dto.endDate ?? null;
-    if (dto.ongoing !== undefined) updates.ongoing = dto.ongoing;
     if (dto.description !== undefined) updates.description = dto.description ?? null;
+    if (dto.missions !== undefined) updates.missions = dto.missions ?? null;
+    if (dto.startDate !== undefined) updates.startDate = dto.startDate;
+    if (dto.endDate !== undefined) updates.endDate = dto.endDate ?? null;
+    if (dto.location !== undefined) updates.location = dto.location ?? null;
 
     if (!Object.keys(updates).length) {
       return plainToInstance(PlayerProfessionalExperiencePresenter, existing, { excludeExtraneousValues: true });

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Patch, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { GetPlayerBySlugUseCase } from "../app/usecases/get-player-by-slug.usecase";
 import { ConnectedGuard } from "@/contexts/auth/infra/guards/connected.guard";
 import { AdminGuard } from "@/contexts/auth/infra/guards/admin.guard";
@@ -140,7 +140,7 @@ export class PlayerController {
 
   @Get(':slug/education-experiences/:experienceId')
   @HttpCode(HttpStatus.OK)
-  getPlayerEducationExperience(@Param('slug') slug: string, @Param('experienceId', ParseIntPipe) experienceId: number) {
+  getPlayerEducationExperience(@Param('slug') slug: string, @Param('experienceId', ParseUUIDPipe) experienceId: string) {
     return this.getPlayerEducationExperienceUseCase.execute(slug, experienceId);
   }
 
@@ -154,14 +154,14 @@ export class PlayerController {
   @Patch(':slug/education-experiences/:experienceId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  updatePlayerEducationExperience(@Param('slug') slug: string, @Param('experienceId', ParseIntPipe) experienceId: number, @Body() body: UpdatePlayerEducationExperienceDTO) {
+  updatePlayerEducationExperience(@Param('slug') slug: string, @Param('experienceId', ParseUUIDPipe) experienceId: string, @Body() body: UpdatePlayerEducationExperienceDTO) {
     return this.updatePlayerEducationExperienceUseCase.execute(slug, experienceId, body);
   }
 
   @Delete(':slug/education-experiences/:experienceId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  deletePlayerEducationExperience(@Param('slug') slug: string, @Param('experienceId', ParseIntPipe) experienceId: number) {
+  deletePlayerEducationExperience(@Param('slug') slug: string, @Param('experienceId', ParseUUIDPipe) experienceId: string) {
     return this.deletePlayerEducationExperienceUseCase.execute(slug, experienceId);
   }
 
@@ -173,7 +173,7 @@ export class PlayerController {
 
   @Get(':slug/professional-experiences/:experienceId')
   @HttpCode(HttpStatus.OK)
-  getPlayerProfessionalExperience(@Param('slug') slug: string, @Param('experienceId', ParseIntPipe) experienceId: number) {
+  getPlayerProfessionalExperience(@Param('slug') slug: string, @Param('experienceId', ParseUUIDPipe) experienceId: string) {
     return this.getPlayerProfessionalExperienceUseCase.execute(slug, experienceId);
   }
 
@@ -187,14 +187,14 @@ export class PlayerController {
   @Patch(':slug/professional-experiences/:experienceId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  updatePlayerProfessionalExperience(@Param('slug') slug: string, @Param('experienceId', ParseIntPipe) experienceId: number, @Body() body: UpdatePlayerProfessionalExperienceDTO) {
+  updatePlayerProfessionalExperience(@Param('slug') slug: string, @Param('experienceId', ParseUUIDPipe) experienceId: string, @Body() body: UpdatePlayerProfessionalExperienceDTO) {
     return this.updatePlayerProfessionalExperienceUseCase.execute(slug, experienceId, body);
   }
 
   @Delete(':slug/professional-experiences/:experienceId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  deletePlayerProfessionalExperience(@Param('slug') slug: string, @Param('experienceId', ParseIntPipe) experienceId: number) {
+  deletePlayerProfessionalExperience(@Param('slug') slug: string, @Param('experienceId', ParseUUIDPipe) experienceId: string) {
     return this.deletePlayerProfessionalExperienceUseCase.execute(slug, experienceId);
   }
 

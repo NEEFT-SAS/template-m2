@@ -32,7 +32,7 @@ import { ResourcesModule } from "../resources/resources.module";
 import { SocialLinksNormalizer } from "./infra/normalizers/social-links.normalizer";
 import { PlayerSocialLinkEntity } from "./infra/entities/player-social-link.entity";
 import { UserProfileAvailabilityEntity } from "./infra/entities/user-profile-availability.entity";
-import { UserProfileEducationEntity } from "./infra/entities/user-profile-education.entity";
+import { UserProfileSchoolExperienceEntity } from "./infra/entities/user-profile-school-experience.entity";
 import { UserProfileExperienceEntity } from "./infra/entities/user-profile-experience.entity";
 import { UserProfileProfessionalExperienceEntity } from "./infra/entities/user-profile-professional-experience.entity";
 import { PlayerBadgeEntity } from "./infra/entities/player-badge.entity";
@@ -52,7 +52,7 @@ import { UpdatePlayerReportStatusUseCase } from "./app/usecases/reports/update-p
       PlayerSocialLinkEntity,
       PlayerBadgeEntity,
       UserProfileAvailabilityEntity,
-      UserProfileEducationEntity,
+      UserProfileSchoolExperienceEntity,
       UserProfileProfessionalExperienceEntity,
       UserProfileExperienceEntity,
       PlayerReportEntity

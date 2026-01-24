@@ -25,14 +25,15 @@ export class AddPlayerProfessionalExperienceUseCase {
     }
 
     const experience = await this.repo.addProfessionalExperience(profileId, {
-      title: dto.title,
-      company: dto.company,
-      location: dto.location ?? null,
+      companyName: dto.companyName,
+      companyLogoUrl: dto.companyLogoUrl ?? null,
+      positionTitle: dto.positionTitle,
       contractType: dto.contractType ?? null,
-      startDate: dto.startDate ?? null,
-      endDate: dto.endDate ?? null,
-      ongoing: dto.ongoing ?? false,
       description: dto.description ?? null,
+      missions: dto.missions ?? null,
+      startDate: dto.startDate,
+      endDate: dto.endDate ?? null,
+      location: dto.location ?? null,
     });
 
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));

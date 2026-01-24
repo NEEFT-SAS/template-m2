@@ -11,7 +11,7 @@ export class GetPlayerEducationExperienceUseCase {
     @Inject(PLAYER_REPOSITORY) private readonly repo: PlayerRepositoryPort,
   ) {}
 
-  async execute(userSlug: string, experienceId: number): Promise<PlayerEducationExperiencePresenter> {
+  async execute(userSlug: string, experienceId: string): Promise<PlayerEducationExperiencePresenter> {
     const profileId = await this.repo.findProfileIdBySlug(userSlug);
     if (!profileId) {
       throw new PlayerNotFoundError(userSlug);

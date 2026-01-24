@@ -1,4 +1,4 @@
-import { PlayerAvailabilityPresenter, PlayerBadgePresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter } from "@neeft-sas/shared";
+import { PlayerAvailabilityPresenter, PlayerBadgePresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter, UserProfileAttendanceMode, UserProfileEducationStatus } from "@neeft-sas/shared";
 
 export const PLAYER_REPOSITORY = Symbol('PLAYER_REPOSITORY');
 
@@ -45,47 +45,53 @@ export type PlayerExperienceUpdateInput = {
 };
 
 export type PlayerEducationExperienceInput = {
-  title: string;
-  school: string;
-  location?: string | null;
-  fieldOfStudy?: string | null;
-  startDate?: Date | null;
-  endDate?: Date | null;
-  ongoing?: boolean;
+  schoolName: string;
+  schoolLogoUrl?: string | null;
+  diplomaName: string;
   description?: string | null;
+  startDate: Date;
+  endDate?: Date | null;
+  location?: string | null;
+  educationStatus?: UserProfileEducationStatus | null;
+  attendanceMode?: UserProfileAttendanceMode | null;
+  mention?: string | null;
 };
 
 export type PlayerEducationExperienceUpdateInput = {
-  title?: string;
-  school?: string;
-  location?: string | null;
-  fieldOfStudy?: string | null;
-  startDate?: Date | null;
-  endDate?: Date | null;
-  ongoing?: boolean;
+  schoolName?: string;
+  schoolLogoUrl?: string | null;
+  diplomaName?: string;
   description?: string | null;
+  startDate?: Date;
+  endDate?: Date | null;
+  location?: string | null;
+  educationStatus?: UserProfileEducationStatus | null;
+  attendanceMode?: UserProfileAttendanceMode | null;
+  mention?: string | null;
 };
 
 export type PlayerProfessionalExperienceInput = {
-  title: string;
-  company: string;
-  location?: string | null;
+  companyName: string;
+  companyLogoUrl?: string | null;
+  positionTitle: string;
   contractType?: string | null;
-  startDate?: Date | null;
-  endDate?: Date | null;
-  ongoing?: boolean;
   description?: string | null;
+  missions?: string[] | null;
+  startDate: Date;
+  endDate?: Date | null;
+  location?: string | null;
 };
 
 export type PlayerProfessionalExperienceUpdateInput = {
-  title?: string;
-  company?: string;
-  location?: string | null;
+  companyName?: string;
+  companyLogoUrl?: string | null;
+  positionTitle?: string;
   contractType?: string | null;
-  startDate?: Date | null;
-  endDate?: Date | null;
-  ongoing?: boolean;
   description?: string | null;
+  missions?: string[] | null;
+  startDate?: Date;
+  endDate?: Date | null;
+  location?: string | null;
 };
 
 export type PlayerReportCreateInput = {
@@ -113,14 +119,14 @@ export interface PlayerRepositoryPort {
   deleteExperience(userProfileId: string, experienceId: number): Promise<void>;
   addEducationExperience(userProfileId: string, input: PlayerEducationExperienceInput): Promise<PlayerEducationExperiencePresenter>;
   findEducationExperiences(userProfileId: string): Promise<PlayerEducationExperiencePresenter[]>;
-  findEducationExperienceById(userProfileId: string, experienceId: number): Promise<PlayerEducationExperiencePresenter | null>;
-  updateEducationExperience(userProfileId: string, experienceId: number, input: PlayerEducationExperienceUpdateInput): Promise<PlayerEducationExperiencePresenter>;
-  deleteEducationExperience(userProfileId: string, experienceId: number): Promise<void>;
+  findEducationExperienceById(userProfileId: string, experienceId: string): Promise<PlayerEducationExperiencePresenter | null>;
+  updateEducationExperience(userProfileId: string, experienceId: string, input: PlayerEducationExperienceUpdateInput): Promise<PlayerEducationExperiencePresenter>;
+  deleteEducationExperience(userProfileId: string, experienceId: string): Promise<void>;
   addProfessionalExperience(userProfileId: string, input: PlayerProfessionalExperienceInput): Promise<PlayerProfessionalExperiencePresenter>;
   findProfessionalExperiences(userProfileId: string): Promise<PlayerProfessionalExperiencePresenter[]>;
-  findProfessionalExperienceById(userProfileId: string, experienceId: number): Promise<PlayerProfessionalExperiencePresenter | null>;
-  updateProfessionalExperience(userProfileId: string, experienceId: number, input: PlayerProfessionalExperienceUpdateInput): Promise<PlayerProfessionalExperiencePresenter>;
-  deleteProfessionalExperience(userProfileId: string, experienceId: number): Promise<void>;
+  findProfessionalExperienceById(userProfileId: string, experienceId: string): Promise<PlayerProfessionalExperiencePresenter | null>;
+  updateProfessionalExperience(userProfileId: string, experienceId: string, input: PlayerProfessionalExperienceUpdateInput): Promise<PlayerProfessionalExperiencePresenter>;
+  deleteProfessionalExperience(userProfileId: string, experienceId: string): Promise<void>;
 
   findPlayerBadgeContextBySlug(userSlug: string): Promise<any | null>;
   findAssignedBadgeIds(userProfileId: string): Promise<number[]>;

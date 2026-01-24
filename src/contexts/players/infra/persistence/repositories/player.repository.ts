@@ -9,7 +9,7 @@ import { plainToInstance } from 'class-transformer';
 import { UserCredentialsEntity } from '@/contexts/auth/infra/persistence/entities/user-credentials.entity';
 import { PlayerBadgeEntity } from '../../entities/player-badge.entity';
 import { UserProfileAvailabilityEntity } from '../../entities/user-profile-availability.entity';
-import { UserProfileEducationEntity } from '../../entities/user-profile-education.entity';
+import { UserProfileSchoolExperienceEntity } from '../../entities/user-profile-school-experience.entity';
 import { UserProfileExperienceEntity } from '../../entities/user-profile-experience.entity';
 import { UserProfileProfessionalExperienceEntity } from '../../entities/user-profile-professional-experience.entity';
 import { PlayerEducationExperienceInput, PlayerEducationExperienceUpdateInput, PlayerExperienceInput, PlayerExperienceUpdateInput, PlayerProfessionalExperienceInput, PlayerProfessionalExperienceUpdateInput, PlayerReportCreateInput } from '@/contexts/players/app/ports/player.repository.port';
@@ -23,7 +23,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     @InjectRepository(UserCredentialsEntity) private readonly credentialsRepo: Repository<UserCredentialsEntity>,
     @InjectRepository(PlayerSocialLinkEntity) private readonly linksRepo: Repository<PlayerSocialLinkEntity>,
     @InjectRepository(UserProfileExperienceEntity) private readonly experiencesRepo: Repository<UserProfileExperienceEntity>,
-    @InjectRepository(UserProfileEducationEntity) private readonly educationsRepo: Repository<UserProfileEducationEntity>,
+    @InjectRepository(UserProfileSchoolExperienceEntity) private readonly schoolExperiencesRepo: Repository<UserProfileSchoolExperienceEntity>,
     @InjectRepository(UserProfileProfessionalExperienceEntity) private readonly professionalExperiencesRepo: Repository<UserProfileProfessionalExperienceEntity>,
     @InjectRepository(PlayerReportEntity) private readonly reportsRepo: Repository<PlayerReportEntity>,
     @InjectRepository(PlayerBadgeEntity) private readonly badgesRepo: Repository<PlayerBadgeEntity>,
@@ -235,44 +235,46 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
    * 
    ***********************************/
   async addEducationExperience(userProfileId: string, input: PlayerEducationExperienceInput): Promise<PlayerEducationExperiencePresenter> {
-    const entity = this.educationsRepo.create({
-      userProfile: { id: userProfileId },
-      title: input.title,
-      school: input.school,
-      location: input.location ?? null,
-      fieldOfStudy: input.fieldOfStudy ?? null,
-      startDate: input.startDate ?? null,
-      endDate: input.endDate ?? null,
-      ongoing: input.ongoing ?? false,
+    const entity = this.schoolExperiencesRepo.create({
+      profile: { id: userProfileId },
+      schoolName: input.schoolName,
+      schoolLogoUrl: input.schoolLogoUrl ?? null,
+      diplomaName: input.diplomaName,
       description: input.description ?? null,
+      startDate: input.startDate,
+      endDate: input.endDate ?? null,
+      location: input.location ?? null,
+      educationStatus: input.educationStatus ?? null,
+      attendanceMode: input.attendanceMode ?? null,
+      mention: input.mention ?? null,
     });
 
-    const saved = await this.educationsRepo.save(entity);
+    const saved = await this.schoolExperiencesRepo.save(entity);
     return plainToInstance(PlayerEducationExperiencePresenter, saved, { excludeExtraneousValues: true });
   }
 
   async findEducationExperiences(userProfileId: string): Promise<PlayerEducationExperiencePresenter[]> {
-    return this.educationsRepo.find({
-      where: { userProfile: { id: userProfileId } },
-      order: { startDate: 'DESC', endDate: 'DESC', id: 'DESC' },
+    return this.schoolExperiencesRepo.find({
+      where: { profile: { id: userProfileId } },
+      order: { startDate: 'DESC', endDate: 'DESC', createdAt: 'DESC' },
     });
   }
 
-  async findEducationExperienceById(userProfileId: string, experienceId: number): Promise<PlayerEducationExperiencePresenter | null> {
-    return this.educationsRepo.findOne({
-      where: { id: experienceId, userProfile: { id: userProfileId } },
+  async findEducationExperienceById(userProfileId: string, experienceId: string): Promise<PlayerEducationExperiencePresenter | null> {
+    return this.schoolExperiencesRepo.findOne({
+      where: { id: experienceId, profile: { id: userProfileId } },
     });
   }
 
-  async updateEducationExperience(userProfileId: string, experienceId: number, input: PlayerEducationExperienceUpdateInput): Promise<PlayerEducationExperiencePresenter> {
-    await this.educationsRepo.save({
+  async updateEducationExperience(userProfileId: string, experienceId: string, input: PlayerEducationExperienceUpdateInput): Promise<PlayerEducationExperiencePresenter> {
+    await this.schoolExperiencesRepo.save({
       id: experienceId,
-      userProfile: { id: userProfileId },
+      profile: { id: userProfileId },
       ...input,
     });
 
-    const updated = await this.educationsRepo.findOne({
-      where: { id: experienceId, userProfile: { id: userProfileId } },
+    const updated = await this.schoolExperiencesRepo.findOne({
+      where: { id: experienceId, profile: { id: userProfileId } },
     });
 
     if (!updated) {
@@ -282,10 +284,10 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     return updated;
   }
 
-  async deleteEducationExperience(userProfileId: string, experienceId: number): Promise<void> {
-    await this.educationsRepo.delete({
+  async deleteEducationExperience(userProfileId: string, experienceId: string): Promise<void> {
+    await this.schoolExperiencesRepo.delete({
       id: experienceId,
-      userProfile: { id: userProfileId },
+      profile: { id: userProfileId },
     });
   }
 
@@ -295,15 +297,16 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
    ***********************************/
   async addProfessionalExperience(userProfileId: string, input: PlayerProfessionalExperienceInput): Promise<PlayerProfessionalExperiencePresenter> {
     const entity = this.professionalExperiencesRepo.create({
-      userProfile: { id: userProfileId },
-      title: input.title,
-      company: input.company,
-      location: input.location ?? null,
+      profile: { id: userProfileId },
+      companyName: input.companyName,
+      companyLogoUrl: input.companyLogoUrl ?? null,
+      positionTitle: input.positionTitle,
       contractType: input.contractType ?? null,
-      startDate: input.startDate ?? null,
-      endDate: input.endDate ?? null,
-      ongoing: input.ongoing ?? false,
       description: input.description ?? null,
+      missions: input.missions ?? null,
+      startDate: input.startDate,
+      endDate: input.endDate ?? null,
+      location: input.location ?? null,
     });
 
     const saved = await this.professionalExperiencesRepo.save(entity);
@@ -312,26 +315,26 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
 
   async findProfessionalExperiences(userProfileId: string): Promise<PlayerProfessionalExperiencePresenter[]> {
     return this.professionalExperiencesRepo.find({
-      where: { userProfile: { id: userProfileId } },
-      order: { startDate: 'DESC', endDate: 'DESC', id: 'DESC' },
+      where: { profile: { id: userProfileId } },
+      order: { startDate: 'DESC', endDate: 'DESC', createdAt: 'DESC' },
     });
   }
 
-  async findProfessionalExperienceById(userProfileId: string, experienceId: number): Promise<PlayerProfessionalExperiencePresenter | null> {
+  async findProfessionalExperienceById(userProfileId: string, experienceId: string): Promise<PlayerProfessionalExperiencePresenter | null> {
     return this.professionalExperiencesRepo.findOne({
-      where: { id: experienceId, userProfile: { id: userProfileId } },
+      where: { id: experienceId, profile: { id: userProfileId } },
     });
   }
 
-  async updateProfessionalExperience(userProfileId: string, experienceId: number, input: PlayerProfessionalExperienceUpdateInput): Promise<PlayerProfessionalExperiencePresenter> {
+  async updateProfessionalExperience(userProfileId: string, experienceId: string, input: PlayerProfessionalExperienceUpdateInput): Promise<PlayerProfessionalExperiencePresenter> {
     await this.professionalExperiencesRepo.save({
       id: experienceId,
-      userProfile: { id: userProfileId },
+      profile: { id: userProfileId },
       ...input,
     });
 
     const updated = await this.professionalExperiencesRepo.findOne({
-      where: { id: experienceId, userProfile: { id: userProfileId } },
+      where: { id: experienceId, profile: { id: userProfileId } },
     });
 
     if (!updated) {
@@ -341,10 +344,10 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     return updated;
   }
 
-  async deleteProfessionalExperience(userProfileId: string, experienceId: number): Promise<void> {
+  async deleteProfessionalExperience(userProfileId: string, experienceId: string): Promise<void> {
     await this.professionalExperiencesRepo.delete({
       id: experienceId,
-      userProfile: { id: userProfileId },
+      profile: { id: userProfileId },
     });
   }
 

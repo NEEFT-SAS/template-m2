@@ -13,7 +13,7 @@ export class PlayerExperienceInvalidDatesError extends DomainError {
 }
 
 export class PlayerExperienceNotFoundError extends DomainError {
-  constructor(slug: string, experienceId: number) {
+  constructor(slug: string, experienceId: string | number) {
     super({
       code: 'PLAYER_EXPERIENCE_NOT_FOUND',
       message: 'Experience not found',
