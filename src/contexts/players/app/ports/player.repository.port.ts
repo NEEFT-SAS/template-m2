@@ -1,13 +1,4 @@
-import {
-  PlayerAvailabilityPresenter,
-  PlayerBadgePresenter,
-  PlayerEducationExperiencePresenter,
-  PlayerExperiencePresenter,
-  PlayerPrivateProfilePresenter,
-  PlayerProfessionalExperiencePresenter,
-  PlayerProfilePresenter,
-  PlayerSocialLinkPresenter,
-} from "@neeft-sas/shared";
+import { PlayerAvailabilityPresenter, PlayerBadgePresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerSocialLinkPresenter, PlayerReportReason } from "@neeft-sas/shared";
 
 export const PLAYER_REPOSITORY = Symbol('PLAYER_REPOSITORY');
 
@@ -97,6 +88,13 @@ export type PlayerProfessionalExperienceUpdateInput = {
   description?: string | null;
 };
 
+export type PlayerReportCreateInput = {
+  reporterProfileId: string;
+  targetProfileId: string;
+  reason: PlayerReportReason;
+  details: string;
+};
+
 export interface PlayerRepositoryPort {
   findPublicProfileBySlug(slug: string): Promise<PlayerProfilePresenter | null>; // public info only
   findPrivateProfileBySlug(slug: string): Promise<PlayerPrivateProfilePresenter | null>; // public info + email + birthDate
@@ -126,4 +124,6 @@ export interface PlayerRepositoryPort {
 
   findPlayerBadgeContextBySlug(userSlug: string): Promise<any | null>;
   findAssignedBadgeIds(userProfileId: string): Promise<number[]>;
+
+  createPlayerReport(input: PlayerReportCreateInput): Promise<PlayerReportPresenter>;
 }

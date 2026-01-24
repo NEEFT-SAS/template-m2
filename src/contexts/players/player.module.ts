@@ -38,6 +38,8 @@ import { UserProfileProfessionalExperienceEntity } from "./infra/entities/user-p
 import { PlayerBadgeEntity } from "./infra/entities/player-badge.entity";
 import { GetPlayerBadgesUsecase } from "./app/usecases/badges/get-player-badges.usecase";
 import { PlayerBadgesResolver } from "./app/services/player-badges.resolver";
+import { CreatePlayerReportUseCase } from "./app/usecases/reports/create-player-report.usecase";
+import { PlayerReportEntity } from "./infra/entities/player-report.entity";
 
 @Module({
   imports: [
@@ -49,7 +51,8 @@ import { PlayerBadgesResolver } from "./app/services/player-badges.resolver";
       UserProfileAvailabilityEntity,
       UserProfileEducationEntity,
       UserProfileProfessionalExperienceEntity,
-      UserProfileExperienceEntity
+      UserProfileExperienceEntity,
+      PlayerReportEntity
     ]),
     ResourcesModule,
     AuthModule
@@ -84,6 +87,8 @@ import { PlayerBadgesResolver } from "./app/services/player-badges.resolver";
 
     GetPlayerBadgesUsecase,
     PlayerBadgesResolver,
+    
+    CreatePlayerReportUseCase,
 
     { provide: PLAYER_REPOSITORY, useClass: PlayerRepositoryTypeorm },
   ],

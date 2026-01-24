@@ -1,11 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { PlayerEducationExperiencePresenter, UpdatePlayerEducationExperienceDTO } from '@neeft-sas/shared';
-import {
-  PLAYER_REPOSITORY,
-  PlayerEducationExperienceUpdateInput,
-  PlayerRepositoryPort,
-} from '../../ports/player.repository.port';
+import { PLAYER_REPOSITORY, PlayerEducationExperienceUpdateInput, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '../../../domain/errors/player-profile.errors';
 import { PlayerExperienceInvalidDatesError, PlayerExperienceNotFoundError } from '../../../domain/errors/player-experience.errors';
 

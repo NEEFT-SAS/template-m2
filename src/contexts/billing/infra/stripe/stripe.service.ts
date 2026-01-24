@@ -8,15 +8,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
-import {
-  CreateCustomerInput,
-  CreateSubscriptionInput,
-  CreateSubscriptionOutput,
-  ListPricesInput,
-  StripeCustomerRecord,
-  StripePort,
-  StripePriceRecord,
-} from '@/contexts/billing/app/ports/stripe.port';
+import { CreateCustomerInput, CreateSubscriptionInput, CreateSubscriptionOutput, ListPricesInput, StripeCustomerRecord, StripePort, StripePriceRecord } from '@/contexts/billing/app/ports/stripe.port';
 
 @Injectable()
 export class StripeService implements StripePort {

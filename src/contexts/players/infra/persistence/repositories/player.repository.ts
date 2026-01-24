@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { PlayerSocialLinkEntity } from '../../entities/player-social-link.entity';
-import { PlayerAvailabilityPresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerSocialLinkPresenter } from '@neeft-sas/shared';
+import { PlayerAvailabilityPresenter, PlayerEducationExperiencePresenter, PlayerExperiencePresenter, PlayerPrivateProfilePresenter, PlayerProfessionalExperiencePresenter, PlayerProfilePresenter, PlayerReportPresenter, PlayerSocialLinkPresenter } from '@neeft-sas/shared';
 import { plainToInstance } from 'class-transformer';
 import { UserCredentialsEntity } from '@/contexts/auth/infra/persistence/entities/user-credentials.entity';
 import { PlayerBadgeEntity } from '../../entities/player-badge.entity';
@@ -12,7 +12,8 @@ import { UserProfileAvailabilityEntity } from '../../entities/user-profile-avail
 import { UserProfileEducationEntity } from '../../entities/user-profile-education.entity';
 import { UserProfileExperienceEntity } from '../../entities/user-profile-experience.entity';
 import { UserProfileProfessionalExperienceEntity } from '../../entities/user-profile-professional-experience.entity';
-import { PlayerEducationExperienceInput, PlayerEducationExperienceUpdateInput, PlayerExperienceInput, PlayerExperienceUpdateInput, PlayerProfessionalExperienceInput, PlayerProfessionalExperienceUpdateInput } from '@/contexts/players/app/ports/player.repository.port';
+import { PlayerEducationExperienceInput, PlayerEducationExperienceUpdateInput, PlayerExperienceInput, PlayerExperienceUpdateInput, PlayerProfessionalExperienceInput, PlayerProfessionalExperienceUpdateInput, PlayerReportCreateInput } from '@/contexts/players/app/ports/player.repository.port';
+import { PlayerReportEntity } from '../../entities/player-report.entity';
 
 
 @Injectable()
@@ -24,6 +25,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     @InjectRepository(UserProfileExperienceEntity) private readonly experiencesRepo: Repository<UserProfileExperienceEntity>,
     @InjectRepository(UserProfileEducationEntity) private readonly educationsRepo: Repository<UserProfileEducationEntity>,
     @InjectRepository(UserProfileProfessionalExperienceEntity) private readonly professionalExperiencesRepo: Repository<UserProfileProfessionalExperienceEntity>,
+    @InjectRepository(PlayerReportEntity) private readonly reportsRepo: Repository<PlayerReportEntity>,
     @InjectRepository(PlayerBadgeEntity) private readonly badgesRepo: Repository<PlayerBadgeEntity>,
     @InjectDataSource() private readonly dataSource: DataSource
   ) {}
@@ -344,6 +346,22 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       id: experienceId,
       userProfile: { id: userProfileId },
     });
+  }
+
+  /**********************************
+   * Module : Reports
+   * 
+   ***********************************/
+  async createPlayerReport(input: PlayerReportCreateInput): Promise<PlayerReportPresenter> {
+    const entity = this.reportsRepo.create({
+      reporterProfile: { id: input.reporterProfileId },
+      targetProfile: { id: input.targetProfileId },
+      reason: input.reason,
+      details: input.details,
+    });
+
+    const saved = await this.reportsRepo.save(entity);
+    return plainToInstance(PlayerReportPresenter, saved, { excludeExtraneousValues: true });
   }
 
 

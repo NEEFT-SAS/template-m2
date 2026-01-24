@@ -5,7 +5,7 @@ import { PlayerOwnerOrAdminGuard } from "../infra/guards/player-owner-or-admin.g
 import { OptionalAuthGuard } from "@/contexts/auth/infra/guards/optional-auth.guard";
 import { GetPlayerSocialLinksUsecase } from "../app/usecases/social-links/get-social-links.use.case";
 import { UpdatePlayerSocialLinksUseCase } from "../app/usecases/social-links/update-social-links.usecase";
-import { CreatePlayerEducationExperienceDTO, CreatePlayerExperienceDTO, CreatePlayerProfessionalExperienceDTO, UpdatePlayerAvailabilitiesDTO, UpdatePlayerEducationExperienceDTO, UpdatePlayerExperienceDTO, UpdatePlayerProfessionalExperienceDTO, UpdatePlayerProfileDTO, UpdatePlayerSocialLinksDTO } from "@neeft-sas/shared";
+import { CreatePlayerEducationExperienceDTO, CreatePlayerExperienceDTO, CreatePlayerProfessionalExperienceDTO, CreatePlayerReportDTO, UpdatePlayerAvailabilitiesDTO, UpdatePlayerEducationExperienceDTO, UpdatePlayerExperienceDTO, UpdatePlayerProfessionalExperienceDTO, UpdatePlayerProfileDTO, UpdatePlayerSocialLinksDTO } from "@neeft-sas/shared";
 import { GetPlayerBadgesUsecase } from "../app/usecases/badges/get-player-badges.usecase";
 import { UpdatePlayerProfileUseCase } from "../app/usecases/update-player-profile.usecase";
 import { UpdatePlayerAvailabilitiesUseCase } from "../app/usecases/availabilities/update-availabilities.usecase";
@@ -25,6 +25,7 @@ import { GetPlayerProfessionalExperienceUseCase } from "../app/usecases/experien
 import { UpdatePlayerProfessionalExperienceUseCase } from "../app/usecases/experiences/update-professional-experience.usecase";
 import { DeletePlayerProfessionalExperienceUseCase } from "../app/usecases/experiences/delete-professional-experience.usecase";
 import { Request } from "express";
+import { CreatePlayerReportUseCase } from "../app/usecases/reports/create-player-report.usecase";
 
 type JwtUser = {
   slug: string;
@@ -62,6 +63,8 @@ export class PlayerController {
     private readonly updatePlayerSocialLinksUseCase: UpdatePlayerSocialLinksUseCase,
 
     private readonly getPlayerBadgesUseCase: GetPlayerBadgesUsecase,
+
+    private readonly createPlayerReportUseCase: CreatePlayerReportUseCase,
   ) {}
 
 
@@ -188,6 +191,17 @@ export class PlayerController {
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
   deletePlayerProfessionalExperience(@Param('slug') slug: string, @Param('experienceId', ParseIntPipe) experienceId: number) {
     return this.deletePlayerProfessionalExperienceUseCase.execute(slug, experienceId);
+  }
+
+  /********
+   * Reports
+   */
+  @Post(':slug/reports')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(ConnectedGuard)
+  reportPlayer(@Req() req: RequestWithUser, @Param('slug') slug: string, @Body() body: CreatePlayerReportDTO) {
+    const reporterSlug = req.user?.slug ?? '';
+    return this.createPlayerReportUseCase.execute(reporterSlug, slug, body);
   }
 
   /********

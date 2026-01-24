@@ -5,10 +5,7 @@ import { DomainError } from '@/core/errors/domain-error';
 
 import { AUTH_REPOSITORY, AuthRepositoryPort } from '../ports/auth.repository.port';
 
-import {
-  BILLING_SUBJECT_REPOSITORY,
-  BillingSubjectRepositoryPort,
-} from '@/contexts/billing/app/ports/billing-subject.repository.port';
+import { BILLING_SUBJECT_REPOSITORY, BillingSubjectRepositoryPort } from '@/contexts/billing/app/ports/billing-subject.repository.port';
 
 import { BillingEntitlementsResolver } from '@/contexts/billing/infra/entitlements/billing-entitlements.resolver';
 import { BillingSubjectTypeEnum } from '@neeft-sas/shared';
