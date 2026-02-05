@@ -1,5 +1,5 @@
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
-import { PlayerGameCreateInput, PlayerGameUpdateInput, PlayerProfileContext, PlayerProfileUpdatePayload, PlayerRepositoryPort } from '@/contexts/players/app/ports/player.repository.port';
+import { PlayerGameCreateInput, PlayerGameUpdateInput, PlayerProfileContext, PlayerProfileUpdatePayload, PlayerRepositoryPort, RecommendationCreateInput, RecommendationListQuery, RecommendationListResult } from '@/contexts/players/app/ports/player.repository.port';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -25,6 +25,7 @@ import { UserGameCharacterEntity } from '../../entities/game/user-game-character
 import { UserGameModeRankEntity } from '../../entities/game/user-game-mode-rank.entity';
 import { RscGameModeEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-modes.entity';
 import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-ranks.entity';
+import { RecommendationEntity } from '../../entities/recommendations/recommendation.entity';
 
 
 @Injectable()
@@ -39,6 +40,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     @InjectRepository(UserReportEntity) private readonly reportsRepo: Repository<UserReportEntity>,
     @InjectRepository(UserBadgeEntity) private readonly badgesRepo: Repository<UserBadgeEntity>,
     @InjectRepository(UserGameEntity) private readonly playerGamesRepo: Repository<UserGameEntity>,
+    @InjectRepository(RecommendationEntity) private readonly recommendationsRepo: Repository<RecommendationEntity>,
     @InjectDataSource() private readonly dataSource: DataSource
   ) {}
 
@@ -415,6 +417,186 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
 
     if ((res.affected ?? 0) === 0) return null;
     return this.findPlayerReportById(userProfileId, reportId);
+  }
+
+  async createRecommendation(input: RecommendationCreateInput): Promise<RecommendationEntity> {
+    const entity = this.recommendationsRepo.create({
+      targetType: input.targetType,
+      targetProfile: input.targetProfileId ? ({ id: input.targetProfileId } as UserProfileEntity) : null,
+      targetTeam: input.targetTeamId ? ({ id: input.targetTeamId } as RecommendationEntity['targetTeam']) : null,
+      authorType: input.authorType,
+      authorProfile: input.authorProfileId ? ({ id: input.authorProfileId } as UserProfileEntity) : null,
+      authorTeam: input.authorTeamId ? ({ id: input.authorTeamId } as RecommendationEntity['authorTeam']) : null,
+      authorDisplayName: input.authorDisplayName,
+      authorSlug: input.authorSlug,
+      authorAvatarUrl: input.authorAvatarUrl ?? null,
+      gameSlug: input.gameSlug ?? null,
+      gameName: input.gameName ?? null,
+      gameIconUrl: input.gameIconUrl ?? null,
+      role: input.role ?? null,
+      relationship: input.relationship ?? null,
+      tags: input.tags ?? [],
+      content: input.content,
+      rating: input.rating ?? null,
+    });
+
+    const saved = await this.recommendationsRepo.save(entity);
+    const reloaded = await this.recommendationsRepo.findOne({
+      where: { id: saved.id },
+      relations: { targetProfile: true, targetTeam: true, authorProfile: true, authorTeam: true },
+    });
+    return reloaded ?? saved;
+  }
+
+  async existsPlayerToPlayerRecommendation(authorProfileId: string, targetProfileId: string): Promise<boolean> {
+    const exists = await this.recommendationsRepo.exists({
+      where: {
+        authorType: 'player',
+        targetType: 'player',
+        authorProfile: { id: authorProfileId },
+        targetProfile: { id: targetProfileId },
+      },
+    });
+
+    return !!exists;
+  }
+
+  async findRecommendationSnapshotById(recommendationId: string): Promise<{
+    id: string;
+    targetType: 'player' | 'team';
+    targetProfileId: string | null;
+    targetTeamId: string | null;
+    authorType: 'player' | 'team' | 'staff';
+    authorProfileId: string | null;
+    authorTeamId: string | null;
+  } | null> {
+    const row = await this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoin('r.targetProfile', 'targetProfile')
+      .leftJoin('r.targetTeam', 'targetTeam')
+      .leftJoin('r.authorProfile', 'authorProfile')
+      .leftJoin('r.authorTeam', 'authorTeam')
+      .select('r.id', 'id')
+      .addSelect('r.targetType', 'targetType')
+      .addSelect('r.authorType', 'authorType')
+      .addSelect('targetProfile.id', 'targetProfileId')
+      .addSelect('targetTeam.id', 'targetTeamId')
+      .addSelect('authorProfile.id', 'authorProfileId')
+      .addSelect('authorTeam.id', 'authorTeamId')
+      .where('r.id = :id', { id: recommendationId })
+      .getRawOne<{
+        id: string;
+        targetType: 'player' | 'team';
+        authorType: 'player' | 'team' | 'staff';
+        targetProfileId: string | null;
+        targetTeamId: string | null;
+        authorProfileId: string | null;
+        authorTeamId: string | null;
+      }>();
+
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      targetType: row.targetType,
+      targetProfileId: row.targetProfileId ?? null,
+      targetTeamId: row.targetTeamId ?? null,
+      authorType: row.authorType,
+      authorProfileId: row.authorProfileId ?? null,
+      authorTeamId: row.authorTeamId ?? null,
+    };
+  }
+
+  async deleteRecommendation(recommendationId: string): Promise<void> {
+    await this.recommendationsRepo.delete({ id: recommendationId });
+  }
+
+  async findPlayerRecommendationsReceived(userProfileId: string, query: RecommendationListQuery): Promise<RecommendationListResult> {
+    const page = query.page ?? 1;
+    const perPage = query.perPage ?? 20;
+    const skip = (page - 1) * perPage;
+
+    const base = this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.targetProfile', 'targetProfile')
+      .leftJoinAndSelect('r.targetTeam', 'targetTeam')
+      .leftJoinAndSelect('r.authorProfile', 'authorProfile')
+      .leftJoinAndSelect('r.authorTeam', 'authorTeam')
+      .where('r.targetType = :targetType', { targetType: 'player' })
+      .andWhere('targetProfile.id = :userProfileId', { userProfileId });
+
+    const [items, total] = await base
+      .orderBy('r.createdAt', 'DESC')
+      .addOrderBy('r.id', 'DESC')
+      .skip(skip)
+      .take(perPage)
+      .getManyAndCount();
+
+    const statsQuery = this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoin('r.targetProfile', 'targetProfile')
+      .select('AVG(r.rating)', 'ratingAverage')
+      .addSelect('COUNT(r.rating)', 'ratingCount')
+      .addSelect('COALESCE(SUM(r.rating), 0)', 'ratingSum')
+      .where('r.targetType = :targetType', { targetType: 'player' })
+      .andWhere('targetProfile.id = :userProfileId', { userProfileId })
+      .andWhere('r.rating IS NOT NULL');
+
+    const stats = await statsQuery.getRawOne<{
+      ratingAverage: string | null;
+      ratingCount: string | null;
+      ratingSum: string | null;
+    }>();
+
+    const ratingAverage = stats?.ratingAverage ? Number(stats.ratingAverage) : null;
+    const ratingCount = stats?.ratingCount ? Number(stats.ratingCount) : 0;
+    const ratingSum = stats?.ratingSum ? Number(stats.ratingSum) : 0;
+
+    return { items, total, ratingAverage, ratingCount, ratingSum };
+  }
+
+  async findPlayerRecommendationsGiven(userProfileId: string, query: RecommendationListQuery): Promise<RecommendationListResult> {
+    const page = query.page ?? 1;
+    const perPage = query.perPage ?? 20;
+    const skip = (page - 1) * perPage;
+
+    const base = this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.targetProfile', 'targetProfile')
+      .leftJoinAndSelect('r.targetTeam', 'targetTeam')
+      .leftJoinAndSelect('r.authorProfile', 'authorProfile')
+      .leftJoinAndSelect('r.authorTeam', 'authorTeam')
+      .where('r.authorType = :authorType', { authorType: 'player' })
+      .andWhere('authorProfile.id = :userProfileId', { userProfileId });
+
+    const [items, total] = await base
+      .orderBy('r.createdAt', 'DESC')
+      .addOrderBy('r.id', 'DESC')
+      .skip(skip)
+      .take(perPage)
+      .getManyAndCount();
+
+    const statsQuery = this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoin('r.authorProfile', 'authorProfile')
+      .select('AVG(r.rating)', 'ratingAverage')
+      .addSelect('COUNT(r.rating)', 'ratingCount')
+      .addSelect('COALESCE(SUM(r.rating), 0)', 'ratingSum')
+      .where('r.authorType = :authorType', { authorType: 'player' })
+      .andWhere('authorProfile.id = :userProfileId', { userProfileId })
+      .andWhere('r.rating IS NOT NULL');
+
+    const stats = await statsQuery.getRawOne<{
+      ratingAverage: string | null;
+      ratingCount: string | null;
+      ratingSum: string | null;
+    }>();
+
+    const ratingAverage = stats?.ratingAverage ? Number(stats.ratingAverage) : null;
+    const ratingCount = stats?.ratingCount ? Number(stats.ratingCount) : 0;
+    const ratingSum = stats?.ratingSum ? Number(stats.ratingSum) : 0;
+
+    return { items, total, ratingAverage, ratingCount, ratingSum };
   }
 
 

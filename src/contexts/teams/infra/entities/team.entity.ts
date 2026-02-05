@@ -2,7 +2,9 @@ import { TeamOrganizationType, TEAM_ORGANIZATION_TYPES } from '@neeft-sas/shared
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 import { RscCountryEntity } from '@/contexts/resources/infra/persistence/entities/rsc-countries.entity';
 import { RscLanguageEntity } from '@/contexts/resources/infra/persistence/entities/rsc-languages.entity';
-import { Column, CreateDateColumn, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { TeamMemberEntity } from './team-member.entity';
+import { TeamRosterEntity } from './team-roster.entity';
 
 @Entity('teams')
 export class TeamEntity {
@@ -76,6 +78,12 @@ export class TeamEntity {
     inverseJoinColumn: { name: 'language_id', referencedColumnName: 'id' },
   })
   languages!: RscLanguageEntity[];
+
+  @OneToMany(() => TeamMemberEntity, (member) => member.team)
+  members?: TeamMemberEntity[];
+
+  @OneToMany(() => TeamRosterEntity, (roster) => roster.team)
+  rosters?: TeamRosterEntity[];
 
   @CreateDateColumn({ name: 'created_at', select: false })
   createdAt!: Date;

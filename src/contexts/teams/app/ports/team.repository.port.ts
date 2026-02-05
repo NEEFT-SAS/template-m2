@@ -1,5 +1,9 @@
-import type { TeamOrganizationType } from '@neeft-sas/shared';
+import type { TeamMemberRole, TeamOrganizationType, TeamRosterMemberRole } from '@neeft-sas/shared';
 import type { TeamEntity } from '../../infra/entities/team.entity';
+import type { TeamMemberEntity } from '../../infra/entities/team-member.entity';
+import type { TeamRosterEntity } from '../../infra/entities/team-roster.entity';
+import type { TeamRosterMemberEntity } from '../../infra/entities/team-roster-member.entity';
+import type { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 
 export const TEAM_REPOSITORY = Symbol('TEAM_REPOSITORY');
 
@@ -32,11 +36,46 @@ export type UpdateTeamInput = {
   languageIds?: string[] | null;
 };
 
+export type CreateTeamMemberInput = {
+  profileId: string;
+  role?: TeamMemberRole | null;
+  title?: string | null;
+  isHidden?: boolean;
+  permissions?: number;
+};
+
+export type CreateTeamRosterInput = {
+  name: string;
+  slug: string;
+  description?: string | null;
+  gameId: number;
+  isActive: boolean;
+};
+
+export type CreateTeamRosterMemberInput = {
+  memberId: string;
+  role?: TeamRosterMemberRole | null;
+  title?: string | null;
+  positionId?: number | null;
+  isHidden?: boolean;
+  permissions?: number;
+};
+
 export interface TeamRepositoryPort {
   existsSlug(slug: string): Promise<boolean>;
   existsOwnerProfile(ownerProfileId: string): Promise<boolean>;
   findTeamById(teamId: string): Promise<TeamEntity | null>;
+  findTeamBySlug(slug: string): Promise<TeamEntity | null>;
+  findProfileBySlug(slug: string): Promise<UserProfileEntity | null>;
+  findTeamMemberByProfile(teamId: string, profileId: string): Promise<TeamMemberEntity | null>;
+  findTeamMemberById(teamId: string, memberId: string): Promise<TeamMemberEntity | null>;
+  findRosterById(teamId: string, rosterId: string): Promise<TeamRosterEntity | null>;
+  findRosterMemberByRosterAndMember(rosterId: string, memberId: string): Promise<TeamRosterMemberEntity | null>;
+  existsRosterSlug(teamId: string, slug: string): Promise<boolean>;
   createTeam(input: CreateTeamInput): Promise<TeamEntity>;
+  createTeamMember(teamId: string, input: CreateTeamMemberInput): Promise<TeamMemberEntity>;
+  createRoster(teamId: string, input: CreateTeamRosterInput): Promise<TeamRosterEntity>;
+  createRosterMember(rosterId: string, input: CreateTeamRosterMemberInput): Promise<TeamRosterMemberEntity>;
   updateTeam(teamId: string, input: UpdateTeamInput): Promise<TeamEntity | null>;
   deleteTeam(teamId: string): Promise<void>;
 }

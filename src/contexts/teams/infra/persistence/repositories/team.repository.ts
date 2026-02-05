@@ -4,13 +4,20 @@ import { Repository } from 'typeorm';
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 import { RscLanguageEntity } from '@/contexts/resources/infra/persistence/entities/rsc-languages.entity';
 import { TeamEntity } from '../../entities/team.entity';
-import { CreateTeamInput, TeamRepositoryPort, UpdateTeamInput } from '../../../app/ports/team.repository.port';
+import { TeamMemberEntity } from '../../entities/team-member.entity';
+import { TeamRosterEntity } from '../../entities/team-roster.entity';
+import { TeamRosterMemberEntity } from '../../entities/team-roster-member.entity';
+import { CreateTeamInput, CreateTeamMemberInput, CreateTeamRosterInput, CreateTeamRosterMemberInput, TeamRepositoryPort, UpdateTeamInput } from '../../../app/ports/team.repository.port';
+import { toLowerCaseTrim } from '@neeft-sas/shared';
 
 @Injectable()
 export class TeamRepositoryTypeorm implements TeamRepositoryPort {
   constructor(
     @InjectRepository(TeamEntity) private readonly teamRepo: Repository<TeamEntity>,
     @InjectRepository(UserProfileEntity) private readonly profileRepo: Repository<UserProfileEntity>,
+    @InjectRepository(TeamMemberEntity) private readonly memberRepo: Repository<TeamMemberEntity>,
+    @InjectRepository(TeamRosterEntity) private readonly rosterRepo: Repository<TeamRosterEntity>,
+    @InjectRepository(TeamRosterMemberEntity) private readonly rosterMemberRepo: Repository<TeamRosterMemberEntity>,
   ) {}
 
   async existsSlug(slug: string): Promise<boolean> {
@@ -26,6 +33,63 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
   async findTeamById(teamId: string): Promise<TeamEntity | null> {
     const entity = await this.teamRepo.findOne({ where: { id: teamId } });
     return entity ?? null;
+  }
+
+  async findTeamBySlug(slug: string): Promise<TeamEntity | null> {
+    const normalized = toLowerCaseTrim(slug);
+    if (!normalized) return null;
+
+    const entity = await this.teamRepo
+      .createQueryBuilder('team')
+      .where('LOWER(team.slug) = LOWER(:slug)', { slug: normalized })
+      .getOne();
+
+    return entity ?? null;
+  }
+
+  async findProfileBySlug(slug: string): Promise<UserProfileEntity | null> {
+    const normalized = toLowerCaseTrim(slug);
+    if (!normalized) return null;
+
+    const entity = await this.profileRepo
+      .createQueryBuilder('profile')
+      .where('LOWER(profile.slug) = LOWER(:slug)', { slug: normalized })
+      .getOne();
+
+    return entity ?? null;
+  }
+
+  async findTeamMemberByProfile(teamId: string, profileId: string): Promise<TeamMemberEntity | null> {
+    const entity = await this.memberRepo.findOne({
+      where: { team: { id: teamId }, profile: { id: profileId } },
+    });
+    return entity ?? null;
+  }
+
+  async findTeamMemberById(teamId: string, memberId: string): Promise<TeamMemberEntity | null> {
+    const entity = await this.memberRepo.findOne({
+      where: { id: memberId, team: { id: teamId } },
+    });
+    return entity ?? null;
+  }
+
+  async findRosterById(teamId: string, rosterId: string): Promise<TeamRosterEntity | null> {
+    const entity = await this.rosterRepo.findOne({
+      where: { id: rosterId, team: { id: teamId } },
+    });
+    return entity ?? null;
+  }
+
+  async findRosterMemberByRosterAndMember(rosterId: string, memberId: string): Promise<TeamRosterMemberEntity | null> {
+    const entity = await this.rosterMemberRepo.findOne({
+      where: { roster: { id: rosterId }, member: { id: memberId } },
+    });
+    return entity ?? null;
+  }
+
+  async existsRosterSlug(teamId: string, slug: string): Promise<boolean> {
+    const row = await this.rosterRepo.exists({ where: { team: { id: teamId }, slug } });
+    return !!row;
   }
 
   async createTeam(input: CreateTeamInput): Promise<TeamEntity> {
@@ -47,6 +111,52 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
 
     const saved = await this.teamRepo.save(entity);
     const reloaded = await this.teamRepo.findOne({ where: { id: saved.id } });
+    return reloaded ?? saved;
+  }
+
+  async createTeamMember(teamId: string, input: CreateTeamMemberInput): Promise<TeamMemberEntity> {
+    const entity = this.memberRepo.create({
+      team: { id: teamId } as TeamEntity,
+      profile: { id: input.profileId } as UserProfileEntity,
+      role: input.role ?? null,
+      title: input.title ?? null,
+      isHidden: input.isHidden ?? false,
+      permissions: input.permissions ?? 0,
+    });
+
+    const saved = await this.memberRepo.save(entity);
+    const reloaded = await this.memberRepo.findOne({ where: { id: saved.id } });
+    return reloaded ?? saved;
+  }
+
+  async createRoster(teamId: string, input: CreateTeamRosterInput): Promise<TeamRosterEntity> {
+    const entity = this.rosterRepo.create({
+      team: { id: teamId } as TeamEntity,
+      name: input.name,
+      slug: input.slug,
+      description: input.description ?? null,
+      game: { id: input.gameId } as TeamRosterEntity['game'],
+      isActive: input.isActive,
+    });
+
+    const saved = await this.rosterRepo.save(entity);
+    const reloaded = await this.rosterRepo.findOne({ where: { id: saved.id } });
+    return reloaded ?? saved;
+  }
+
+  async createRosterMember(rosterId: string, input: CreateTeamRosterMemberInput): Promise<TeamRosterMemberEntity> {
+    const entity = this.rosterMemberRepo.create({
+      roster: { id: rosterId } as TeamRosterEntity,
+      member: { id: input.memberId } as TeamMemberEntity,
+      role: input.role ?? 'MEMBER',
+      title: input.title ?? null,
+      position: input.positionId ? ({ id: input.positionId } as TeamRosterMemberEntity['position']) : null,
+      isHidden: input.isHidden ?? false,
+      permissions: input.permissions ?? 0,
+    });
+
+    const saved = await this.rosterMemberRepo.save(entity);
+    const reloaded = await this.rosterMemberRepo.findOne({ where: { id: saved.id } });
     return reloaded ?? saved;
   }
 

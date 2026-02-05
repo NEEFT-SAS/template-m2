@@ -1,15 +1,7 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, Req, UseGuards } from "@nestjs/common";
-import { GetPlayerBySlugUseCase } from "../app/usecases/get-player-by-slug.usecase";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseIntPipe, ParseUUIDPipe, Patch, Post, UseGuards } from "@nestjs/common";
+import { CreatePlayerEducationExperienceDTO, CreatePlayerExperienceDTO, CreatePlayerProfessionalExperienceDTO, UpdatePlayerEducationExperienceDTO, UpdatePlayerExperienceDTO, UpdatePlayerProfessionalExperienceDTO } from "@neeft-sas/shared";
 import { ConnectedGuard } from "@/contexts/auth/infra/guards/connected.guard";
-import { AdminGuard } from "@/contexts/auth/infra/guards/admin.guard";
 import { PlayerOwnerOrAdminGuard } from "../infra/guards/player-owner-or-admin.guard";
-import { OptionalAuthGuard } from "@/contexts/auth/infra/guards/optional-auth.guard";
-import { GetPlayerSocialLinksUsecase } from "../app/usecases/social-links/get-social-links.use.case";
-import { UpdatePlayerSocialLinksUseCase } from "../app/usecases/social-links/update-social-links.usecase";
-import { CreatePlayerEducationExperienceDTO, CreatePlayerExperienceDTO, CreatePlayerGameDTO, CreatePlayerProfessionalExperienceDTO, CreatePlayerReportDTO, UpdatePlayerAvailabilitiesDTO, UpdatePlayerEducationExperienceDTO, UpdatePlayerExperienceDTO, UpdatePlayerGameDTO, UpdatePlayerProfessionalExperienceDTO, UpdatePlayerProfileDTO, UpdatePlayerReportStatusDTO, UpdatePlayerSocialLinksDTO } from "@neeft-sas/shared";
-import { GetPlayerBadgesUsecase } from "../app/usecases/badges/get-player-badges.usecase";
-import { UpdatePlayerProfileUseCase } from "../app/usecases/update-player-profile.usecase";
-import { UpdatePlayerAvailabilitiesUseCase } from "../app/usecases/availabilities/update-availabilities.usecase";
 import { AddPlayerExperienceUseCase } from "../app/usecases/experiences/add-experience.usecase";
 import { GetPlayerExperiencesUseCase } from "../app/usecases/experiences/get-experiences.usecase";
 import { GetPlayerExperienceUseCase } from "../app/usecases/experiences/get-experience.usecase";
@@ -25,30 +17,10 @@ import { GetPlayerProfessionalExperiencesUseCase } from "../app/usecases/experie
 import { GetPlayerProfessionalExperienceUseCase } from "../app/usecases/experiences/get-professional-experience.usecase";
 import { UpdatePlayerProfessionalExperienceUseCase } from "../app/usecases/experiences/update-professional-experience.usecase";
 import { DeletePlayerProfessionalExperienceUseCase } from "../app/usecases/experiences/delete-professional-experience.usecase";
-import { Request } from "express";
-import { CreatePlayerReportUseCase } from "../app/usecases/reports/create-player-report.usecase";
-import { GetPlayerReportsUseCase } from "../app/usecases/reports/get-player-reports.usecase";
-import { UpdatePlayerReportStatusUseCase } from "../app/usecases/reports/update-player-report-status.usecase";
-import { CreatePlayerGameUseCase } from "../app/usecases/games/create-player-game.usecase";
-import { DeletePlayerGameUseCase } from "../app/usecases/games/delete-player-game.usecase";
-import { GetPlayerGamesUseCase } from "../app/usecases/games/get-player-games.usecase";
-import { GetPlayerGameUseCase } from "../app/usecases/games/get-player-game.usecase";
-import { UpdatePlayerGameUseCase } from "../app/usecases/games/update-player-game.usecase";
-
-type JwtUser = {
-  slug: string;
-  roles?: string[];
-};
-
-type RequestWithUser = Request & { user?: JwtUser };
 
 @Controller('players')
-export class PlayerController {
+export class PlayerExperiencesController {
   constructor(
-    private readonly getPlayerBySlugUseCase: GetPlayerBySlugUseCase,
-    private readonly updatePlayerProfileUseCase: UpdatePlayerProfileUseCase,
-    private readonly updatePlayerAvailabilitiesUseCase: UpdatePlayerAvailabilitiesUseCase,
-
     private readonly addPlayerExperienceUseCase: AddPlayerExperienceUseCase,
     private readonly getPlayerExperiencesUseCase: GetPlayerExperiencesUseCase,
     private readonly getPlayerExperienceUseCase: GetPlayerExperienceUseCase,
@@ -66,86 +38,8 @@ export class PlayerController {
     private readonly getPlayerProfessionalExperienceUseCase: GetPlayerProfessionalExperienceUseCase,
     private readonly updatePlayerProfessionalExperienceUseCase: UpdatePlayerProfessionalExperienceUseCase,
     private readonly deletePlayerProfessionalExperienceUseCase: DeletePlayerProfessionalExperienceUseCase,
-
-    private readonly getPlayerSocialLinksUseCase: GetPlayerSocialLinksUsecase,
-    private readonly updatePlayerSocialLinksUseCase: UpdatePlayerSocialLinksUseCase,
-
-    private readonly getPlayerBadgesUseCase: GetPlayerBadgesUsecase,
-
-    private readonly createPlayerReportUseCase: CreatePlayerReportUseCase,
-    private readonly getPlayerReportsUseCase: GetPlayerReportsUseCase,
-    private readonly updatePlayerReportStatusUseCase: UpdatePlayerReportStatusUseCase,
-    private readonly createPlayerGameUseCase: CreatePlayerGameUseCase,
-    private readonly deletePlayerGameUseCase: DeletePlayerGameUseCase,
-    private readonly getPlayerGamesUseCase: GetPlayerGamesUseCase,
-    private readonly getPlayerGameUseCase: GetPlayerGameUseCase,
-    private readonly updatePlayerGameUseCase: UpdatePlayerGameUseCase,
   ) {}
 
-
-  @Get(':slug')
-  @HttpCode(HttpStatus.OK)
-  getPlayer(@Param('slug') slug: string) {
-    return this.getPlayerBySlugUseCase.execute(slug);
-  }
-
-  @Patch(':slug')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  updatePlayerProfile(@Req() req: RequestWithUser, @Param('slug') slug: string, @Body() body: UpdatePlayerProfileDTO) {
-    const user = req.user;
-    const isAdmin = Array.isArray(user?.roles) && user.roles.includes('admin');
-    return this.updatePlayerProfileUseCase.execute(slug, body, isAdmin);
-  }
-
-  @Patch(':slug/availabilities')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  updatePlayerAvailabilities(@Param('slug') slug: string, @Body() body: UpdatePlayerAvailabilitiesDTO) {
-    return this.updatePlayerAvailabilitiesUseCase.execute(slug, body.availabilities);
-  }
-
-  @Post(':slug/games')
-  @HttpCode(HttpStatus.CREATED)
-  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  addPlayerGame(@Param('slug') slug: string, @Body() body: CreatePlayerGameDTO) {
-    return this.createPlayerGameUseCase.execute(slug, body);
-  }
-
-  @Get(':slug/games')
-  @HttpCode(HttpStatus.OK)
-  getPlayerGames(@Param('slug') slug: string) {
-    return this.getPlayerGamesUseCase.execute(slug);
-  }
-
-  @Get(':slug/games/:gameId')
-  @HttpCode(HttpStatus.OK)
-  getPlayerGame(@Param('slug') slug: string, @Param('gameId', ParseIntPipe) gameId: number) {
-    return this.getPlayerGameUseCase.execute(slug, gameId);
-  }
-
-  @Patch(':slug/games/:gameId')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  updatePlayerGame(
-    @Param('slug') slug: string,
-    @Param('gameId', ParseIntPipe) gameId: number,
-    @Body() body: UpdatePlayerGameDTO,
-  ) {
-    return this.updatePlayerGameUseCase.execute(slug, gameId, body);
-  }
-
-  @Delete(':slug/games/:gameId')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  async deletePlayerGame(@Param('slug') slug: string, @Param('gameId', ParseIntPipe) gameId: number) {
-    await this.deletePlayerGameUseCase.execute(slug, gameId);
-    return { deleted: true };
-  }
-
-  /*************
-   * Experiences
-   */
   @Get(':slug/esport-experiences')
   @HttpCode(HttpStatus.OK)
   getPlayerExperiences(@Param('slug') slug: string) {
@@ -244,60 +138,5 @@ export class PlayerController {
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
   deletePlayerProfessionalExperience(@Param('slug') slug: string, @Param('experienceId', ParseUUIDPipe) experienceId: string) {
     return this.deletePlayerProfessionalExperienceUseCase.execute(slug, experienceId);
-  }
-
-  /********
-   * Reports
-   */
-  @Get(':slug/reports')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  getPlayerReports(@Param('slug') slug: string) {
-    return this.getPlayerReportsUseCase.execute(slug);
-  }
-
-  @Post(':slug/reports')
-  @HttpCode(HttpStatus.CREATED)
-  @UseGuards(ConnectedGuard)
-  reportPlayer(@Req() req: RequestWithUser, @Param('slug') slug: string, @Body() body: CreatePlayerReportDTO) {
-    const reporterSlug = req.user?.slug ?? '';
-    return this.createPlayerReportUseCase.execute(reporterSlug, slug, body);
-  }
-
-  @Patch(':slug/reports/:reportId')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(ConnectedGuard, AdminGuard)
-  updateReportStatus(
-    @Param('slug') slug: string,
-    @Param('reportId') reportId: string,
-    @Body() body: UpdatePlayerReportStatusDTO,
-  ) {
-    return this.updatePlayerReportStatusUseCase.execute(slug, reportId, body);
-  }
-
-  /********
-   * Social Links
-   */
-  @Get(':slug/socials')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(OptionalAuthGuard)
-  getPlayerSocialLinks(@Param('slug') slug: string) {
-    return this.getPlayerSocialLinksUseCase.execute(slug);
-  }
-
-  @Post(':slug/socials')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  updatePlayerSocialLinks(@Param('slug') slug: string, @Body() body: UpdatePlayerSocialLinksDTO) {
-    return this.updatePlayerSocialLinksUseCase.execute(slug, body.links);
-  }
-
-  /*******
-   * Badges
-   */
-  @Get(':slug/badges')
-  @HttpCode(HttpStatus.OK)
-  getPlayerBadges(@Param('slug') slug: string) {
-    return this.getPlayerBadgesUseCase.execute(slug);
   }
 }

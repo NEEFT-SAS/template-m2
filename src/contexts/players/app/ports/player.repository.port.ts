@@ -1,4 +1,4 @@
-import type { PlayerAvailabilityPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter, UserProfileAttendanceMode, UserProfileEducationStatus } from "@neeft-sas/shared";
+import type { PlayerAvailabilityPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter, RecommendationAuthorType, RecommendationRelationship, RecommendationTargetType, UserProfileAttendanceMode, UserProfileEducationStatus } from "@neeft-sas/shared";
 import type { UserCredentialsEntity } from "@/contexts/auth/infra/persistence/entities/user-credentials.entity";
 import type { UserProfileEntity } from "@/contexts/auth/infra/persistence/entities/user-profile.entity";
 import type { UserProfileAvailabilityEntity } from "../../infra/entities/profile/user-profile-availability.entity";
@@ -8,6 +8,7 @@ import type { UserProfileProfessionalExperienceEntity } from "../../infra/entiti
 import type { UserReportEntity } from "../../infra/entities/profile/user-report.entity";
 import type { UserSocialLinkEntity } from "../../infra/entities/profile/user-social-link.entity";
 import type { UserGameEntity } from "../../infra/entities/game/user-game.entity";
+import type { RecommendationEntity } from "../../infra/entities/recommendations/recommendation.entity";
 
 export const PLAYER_REPOSITORY = Symbol('PLAYER_REPOSITORY');
 
@@ -169,6 +170,49 @@ export type PlayerReportCreateInput = {
   details: string;
 };
 
+export type RecommendationCreateInput = {
+  targetType: RecommendationTargetType;
+  targetProfileId: string | null;
+  targetTeamId: string | null;
+  authorType: RecommendationAuthorType;
+  authorProfileId: string | null;
+  authorTeamId: string | null;
+  authorDisplayName: string;
+  authorSlug: string;
+  authorAvatarUrl: string | null;
+  gameSlug: string | null;
+  gameName: string | null;
+  gameIconUrl: string | null;
+  role: string | null;
+  relationship: RecommendationRelationship | null;
+  tags: string[];
+  content: string;
+  rating: number | null;
+};
+
+export type RecommendationSnapshot = {
+  id: string;
+  targetType: RecommendationTargetType;
+  targetProfileId: string | null;
+  targetTeamId: string | null;
+  authorType: RecommendationAuthorType;
+  authorProfileId: string | null;
+  authorTeamId: string | null;
+};
+
+export type RecommendationListQuery = {
+  page: number;
+  perPage: number;
+};
+
+export type RecommendationListResult = {
+  items: RecommendationEntity[];
+  total: number;
+  ratingAverage: number | null;
+  ratingCount: number;
+  ratingSum: number;
+};
+
 export interface PlayerRepositoryPort {
   findPublicProfileBySlug(slug: string): Promise<UserProfileEntity | null>; // public info only
   findPrivateProfileBySlug(slug: string): Promise<PlayerPrivateProfileSnapshot | null>; // public info + email + birthDate
@@ -209,4 +253,11 @@ export interface PlayerRepositoryPort {
   findPlayerReportById(userProfileId: string, reportId: string): Promise<UserReportEntity | null>;
   createPlayerReport(input: PlayerReportCreateInput): Promise<UserReportEntity>;
   updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<UserReportEntity | null>;
+
+  createRecommendation(input: RecommendationCreateInput): Promise<RecommendationEntity>;
+  existsPlayerToPlayerRecommendation(authorProfileId: string, targetProfileId: string): Promise<boolean>;
+  findRecommendationSnapshotById(recommendationId: string): Promise<RecommendationSnapshot | null>;
+  deleteRecommendation(recommendationId: string): Promise<void>;
+  findPlayerRecommendationsReceived(userProfileId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
+  findPlayerRecommendationsGiven(userProfileId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
 }

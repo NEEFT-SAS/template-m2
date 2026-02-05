@@ -1,8 +1,13 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { UserCredentialsEntity } from "../auth/infra/persistence/entities/user-credentials.entity";
 import { UserProfileEntity } from "../auth/infra/persistence/entities/user-profile.entity";
-import { PlayerController } from "./api/player.controller";
+import { PlayerProfileController } from "./api/player-profile.controller";
+import { PlayerGamesController } from "./api/player-games.controller";
+import { PlayerExperiencesController } from "./api/player-experiences.controller";
+import { PlayerReportsController } from "./api/player-reports.controller";
+import { PlayerSocialsController } from "./api/player-socials.controller";
+import { PlayerBadgesController } from "./api/player-badges.controller";
 import { GetPlayerBySlugUseCase } from "./app/usecases/get-player-by-slug.usecase";
 import { UpdatePlayerProfileUseCase } from "./app/usecases/update-player-profile.usecase";
 import { UpdatePlayerAvailabilitiesUseCase } from "./app/usecases/availabilities/update-availabilities.usecase";
@@ -41,6 +46,7 @@ import { PlayerBadgesResolver } from "./app/services/player-badges.resolver";
 import { CreatePlayerReportUseCase } from "./app/usecases/reports/create-player-report.usecase";
 import { UserReportEntity } from "./infra/entities/profile/user-report.entity";
 import { SendPlayerReportEmailHandler } from "./app/handlers/send-player-report-email.handler";
+import { SendPlayerRecommendationReceivedEmailHandler } from "./app/handlers/send-player-recommendation-received-email.handler";
 import { GetPlayerReportsUseCase } from "./app/usecases/reports/get-player-reports.usecase";
 import { UpdatePlayerReportStatusUseCase } from "./app/usecases/reports/update-player-report-status.usecase";
 import { UserGameEntity } from "./infra/entities/game/user-game.entity";
@@ -53,11 +59,20 @@ import { UserGameRocketLeagueEntity } from "./infra/entities/game/user-game-rock
 import { UserGameValorantEntity } from "./infra/entities/game/user-game-valorant.entity";
 import { UserGameBrawlStarsEntity } from "./infra/entities/game/user-game-brawl-stars.entity";
 import { UserGameFortniteEntity } from "./infra/entities/game/user-game-fortnite.entity";
+import { RecommendationEntity } from "./infra/entities/recommendations/recommendation.entity";
+import { RecommendationHelpfulVoteEntity } from "./infra/entities/recommendations/recommendation-helpful-vote.entity";
+import { RecommendationRequestEntity } from "./infra/entities/recommendations/recommendation-request.entity";
 import { CreatePlayerGameUseCase } from "./app/usecases/games/create-player-game.usecase";
 import { DeletePlayerGameUseCase } from "./app/usecases/games/delete-player-game.usecase";
 import { GetPlayerGamesUseCase } from "./app/usecases/games/get-player-games.usecase";
 import { GetPlayerGameUseCase } from "./app/usecases/games/get-player-game.usecase";
 import { UpdatePlayerGameUseCase } from "./app/usecases/games/update-player-game.usecase";
+import { CreateRecommendationUseCase } from "./app/usecases/recommendations/create-recommendation.usecase";
+import { DeleteRecommendationUseCase } from "./app/usecases/recommendations/delete-recommendation.usecase";
+import { ListPlayerReceivedRecommendationsUseCase } from "./app/usecases/recommendations/list-player-received-recommendations.usecase";
+import { ListPlayerGivenRecommendationsUseCase } from "./app/usecases/recommendations/list-player-given-recommendations.usecase";
+import { TeamsModule } from "../teams/teams.module";
+import { PlayerRecommendationsController } from "./api/player-recommendations.controller";
 
 @Module({
   imports: [
@@ -80,12 +95,24 @@ import { UpdatePlayerGameUseCase } from "./app/usecases/games/update-player-game
       UserGameRocketLeagueEntity,
       UserGameValorantEntity,
       UserGameBrawlStarsEntity,
-      UserGameFortniteEntity
+      UserGameFortniteEntity,
+      RecommendationEntity,
+      RecommendationHelpfulVoteEntity,
+      RecommendationRequestEntity
     ]),
     ResourcesModule,
-    AuthModule
+    AuthModule,
+    forwardRef(() => TeamsModule)
   ],
-  controllers: [PlayerController],
+  controllers: [
+    PlayerProfileController,
+    PlayerGamesController,
+    PlayerExperiencesController,
+    PlayerReportsController,
+    PlayerSocialsController,
+    PlayerBadgesController,
+    PlayerRecommendationsController,
+  ],
   providers: [
     GetPlayerBySlugUseCase,
     UpdatePlayerProfileUseCase,
@@ -120,11 +147,16 @@ import { UpdatePlayerGameUseCase } from "./app/usecases/games/update-player-game
     GetPlayerReportsUseCase,
     UpdatePlayerReportStatusUseCase,
     SendPlayerReportEmailHandler,
+    SendPlayerRecommendationReceivedEmailHandler,
     CreatePlayerGameUseCase,
     DeletePlayerGameUseCase,
     GetPlayerGamesUseCase,
     GetPlayerGameUseCase,
     UpdatePlayerGameUseCase,
+    CreateRecommendationUseCase,
+    DeleteRecommendationUseCase,
+    ListPlayerReceivedRecommendationsUseCase,
+    ListPlayerGivenRecommendationsUseCase,
 
     { provide: PLAYER_REPOSITORY, useClass: PlayerRepositoryTypeorm },
   ],
