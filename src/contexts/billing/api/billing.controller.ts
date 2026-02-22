@@ -3,15 +3,23 @@
  *
  * Exposes:
  * - GET /billing/catalog
+ * - GET /billing/overview
+ * - GET /billing/invoices
+ * - PUT /billing/address
  * - POST /billing/subscriptions/:lookupKey/payment
  * - POST /billing/packs/:lookupKey/payment-intent
  ***************************/
 
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { ListBillingCatalogUseCase } from '../app/usecases/list-billing-catalog.usecase';
 import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
 import { CreateSubscriptionPaymentIntentUseCase } from '../app/usecases/create-subscription-payment-intent.use-case';
 import { BillingSubjectTypeEnum } from '@neeft-sas/shared';
+import { GetBillingOverviewUseCase } from '../app/usecases/get-billing-overview.usecase';
+import { GetBillingInvoicesUseCase } from '../app/usecases/get-billing-invoices.usecase';
+import { UpdateBillingAddressUseCase } from '../app/usecases/update-billing-address.usecase';
+import { BillingInvoicesQueryDto } from './dtos/billing-invoices-query.dto';
+import { BillingAddressDto } from './dtos/billing-address.dto';
 
 type JwtUser = {
   sub: string; // userCredentialId
@@ -30,6 +38,9 @@ type CreateSubscriptionPaymentBody = {
 export class BillingController {
   constructor(
     private readonly listCatalog: ListBillingCatalogUseCase,
+    private readonly getBillingOverview: GetBillingOverviewUseCase,
+    private readonly getBillingInvoices: GetBillingInvoicesUseCase,
+    private readonly updateBillingAddressUseCase: UpdateBillingAddressUseCase,
     private readonly createSubscriptionPaymentIntentUseCase: CreateSubscriptionPaymentIntentUseCase,
     // private readonly createPackPaymentIntentUseCase: CreatePackPaymentIntentUseCase,
   ) {}
@@ -38,6 +49,50 @@ export class BillingController {
   @HttpCode(HttpStatus.OK)
   async catalog() {
     return this.listCatalog.execute();
+  }
+
+  @Get('overview')
+  @UseGuards(ConnectedGuard)
+  @HttpCode(HttpStatus.OK)
+  async overview(@Req() req: RequestWithUser) {
+    if (!req.user?.pid) {
+      throw new UnauthorizedException('Utilisateur non authentifie.');
+    }
+
+    return this.getBillingOverview.execute({
+      subjectType: BillingSubjectTypeEnum.PLAYER,
+      subjectId: req.user.pid,
+    });
+  }
+
+  @Get('invoices')
+  @UseGuards(ConnectedGuard)
+  @HttpCode(HttpStatus.OK)
+  async invoices(@Req() req: RequestWithUser, @Query() query: BillingInvoicesQueryDto) {
+    if (!req.user?.pid) {
+      throw new UnauthorizedException('Utilisateur non authentifie.');
+    }
+
+    return this.getBillingInvoices.execute({
+      subjectType: BillingSubjectTypeEnum.PLAYER,
+      subjectId: req.user.pid,
+      query,
+    });
+  }
+
+  @Put('address')
+  @UseGuards(ConnectedGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateBillingAddress(@Req() req: RequestWithUser, @Body() body: BillingAddressDto) {
+    if (!req.user?.pid) {
+      throw new UnauthorizedException('Utilisateur non authentifie.');
+    }
+
+    return this.updateBillingAddressUseCase.execute({
+      subjectType: BillingSubjectTypeEnum.PLAYER,
+      subjectId: req.user.pid,
+      data: body,
+    });
   }
 
   @Post('subscriptions/:lookupKey/payment-intent')

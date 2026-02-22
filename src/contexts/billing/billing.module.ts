@@ -6,6 +6,9 @@ import { StripeService } from "./infra/stripe/stripe.service";
 import { TOKEN_SERVICE } from "../auth/app/ports/token.port";
 import { AuthModule } from "../auth/auth.module";
 import { CreateSubscriptionPaymentIntentUseCase } from "./app/usecases/create-subscription-payment-intent.use-case";
+import { GetBillingOverviewUseCase } from "./app/usecases/get-billing-overview.usecase";
+import { GetBillingInvoicesUseCase } from "./app/usecases/get-billing-invoices.usecase";
+import { UpdateBillingAddressUseCase } from "./app/usecases/update-billing-address.usecase";
 import { BILLING_SUBJECT_REPOSITORY } from "./app/ports/billing-subject.repository.port";
 import { BillingSubjectRepositoryTypeorm } from "./infra/persistence/repositories/billing-subject.repository";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -35,8 +38,12 @@ import { BillingCreditBalanceEntity } from "./infra/persistence/entities/billing
   providers: [
     ListBillingCatalogUseCase,
     CreateSubscriptionPaymentIntentUseCase,
+    GetBillingOverviewUseCase,
+    GetBillingInvoicesUseCase,
+    UpdateBillingAddressUseCase,
     BillingEntitlementsResolver,
-    { provide: STRIPE_PORT, useClass: StripeService },
+    StripeService,
+    { provide: STRIPE_PORT, useExisting: StripeService },
     { provide: BILLING_SUBJECT_REPOSITORY, useClass: BillingSubjectRepositoryTypeorm },
     { provide: BILLING_USAGE_REPOSITORY, useClass: BillingUsageRepositoryTypeorm },
     { provide: BILLING_CREDIT_BALANCE_REPOSITORY, useClass: BillingCreditBalanceRepository },

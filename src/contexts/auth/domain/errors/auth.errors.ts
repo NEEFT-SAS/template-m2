@@ -15,7 +15,7 @@ export class AuthInvalidCredentialsError extends DomainError {
 }
 
 export class AuthReferralCodeNotFoundError extends DomainError {
-  constructor(details?: { referralCode?: string }) {
+  constructor(details?: { referralCode?: string }, fields?: any) {
     super({
       code: 'AUTH_REFERRAL_CODE_NOT_FOUND',
       message: 'Referral code not found',
