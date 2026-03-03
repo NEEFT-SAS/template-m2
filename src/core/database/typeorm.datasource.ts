@@ -21,7 +21,8 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE,
 
   synchronize: process.env.DB_SYNCHRONIZE === 'true',
-  logging: process.env.DB_LOGGING === 'true',
+  // Keep query text/parameters out of logs; enable only warn/error when DB_LOGGING=true.
+  logging: process.env.DB_LOGGING === 'true' ? ['warn', 'error'] : false,
 
   // charset: 'utf8mb4',
   // timezone: 'Z',

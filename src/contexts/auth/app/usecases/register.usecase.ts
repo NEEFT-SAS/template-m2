@@ -7,6 +7,7 @@ import { PASSWORD_HASHER, PasswordHasherPort } from "../ports/password-hasher.po
 import { TOKEN_SERVICE, TokenPort } from "../ports/token.port";
 import { EVENT_BUS, EventBusPort } from "@/core/events/event-bus.port";
 import { UserRegisteredEvent } from "../../domain/events/user-registered.event.";
+import { UserProfileGenderEnum } from '../../domain/types/user-profile-gender.enum';
 
 /***************************
  *
@@ -16,6 +17,7 @@ import { UserRegisteredEvent } from "../../domain/events/user-registered.event."
  * 
  ***************************/
 const MINIMUM_AGE = 13;
+type UserRegisterInput = UserRegisterDto & { gender: UserProfileGenderEnum };
 
 @Injectable()
 export class UserRegisterUsecase {
@@ -24,7 +26,7 @@ export class UserRegisterUsecase {
   @Inject(PASSWORD_HASHER) private readonly hasher: PasswordHasherPort;
   @Inject(EVENT_BUS) private readonly eventBus: EventBusPort;
 
-  async execute(dto: UserRegisterDto): Promise<UserRegisteredPresenter> {
+  async execute(dto: UserRegisterInput): Promise<UserRegisteredPresenter> {
     const userAge = getAgeParts(dto.birthdate);
     
     if (userAge.years < MINIMUM_AGE) {
@@ -61,6 +63,7 @@ export class UserRegisterUsecase {
         username: dto.username,
         firstname: dto.firstname,
         lastname: dto.lastname,
+        gender: dto.gender,
         slug,
         birthDate: dto.birthdate,
         referralCode: this.generateReferralCode(slug),

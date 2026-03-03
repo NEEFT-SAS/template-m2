@@ -1,10 +1,11 @@
 
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
-import { UserLoginDto, UserRegisterDto } from '@neeft-sas/shared';
+import { UserLoginDto } from '@neeft-sas/shared';
 import { UserRegisterUsecase } from '../app/usecases/register.usecase';
 import { UserLoginUsecase } from '../app/usecases/login.usecase';
 import { ConnectedGuard } from '../infra/guards/connected.guard';
 import { GetUserSessionUseCase } from '../app/usecases/session.usecase';
+import { UserRegisterRequestDto } from './dtos/user-register.request.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -16,7 +17,7 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
-  register(@Body() dto: UserRegisterDto) {
+  register(@Body() dto: UserRegisterRequestDto) {
     return this.registerUseCase.execute(dto);
   }
 

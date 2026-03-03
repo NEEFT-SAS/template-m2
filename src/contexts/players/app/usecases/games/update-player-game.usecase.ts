@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { UpdatePlayerGameDTO, PlayerGamePresenter } from '@neeft-sas/shared';
-import { plainToInstance } from 'class-transformer';
+import { UpdatePlayerGameDTO } from '@neeft-sas/shared';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
 import { PlayerGameDuplicateSelectionError, PlayerGameInvalidCharactersError, PlayerGameInvalidGameError, PlayerGameInvalidModeRanksError, PlayerGameInvalidPlatformsError, PlayerGameInvalidPositionsError, PlayerGameNotFoundError } from '@/contexts/players/domain/errors/player-game.errors';
@@ -8,6 +7,8 @@ import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
 import { PlayerSearchSyncEvent } from '@/contexts/players/domain/events/player-search-sync.event';
 import { PLAYER_REPOSITORY, PlayerGameUpdateInput, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { buildAccountInput, collectDuplicates } from '../../services/player-game.utils';
+import { PlayerGameResponse } from '@/contexts/players/api/presenters/player-game.response';
+import { toPlayerGameResponse } from '../../services/player-game-response.mapper';
 
 @Injectable()
 export class UpdatePlayerGameUseCase {
@@ -17,15 +18,15 @@ export class UpdatePlayerGameUseCase {
     @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
-  async execute(userSlug: string, gameId: number, dto: UpdatePlayerGameDTO): Promise<PlayerGamePresenter> {
+  async execute(userSlug: string, rscGameId: number, dto: UpdatePlayerGameDTO): Promise<PlayerGameResponse> {
     const profileId = await this.repo.findProfileIdBySlug(userSlug);
     if (!profileId) {
       throw new PlayerNotFoundError(userSlug);
     }
 
-    const existing = await this.repo.findPlayerGameByProfileAndGame(profileId, gameId);
+    const existing = await this.repo.findPlayerGameByProfileAndGame(profileId, rscGameId);
     if (!existing) {
-      throw new PlayerGameNotFoundError(userSlug, gameId);
+      throw new PlayerGameNotFoundError(userSlug, rscGameId);
     }
 
     const hasPositionIds = dto.positionIds !== undefined;
@@ -37,13 +38,11 @@ export class UpdatePlayerGameUseCase {
     const requiresResource =
       hasPositionIds || hasPlatformIds || hasCharacterIds || hasModeRanks || hasPayload;
 
-    const snapshot = requiresResource ? this.resourcesStore.getSnapshot() : null;
-    const game = requiresResource
-      ? snapshot?.rscGames.find((item) => item.id === gameId)
-      : null;
+    const snapshot = this.resourcesStore.getSnapshot();
+    const game = snapshot.rscGames.find((item) => item.id === rscGameId) ?? null;
 
     if (requiresResource && !game) {
-      throw new PlayerGameInvalidGameError(userSlug, gameId);
+      throw new PlayerGameInvalidGameError(userSlug, rscGameId);
     }
 
     let positionIds: number[] | undefined;
@@ -53,7 +52,7 @@ export class UpdatePlayerGameUseCase {
       if (positionDuplicates.length) {
         throw new PlayerGameDuplicateSelectionError(userSlug, 'positionIds', positionDuplicates);
       }
-      const allowedPositions = new Set(game!.positions.map((item) => item.rscPositionId));
+      const allowedPositions = new Set(game!.rscGamePositions.map((item) => item.id));
       const invalidPositions = positionIds.filter((id) => !allowedPositions.has(id));
       if (invalidPositions.length) {
         throw new PlayerGameInvalidPositionsError(userSlug, invalidPositions);
@@ -67,7 +66,7 @@ export class UpdatePlayerGameUseCase {
       if (platformDuplicates.length) {
         throw new PlayerGameDuplicateSelectionError(userSlug, 'platformIds', platformDuplicates);
       }
-      const allowedPlatforms = new Set(game!.platforms.map((item) => item.rscPlatformId));
+      const allowedPlatforms = new Set(game!.rscGamePlatforms.map((item) => item.id));
       const invalidPlatforms = platformIds.filter((id) => !allowedPlatforms.has(id));
       if (invalidPlatforms.length) {
         throw new PlayerGameInvalidPlatformsError(userSlug, invalidPlatforms);
@@ -81,7 +80,7 @@ export class UpdatePlayerGameUseCase {
       if (characterDuplicates.length) {
         throw new PlayerGameDuplicateSelectionError(userSlug, 'characterIds', characterDuplicates);
       }
-      const allowedCharacters = new Set(game!.characters.map((item) => item.rscCharacterId));
+      const allowedCharacters = new Set(game!.rscGameCharacters.map((item) => item.id));
       const invalidCharacters = characterIds.filter((id) => !allowedCharacters.has(id));
       if (invalidCharacters.length) {
         throw new PlayerGameInvalidCharactersError(userSlug, invalidCharacters);
@@ -97,8 +96,8 @@ export class UpdatePlayerGameUseCase {
       if (modeDuplicates.length) {
         throw new PlayerGameDuplicateSelectionError(userSlug, 'modeRanks', modeDuplicates);
       }
-      const allowedModes = new Set(game!.modes.map((item) => item.rscModeId));
-      const allowedRanks = new Set(game!.ranks.map((item) => item.rscRankId));
+      const allowedModes = new Set(game!.rscGameModes.map((item) => item.id));
+      const allowedRanks = new Set(game!.rscGameRanks.map((item) => item.id));
       const invalidModes = modeIds.filter((id) => !allowedModes.has(id));
       const invalidRanks = rankIds.filter((id) => !allowedRanks.has(id));
       if (invalidModes.length || invalidRanks.length) {
@@ -119,11 +118,11 @@ export class UpdatePlayerGameUseCase {
     }
 
     if (!Object.keys(updates).length) {
-      return plainToInstance(PlayerGamePresenter, existing, { excludeExtraneousValues: true });
+      return toPlayerGameResponse(existing, game);
     }
 
-    const updated = await this.repo.updatePlayerGame(profileId, gameId, updates);
+    const updated = await this.repo.updatePlayerGame(profileId, rscGameId, updates);
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
-    return plainToInstance(PlayerGamePresenter, updated, { excludeExtraneousValues: true });
+    return toPlayerGameResponse(updated, game);
   }
 }

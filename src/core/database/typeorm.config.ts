@@ -4,16 +4,10 @@
  *
  ***************************/
 
-import { toBool } from '@neeft-sas/shared';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { join } from 'path';
 
 export function buildTypeOrmOptions(config: ConfigService): TypeOrmModuleOptions {
-  const isProd = config.get<string>('NODE_ENV') === 'production';
-
-  const dbSsl = config.get<boolean>('DB_SSL') ?? false;
-
   return {
     type: 'mysql',
     host: config.get<string>('DB_HOST'),
@@ -23,18 +17,14 @@ export function buildTypeOrmOptions(config: ConfigService): TypeOrmModuleOptions
     database: config.get<string>('DB_DATABASE'),
 
     synchronize: config.get<boolean>('DB_SYNCHRONIZE') ?? false,
-    logging: config.get<boolean>('DB_LOGGING') ?? false,
+    // Keep query text/parameters out of logs; enable only warn/error when DB_LOGGING=true.
+    logging: (config.get<boolean>('DB_LOGGING') ?? false) ? ['warn', 'error'] : false,
 
     autoLoadEntities: true,
 
     charset: 'utf8mb4',
     timezone: 'Z',
 
-    // ssl: toBool(dbSsl) ? { rejectUnauthorized: false } : undefined,
-
-    migrations: [
-      join(process.cwd(), 'dist/core/database/migrations/*.js'),
-      join(process.cwd(), 'src/core/database/migrations/*.ts'),
-    ],
+    // Migrations are handled by the TypeORM CLI DataSource, not by the app runtime.
   };
 }

@@ -33,11 +33,7 @@ export class TeamRecommendationsController {
   @Delete(':slug/recommendations/:recommendationId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ConnectedGuard, TeamOwnerOrAdminGuard)
-  async deleteRecommendation(
-    @Req() req: RequestWithUser,
-    @Param('slug') _slug: string,
-    @Param('recommendationId', ParseUUIDPipe) recommendationId: string,
-  ) {
+  async deleteRecommendation(@Req() req: RequestWithUser,@Param('slug') _slug: string,@Param('recommendationId', ParseUUIDPipe) recommendationId: string) {
     const requesterProfileId = req.user?.pid ?? '';
     const isAdmin = Array.isArray(req.user?.roles) && req.user?.roles.includes('admin');
     await this.deleteRecommendationUseCase.execute(recommendationId, requesterProfileId, isAdmin);

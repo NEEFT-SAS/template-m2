@@ -1,6 +1,7 @@
 import type { PlayerAvailabilityPresenter, PlayerReportReason, PlayerReportStatus, PlayerSocialLinkPresenter, RecommendationAuthorType, RecommendationRelationship, RecommendationTargetType, UserProfileAttendanceMode, UserProfileEducationStatus } from "@neeft-sas/shared";
 import type { UserCredentialsEntity } from "@/contexts/auth/infra/persistence/entities/user-credentials.entity";
 import type { UserProfileEntity } from "@/contexts/auth/infra/persistence/entities/user-profile.entity";
+import { UserProfileGenderEnum } from "@/contexts/auth/domain/types/user-profile-gender.enum";
 import type { UserProfileAvailabilityEntity } from "../../infra/entities/profile/user-profile-availability.entity";
 import type { UserProfileExperienceEntity } from "../../infra/entities/profile/user-profile-experience.entity";
 import type { UserProfileSchoolExperienceEntity } from "../../infra/entities/profile/user-profile-school-experience.entity";
@@ -26,10 +27,15 @@ export type PlayerProfileUpdateInput = {
   firstname?: string;
   lastname?: string;
   birthDate?: Date;
+  gender?: UserProfileGenderEnum;
   description?: string | null;
   citation?: string | null;
   profilePicture?: string | null;
   bannerPicture?: string | null;
+  phone?: string | null;
+  workSector?: string | null;
+  contractType?: string | null;
+  isDisabledPlayer?: boolean | null;
   nationalityId?: string | null;
   languageIds?: string[] | null;
 };
@@ -112,6 +118,7 @@ export type PlayerProfessionalExperienceUpdateInput = {
 export type PlayerGameModeRankInput = {
   modeId: number;
   rankId: number;
+  elo?: number | null;
 };
 
 export type PlayerGameAccountInput =
@@ -222,6 +229,7 @@ export interface PlayerRepositoryPort {
 
   findSocialLinks(userProfileId: string): Promise<UserSocialLinkEntity[]>;
   replaceSocialLinks(userProfileId: string, links: PlayerSocialLinkPresenter[]): Promise<UserSocialLinkEntity[]>;
+  findAvailabilities(userProfileId: string): Promise<UserProfileAvailabilityEntity[]>;
   replaceAvailabilities(userProfileId: string, availabilities: PlayerAvailabilityPresenter[]): Promise<UserProfileAvailabilityEntity[]>;
   
   addExperience(userProfileId: string, input: PlayerExperienceInput): Promise<UserProfileExperienceEntity>;

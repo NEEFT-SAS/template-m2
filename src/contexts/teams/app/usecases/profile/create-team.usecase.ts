@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateTeamDTO, TeamPresenter, TEAM_ORGANIZATION_TYPES, slugifyUnique } from '@neeft-sas/shared';
+import { slugifyUnique } from '@neeft-sas/shared';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { TEAM_REPOSITORY, TeamRepositoryPort } from '../../ports/team.repository.port';
 import { TeamInvalidCountryError, TeamInvalidLanguagesError, TeamOwnerNotFoundError } from '../../../domain/errors/team.errors';
 import { plainToInstance } from 'class-transformer';
+import { CreateTeamDTO, TeamPresenter } from '@/typage';
 
 @Injectable()
 export class CreateTeamUseCase {
@@ -49,7 +50,6 @@ export class CreateTeamUseCase {
       slug,
       name: dto.name,
       acronym: dto.acronym,
-      organizationType: dto.organizationType ?? TEAM_ORGANIZATION_TYPES[0],
       description: dto.description ?? null,
       quote: dto.quote ?? null,
       bannerPicture: dto.bannerPicture ?? null,
@@ -59,7 +59,6 @@ export class CreateTeamUseCase {
       countryId: dto.countryId ?? null,
       languageIds,
     });
-
     return plainToInstance(TeamPresenter, created, { excludeExtraneousValues: true });
   }
 }

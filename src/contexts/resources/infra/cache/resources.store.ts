@@ -2,30 +2,11 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RscSocialPlatformEntity } from '../persistence/entities/rsc-socials-platforms.entity';
-import {
-  ResourcesPresenter,
-  RscCharacterPresenter,
-  RscCountryPresenter,
-  RscGamePresenter,
-  RscLanguagePresenter,
-  RscModePresenter,
-  RscPlatformPresenter,
-  RscPositionPresenter,
-  RscProfileBadgePresenter,
-  RscRankPresenter,
-  RscSeasonPresenter,
-  RscSocialPlatformPresenter,
-} from '@neeft-sas/shared';
+import { ResourcesPresenter, RscCountryPresenter, RscGamePresenter, RscLanguagePresenter, RscProfileBadgePresenter, RscSocialPlatformPresenter } from '@neeft-sas/shared';
 import { plainToInstance } from 'class-transformer';
 import { RscProfileBadgeEntity } from '../persistence/entities/rsc-profile-badges.entity';
 import { RscCountryEntity } from '../persistence/entities/rsc-countries.entity';
 import { RscLanguageEntity } from '../persistence/entities/rsc-languages.entity';
-import { RscCharacterEntity } from '../persistence/entities/games/base/rsc-characters.entity';
-import { RscModeEntity } from '../persistence/entities/games/base/rsc-modes.entity';
-import { RscPlatformEntity } from '../persistence/entities/games/base/rsc-platforms.entity';
-import { RscPositionEntity } from '../persistence/entities/games/base/rsc-positions.entity';
-import { RscRankEntity } from '../persistence/entities/games/base/rsc-ranks.entity';
-import { RscSeasonEntity } from '../persistence/entities/games/base/rsc-seasons.entity';
 import { RscGameEntity } from '../persistence/entities/games/rsc-games.entity';
 import { RscGamePlatformEntity } from '../persistence/entities/games/relations/rsc-game-platforms.entity';
 import { RscGameModeEntity } from '../persistence/entities/games/relations/rsc-game-modes.entity';
@@ -33,8 +14,6 @@ import { RscGamePositionEntity } from '../persistence/entities/games/relations/r
 import { RscGameRankEntity } from '../persistence/entities/games/relations/rsc-game-ranks.entity';
 import { RscGameSeasonEntity } from '../persistence/entities/games/relations/rsc-game-seasons.entity';
 import { RscGameCharacterEntity } from '../persistence/entities/games/relations/rsc-game-characters.entity';
-
-
 
 @Injectable()
 export class ResourcesStore implements OnModuleInit {
@@ -46,12 +25,6 @@ export class ResourcesStore implements OnModuleInit {
     rscLanguages: [],
     rscSocialPlatforms: [],
     rscProfileBadges: [],
-    rscCharacters: [],
-    rscModes: [],
-    rscPlatforms: [],
-    rscPositions: [],
-    rscRanks: [],
-    rscSeasons: [],
     rscGames: [],
   };
 
@@ -60,12 +33,6 @@ export class ResourcesStore implements OnModuleInit {
     @InjectRepository(RscProfileBadgeEntity) private readonly badgeRepo: Repository<RscProfileBadgeEntity>,
     @InjectRepository(RscCountryEntity) private readonly countryRepo: Repository<RscCountryEntity>,
     @InjectRepository(RscLanguageEntity) private readonly languageRepo: Repository<RscLanguageEntity>,
-    @InjectRepository(RscCharacterEntity) private readonly characterRepo: Repository<RscCharacterEntity>,
-    @InjectRepository(RscModeEntity) private readonly modeRepo: Repository<RscModeEntity>,
-    @InjectRepository(RscPlatformEntity) private readonly platformRepo: Repository<RscPlatformEntity>,
-    @InjectRepository(RscPositionEntity) private readonly positionRepo: Repository<RscPositionEntity>,
-    @InjectRepository(RscRankEntity) private readonly rankRepo: Repository<RscRankEntity>,
-    @InjectRepository(RscSeasonEntity) private readonly seasonRepo: Repository<RscSeasonEntity>,
     @InjectRepository(RscGameEntity) private readonly gameRepo: Repository<RscGameEntity>,
     @InjectRepository(RscGamePlatformEntity) private readonly gamePlatformRepo: Repository<RscGamePlatformEntity>,
     @InjectRepository(RscGameModeEntity) private readonly gameModeRepo: Repository<RscGameModeEntity>,
@@ -105,64 +72,39 @@ export class ResourcesStore implements OnModuleInit {
       order: { label: 'ASC' },
     });
 
-    const characters = await this.characterRepo.find({
-      order: { name: 'ASC' },
-    });
-
-    const modes = await this.modeRepo.find({
-      order: { order: 'ASC', name: 'ASC' },
-    });
-
-    const platforms = await this.platformRepo.find({
-      order: { name: 'ASC' },
-    });
-
-    const positions = await this.positionRepo.find({
-      order: { order: 'ASC', name: 'ASC' },
-    });
-
-    const ranks = await this.rankRepo.find({
-      order: { order: 'ASC', name: 'ASC' },
-    });
-
-    const seasons = await this.seasonRepo.find({
-      order: { code: 'ASC' },
-    });
-
     const games = await this.gameRepo.find({
       order: { name: 'ASC' },
     });
 
     const gamePlatforms = await this.gamePlatformRepo.find({
+      relations: { platform: true },
       order: { order: 'ASC', id: 'ASC' },
     });
 
     const gameModes = await this.gameModeRepo.find({
+      relations: { mode: true },
       order: { order: 'ASC', id: 'ASC' },
     });
 
     const gamePositions = await this.gamePositionRepo.find({
+      relations: { position: true },
       order: { order: 'ASC', id: 'ASC' },
     });
 
     const gameRanks = await this.gameRankRepo.find({
+      relations: { rank: true },
       order: { order: 'ASC', id: 'ASC' },
     });
 
     const gameSeasons = await this.gameSeasonRepo.find({
+      relations: { season: true },
       order: { order: 'ASC', id: 'ASC' },
     });
 
     const gameCharacters = await this.gameCharacterRepo.find({
+      relations: { character: true },
       order: { order: 'ASC', id: 'ASC' },
     });
-
-    const rscCharacterPresenters = plainToInstance(RscCharacterPresenter, characters, { excludeExtraneousValues: true });
-    const rscModePresenters = plainToInstance(RscModePresenter, modes, { excludeExtraneousValues: true });
-    const rscPlatformPresenters = plainToInstance(RscPlatformPresenter, platforms, { excludeExtraneousValues: true });
-    const rscPositionPresenters = plainToInstance(RscPositionPresenter, positions, { excludeExtraneousValues: true });
-    const rscRankPresenters = plainToInstance(RscRankPresenter, ranks, { excludeExtraneousValues: true });
-    const rscSeasonPresenters = plainToInstance(RscSeasonPresenter, seasons, { excludeExtraneousValues: true });
 
     const groupByGameId = <T extends { gameId: number }>(rows: T[]) => {
       const map = new Map<number, T[]>();
@@ -183,30 +125,55 @@ export class ResourcesStore implements OnModuleInit {
 
     const gamesWithRelations = games.map((game) => ({
       ...game,
-      platforms: (gamePlatformsByGameId.get(game.id) ?? []).map((row) => ({
-        order: row.order,
-        rscPlatformId: row.rscPlatformId,
-      })),
-      modes: (gameModesByGameId.get(game.id) ?? []).map((row) => ({
-        order: row.order,
-        rscModeId: row.rscModeId,
-      })),
-      positions: (gamePositionsByGameId.get(game.id) ?? []).map((row) => ({
-        order: row.order,
-        rscPositionId: row.rscPositionId,
-      })),
-      ranks: (gameRanksByGameId.get(game.id) ?? []).map((row) => ({
-        order: row.order,
-        rscRankId: row.rscRankId,
-      })),
-      seasons: (gameSeasonsByGameId.get(game.id) ?? []).map((row) => ({
-        order: row.order,
-        rscSeasonId: row.rscSeasonId,
-      })),
-      characters: (gameCharactersByGameId.get(game.id) ?? []).map((row) => ({
-        order: row.order,
-        rscCharacterId: row.rscCharacterId,
-      })),
+      rscGamePlatforms: (gamePlatformsByGameId.get(game.id) ?? [])
+        .flatMap((row) => (row.platform ? [{
+          id: row.platform.id,
+          name: row.platform.name,
+          slug: row.platform.slug,
+          icon: row.platform.icon,
+        }] : [])),
+      rscGameModes: (gameModesByGameId.get(game.id) ?? [])
+        .flatMap((row) => (row.mode ? [{
+          id: row.mode.id,
+          name: row.mode.name,
+          slug: row.mode.slug,
+          description: row.mode.description,
+          isRanked: row.mode.isRanked,
+          order: row.order,
+        }] : [])),
+      rscGamePositions: (gamePositionsByGameId.get(game.id) ?? [])
+        .flatMap((row) => (row.position ? [{
+          id: row.position.id,
+          name: row.position.name,
+          slug: row.position.slug,
+          icon: row.position.icon,
+          order: row.order,
+        }] : [])),
+      rscGameRanks: (gameRanksByGameId.get(game.id) ?? [])
+        .flatMap((row) => (row.rank ? [{
+          id: row.rank.id,
+          name: row.rank.name,
+          slug: row.rank.slug,
+          order: row.order,
+          division: row.rank.division,
+          tier: row.rank.tier,
+          icon: row.rank.icon,
+        }] : [])),
+      rscGameSeasons: (gameSeasonsByGameId.get(game.id) ?? [])
+        .flatMap((row) => (row.season ? [{
+          id: row.season.id,
+          code: row.season.code,
+          name: row.season.name,
+          startDate: row.season.startDate,
+          endDate: row.season.endDate,
+        }] : [])),
+      rscGameCharacters: (gameCharactersByGameId.get(game.id) ?? [])
+        .flatMap((row) => (row.character ? [{
+          id: row.character.id,
+          name: row.character.name,
+          slug: row.character.slug,
+          icon: row.character.icon,
+        }] : [])),
     }));
 
     this.snapshot = {
@@ -215,12 +182,6 @@ export class ResourcesStore implements OnModuleInit {
       rscProfileBadges: plainToInstance(RscProfileBadgePresenter, badges, { excludeExtraneousValues: true }),
       rscCountries: plainToInstance(RscCountryPresenter, countries, { excludeExtraneousValues: true }),
       rscLanguages: plainToInstance(RscLanguagePresenter, languages, { excludeExtraneousValues: true }),
-      rscCharacters: rscCharacterPresenters,
-      rscModes: rscModePresenters,
-      rscPlatforms: rscPlatformPresenters,
-      rscPositions: rscPositionPresenters,
-      rscRanks: rscRankPresenters,
-      rscSeasons: rscSeasonPresenters,
       rscGames: plainToInstance(RscGamePresenter, gamesWithRelations, { excludeExtraneousValues: true }),
     };
 

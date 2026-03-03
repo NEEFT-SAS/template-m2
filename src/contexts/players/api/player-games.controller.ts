@@ -31,28 +31,28 @@ export class PlayerGamesController {
     return this.getPlayerGamesUseCase.execute(slug);
   }
 
-  @Get(':slug/games/:gameId')
+  @Get(':slug/games/:rscGameId')
   @HttpCode(HttpStatus.OK)
-  getPlayerGame(@Param('slug') slug: string, @Param('gameId', ParseIntPipe) gameId: number) {
-    return this.getPlayerGameUseCase.execute(slug, gameId);
+  getPlayerGame(@Param('slug') slug: string, @Param('rscGameId', ParseIntPipe) rscGameId: number) {
+    return this.getPlayerGameUseCase.execute(slug, rscGameId);
   }
 
-  @Patch(':slug/games/:gameId')
+  @Patch(':slug/games/:rscGameId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
   updatePlayerGame(
     @Param('slug') slug: string,
-    @Param('gameId', ParseIntPipe) gameId: number,
+    @Param('rscGameId', ParseIntPipe) rscGameId: number,
     @Body() body: UpdatePlayerGameDTO,
   ) {
-    return this.updatePlayerGameUseCase.execute(slug, gameId, body);
+    return this.updatePlayerGameUseCase.execute(slug, rscGameId, body);
   }
 
-  @Delete(':slug/games/:gameId')
+  @Delete(':slug/games/:rscGameId')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
-  async deletePlayerGame(@Param('slug') slug: string, @Param('gameId', ParseIntPipe) gameId: number) {
-    await this.deletePlayerGameUseCase.execute(slug, gameId);
+  async deletePlayerGame(@Param('slug') slug: string, @Param('rscGameId', ParseIntPipe) rscGameId: number) {
+    await this.deletePlayerGameUseCase.execute(slug, rscGameId);
     return { deleted: true };
   }
 }

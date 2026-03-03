@@ -282,9 +282,9 @@ export class SearchPlayersQuery {
         const modeId = relation.mode?.rscModeId;
         const rankId = relation.rank?.rscRankId;
         if (!modeId || !rankId) return null;
-        return { modeId, rankId };
+        return { modeId, rankId, elo: relation.elo ?? null };
       })
-      .filter((item): item is { modeId: number; rankId: number } => Boolean(item));
+      .filter((item): item is { modeId: number; rankId: number; elo: number | null } => Boolean(item));
 
     return {
       id: entity.id,

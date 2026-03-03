@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { TeamPresenter, UpdateTeamDTO } from '@neeft-sas/shared';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { TEAM_REPOSITORY, TeamRepositoryPort, UpdateTeamInput } from '../../ports/team.repository.port';
 import { TeamInvalidCountryError, TeamInvalidLanguagesError, TeamNotFoundError } from '../../../domain/errors/team.errors';
 import { plainToInstance } from 'class-transformer';
+import { TeamPresenter, UpdateTeamDTO } from '@/typage';
 
 @Injectable()
 export class UpdateTeamUseCase {
@@ -27,7 +27,6 @@ export class UpdateTeamUseCase {
     if (dto.logoPicture !== undefined) updates.logoPicture = dto.logoPicture ?? null;
     if (dto.foundedAt !== undefined) updates.foundedAt = dto.foundedAt ?? null;
     if (dto.city !== undefined) updates.city = dto.city ?? null;
-    if (dto.organizationType !== undefined) updates.organizationType = dto.organizationType;
 
     const snapshot = this.resourcesStore.getSnapshot();
 

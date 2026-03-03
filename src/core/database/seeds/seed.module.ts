@@ -1,4 +1,5 @@
 import { RscCharactersSeeder } from './seeders/resources/rsc-characters.seeder';
+import { RscCountriesSeeder } from './seeders/resources/rsc-countries.seeder';
 import { RscGameCharactersSeeder } from './seeders/resources/rsc-game-characters.seeder';
 import { RscGameModesSeeder } from './seeders/resources/rsc-game-modes.seeder';
 import { RscGamePlatformsSeeder } from './seeders/resources/rsc-game-platforms.seeder';
@@ -6,13 +7,18 @@ import { RscGamePositionsSeeder } from './seeders/resources/rsc-game-positions.s
 import { RscGameRanksSeeder } from './seeders/resources/rsc-game-ranks.seeder';
 import { RscGameSeasonsSeeder } from './seeders/resources/rsc-game-seasons.seeder';
 import { RscGamesSeeder } from './seeders/resources/rsc-games.seeder';
+import { RscLanguagesSeeder } from './seeders/resources/rsc-languages.seeder';
 import { RscModesSeeder } from './seeders/resources/rsc-modes.seeder';
 import { RscPlatformsSeeder } from './seeders/resources/rsc-platforms.seeder';
 import { RscPositionsSeeder } from './seeders/resources/rsc-positions.seeder';
 import { RscRanksSeeder } from './seeders/resources/rsc-ranks.seeder';
 import { RscSeasonsSeeder } from './seeders/resources/rsc-seasons.seeder';
+import { RscSocialPlatformsSeeder } from './seeders/resources/rsc-social-platforms.seeder';
 
 export const seeders = [
+  new RscCountriesSeeder(),
+  new RscLanguagesSeeder(),
+  new RscSocialPlatformsSeeder(),
   new RscCharactersSeeder(),
   new RscModesSeeder(),
   new RscPlatformsSeeder(),

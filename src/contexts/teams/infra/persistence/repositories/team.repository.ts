@@ -97,7 +97,6 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
       name: input.name,
       acronym: input.acronym,
       slug: input.slug,
-      organizationType: input.organizationType,
       description: input.description ?? null,
       quote: input.quote ?? null,
       bannerPicture: input.bannerPicture ?? null,
@@ -164,7 +163,6 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
     const updates: Partial<TeamEntity> = { id: teamId };
 
     if (input.acronym !== undefined) updates.acronym = input.acronym;
-    if (input.organizationType !== undefined) updates.organizationType = input.organizationType;
     if (input.description !== undefined) updates.description = input.description ?? null;
     if (input.quote !== undefined) updates.quote = input.quote ?? null;
     if (input.bannerPicture !== undefined) updates.bannerPicture = input.bannerPicture ?? null;

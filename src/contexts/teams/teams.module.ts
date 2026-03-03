@@ -8,6 +8,7 @@ import { TeamController } from './api/team.controller';
 import { CreateTeamUseCase } from './app/usecases/profile/create-team.usecase';
 import { UpdateTeamUseCase } from './app/usecases/profile/update-team.usecase';
 import { DeleteTeamUseCase } from './app/usecases/profile/delete-team.usecase';
+import { GetTeamProfileUseCase } from './app/usecases/profile/get-team-profile.usecase';
 import { CreateTeamMemberUseCase } from './app/usecases/members/create-team-member.usecase';
 import { CreateTeamRosterUseCase } from './app/usecases/rosters/create-team-roster.usecase';
 import { AddTeamRosterMemberUseCase } from './app/usecases/rosters/add-team-roster-member.usecase';
@@ -19,6 +20,7 @@ import { TeamMemberEntity } from './infra/entities/team-member.entity';
 import { TeamRosterEntity } from './infra/entities/team-roster.entity';
 import { TeamRosterMemberEntity } from './infra/entities/team-roster-member.entity';
 import { TeamRecommendationsController } from './api/team-recommendations.controller';
+import { TeamReportsController } from './api/team-reports.controller';
 import { CreateRecommendationUseCase } from '@/contexts/players/app/usecases/recommendations/create-recommendation.usecase';
 import { DeleteRecommendationUseCase } from '@/contexts/players/app/usecases/recommendations/delete-recommendation.usecase';
 
@@ -35,9 +37,10 @@ import { DeleteRecommendationUseCase } from '@/contexts/players/app/usecases/rec
     AuthModule,
     forwardRef(() => PlayerModule),
   ],
-  controllers: [TeamController, TeamRecommendationsController],
+  controllers: [TeamController, TeamRecommendationsController, TeamReportsController],
   providers: [
     CreateTeamUseCase,
+    GetTeamProfileUseCase,
     UpdateTeamUseCase,
     DeleteTeamUseCase,
     CreateTeamMemberUseCase,

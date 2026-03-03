@@ -11,6 +11,20 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
     // app.useLogger(new Logger());
+  app.use((req, _res, next) => {
+    const now = new Date();
+    const time = now.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+    const date = now.toLocaleDateString('fr-FR');
+
+    console.log(`[API] ${req.method} ${req.originalUrl} lancee le ${date} a ${time}`);
+    next();
+  });
+
   app.use(cookieParser(config.get<string>('app.cookieSecret')));
 
   app.enableCors({

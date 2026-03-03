@@ -1,6 +1,7 @@
 import { BillingPlanKeyEnum } from '@/contexts/billing/infra/entitlements/billing-plans.registry';
 import { RscCountryEntity } from '@/contexts/resources/infra/persistence/entities/rsc-countries.entity';
 import { RscLanguageEntity } from '@/contexts/resources/infra/persistence/entities/rsc-languages.entity';
+import { UserProfileGenderEnum } from '@/contexts/auth/domain/types/user-profile-gender.enum';
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, JoinTable, ManyToMany, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('user_profiles')
@@ -28,6 +29,16 @@ export class UserProfileEntity {
   @Column({ type: 'varchar', length: 255, nullable: false, select: false })
   lastname!: string;
 
+  @Column({
+    type: 'enum',
+    enum: UserProfileGenderEnum,
+    default: UserProfileGenderEnum.OTHER,
+  })
+  gender!: UserProfileGenderEnum;
+
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  phone!: string | null;
+
   // description
   @Column({ type: 'text', nullable: true })
   description!: string | null;
@@ -40,6 +51,15 @@ export class UserProfileEntity {
 
   @Column({ name: 'banner_picture', type: 'varchar', length: 255, nullable: true })
   bannerPicture!: string | null;
+
+  @Column({ name: 'work_sector', type: 'varchar', length: 255, nullable: true })
+  workSector!: string | null;
+
+  @Column({ name: 'contract_type', type: 'varchar', length: 255, nullable: true })
+  contractType!: string | null;
+
+  @Column({ name: 'is_disabled_player', type: 'boolean', nullable: true })
+  isDisabledPlayer!: boolean | null;
 
   @Index({ unique: true })
   @Column({ name: 'referral_code', type: 'varchar', length: 32 })

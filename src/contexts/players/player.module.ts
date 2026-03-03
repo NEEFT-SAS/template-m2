@@ -11,6 +11,7 @@ import { PlayerBadgesController } from "./api/player-badges.controller";
 import { GetPlayerBySlugUseCase } from "./app/usecases/get-player-by-slug.usecase";
 import { UpdatePlayerProfileUseCase } from "./app/usecases/update-player-profile.usecase";
 import { UpdatePlayerAvailabilitiesUseCase } from "./app/usecases/availabilities/update-availabilities.usecase";
+import { GetPlayerAvailabilitiesUseCase } from "./app/usecases/availabilities/get-availabilities.usecase";
 import { AddPlayerExperienceUseCase } from "./app/usecases/experiences/add-experience.usecase";
 import { GetPlayerExperiencesUseCase } from "./app/usecases/experiences/get-experiences.usecase";
 import { GetPlayerExperienceUseCase } from "./app/usecases/experiences/get-experience.usecase";
@@ -44,7 +45,9 @@ import { UserBadgeEntity } from "./infra/entities/profile/user-badge.entity";
 import { GetPlayerBadgesUsecase } from "./app/usecases/badges/get-player-badges.usecase";
 import { PlayerBadgesResolver } from "./app/services/player-badges.resolver";
 import { CreatePlayerReportUseCase } from "./app/usecases/reports/create-player-report.usecase";
+import { CreateProfileReportUseCase } from "./app/usecases/reports/create-profile-report.usecase";
 import { UserReportEntity } from "./infra/entities/profile/user-report.entity";
+import { ProfileReportEntity } from "./infra/entities/profile/profile-report.entity";
 import { SendPlayerReportEmailHandler } from "./app/handlers/send-player-report-email.handler";
 import { SendPlayerRecommendationReceivedEmailHandler } from "./app/handlers/send-player-recommendation-received-email.handler";
 import { GetPlayerReportsUseCase } from "./app/usecases/reports/get-player-reports.usecase";
@@ -86,6 +89,7 @@ import { PlayerRecommendationsController } from "./api/player-recommendations.co
       UserProfileProfessionalExperienceEntity,
       UserProfileExperienceEntity,
       UserReportEntity,
+      ProfileReportEntity,
       UserGameEntity,
       UserGameCharacterEntity,
       UserGamePlatformEntity,
@@ -115,6 +119,7 @@ import { PlayerRecommendationsController } from "./api/player-recommendations.co
   ],
   providers: [
     GetPlayerBySlugUseCase,
+    GetPlayerAvailabilitiesUseCase,
     UpdatePlayerProfileUseCase,
     UpdatePlayerAvailabilitiesUseCase,
     
@@ -143,6 +148,7 @@ import { PlayerRecommendationsController } from "./api/player-recommendations.co
     GetPlayerBadgesUsecase,
     PlayerBadgesResolver,
     
+    CreateProfileReportUseCase,
     CreatePlayerReportUseCase,
     GetPlayerReportsUseCase,
     UpdatePlayerReportStatusUseCase,
@@ -160,6 +166,6 @@ import { PlayerRecommendationsController } from "./api/player-recommendations.co
 
     { provide: PLAYER_REPOSITORY, useClass: PlayerRepositoryTypeorm },
   ],
-  exports: [PLAYER_REPOSITORY],
+  exports: [PLAYER_REPOSITORY, CreateProfileReportUseCase],
 })
 export class PlayerModule {}

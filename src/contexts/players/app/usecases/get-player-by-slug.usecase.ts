@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../ports/player.repository.port';
 import { PlayerNotFoundError } from '../../domain/errors/player-profile.errors';
 import { plainToInstance } from 'class-transformer';
-import { PlayerProfilePresenter } from '@neeft-sas/shared';
+import { PlayerProfileResponse } from '../../api/presenters/player-profile.response';
 
 @Injectable()
 export class GetPlayerBySlugUseCase {
@@ -16,6 +16,6 @@ export class GetPlayerBySlugUseCase {
       throw new PlayerNotFoundError(slug);
     }
 
-    return plainToInstance(PlayerProfilePresenter, player, { excludeExtraneousValues: true });
+    return plainToInstance(PlayerProfileResponse, player, { excludeExtraneousValues: true });
   }
 }

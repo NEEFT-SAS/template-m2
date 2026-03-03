@@ -12,18 +12,18 @@ export class DeletePlayerGameUseCase {
     @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
-  async execute(userSlug: string, gameId: number): Promise<void> {
+  async execute(userSlug: string, rscGameId: number): Promise<void> {
     const profileId = await this.repo.findProfileIdBySlug(userSlug);
     if (!profileId) {
       throw new PlayerNotFoundError(userSlug);
     }
 
-    const existing = await this.repo.findPlayerGameIdByProfileAndGame(profileId, gameId);
+    const existing = await this.repo.findPlayerGameIdByProfileAndGame(profileId, rscGameId);
     if (!existing) {
-      throw new PlayerGameNotFoundError(userSlug, gameId);
+      throw new PlayerGameNotFoundError(userSlug, rscGameId);
     }
 
-    await this.repo.deletePlayerGame(profileId, gameId);
+    await this.repo.deletePlayerGame(profileId, rscGameId);
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
   }
 }

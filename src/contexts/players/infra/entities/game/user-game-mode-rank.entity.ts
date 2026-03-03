@@ -1,4 +1,4 @@
-import { Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Unique } from 'typeorm';
 import { UserGameEntity } from './user-game.entity';
 import { RscGameModeEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-modes.entity';
 import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-ranks.entity';
@@ -8,6 +8,9 @@ import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entiti
 export class UserGameModeRankEntity {
   @PrimaryGeneratedColumn()
   id!: number;
+
+  @Column({ type: 'int', nullable: true })
+  elo!: number | null;
 
   @ManyToOne(() => UserGameEntity, (game) => game.modeRanks, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'player_game_id' })

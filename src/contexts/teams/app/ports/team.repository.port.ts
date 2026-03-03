@@ -1,4 +1,4 @@
-import type { TeamMemberRole, TeamOrganizationType, TeamRosterMemberRole } from '@neeft-sas/shared';
+import type { TeamMemberRole, TeamRosterMemberRole } from '@neeft-sas/shared';
 import type { TeamEntity } from '../../infra/entities/team.entity';
 import type { TeamMemberEntity } from '../../infra/entities/team-member.entity';
 import type { TeamRosterEntity } from '../../infra/entities/team-roster.entity';
@@ -12,7 +12,6 @@ export type CreateTeamInput = {
   slug: string;
   name: string;
   acronym: string;
-  organizationType: TeamOrganizationType;
   description?: string | null;
   quote?: string | null;
   bannerPicture?: string | null;
@@ -25,7 +24,6 @@ export type CreateTeamInput = {
 
 export type UpdateTeamInput = {
   acronym?: string;
-  organizationType?: TeamOrganizationType;
   description?: string | null;
   quote?: string | null;
   bannerPicture?: string | null;

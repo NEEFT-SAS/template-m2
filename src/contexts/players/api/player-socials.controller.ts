@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { UpdatePlayerSocialLinksDTO } from "@neeft-sas/shared";
 import { OptionalAuthGuard } from "@/contexts/auth/infra/guards/optional-auth.guard";
 import { ConnectedGuard } from "@/contexts/auth/infra/guards/connected.guard";
@@ -20,7 +20,7 @@ export class PlayerSocialsController {
     return this.getPlayerSocialLinksUseCase.execute(slug);
   }
 
-  @Post(':slug/socials')
+  @Patch(':slug/socials')
   @HttpCode(HttpStatus.OK)
   @UseGuards(ConnectedGuard, PlayerOwnerOrAdminGuard)
   updatePlayerSocialLinks(@Param('slug') slug: string, @Body() body: UpdatePlayerSocialLinksDTO) {

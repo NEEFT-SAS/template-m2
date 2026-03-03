@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { PlayerPrivateProfilePresenter, UpdatePlayerProfileDTO } from '@neeft-sas/shared';
 import { AUTH_REPOSITORY, AuthRepositoryPort } from '@/contexts/auth/app/ports/auth.repository.port';
 import { AuthEmailAlreadyUsedError } from '@/contexts/auth/domain/errors/auth.errors';
 import { PlayerInvalidLanguagesError, PlayerInvalidNationalityError, PlayerNotFoundError } from '../../domain/errors/player-profile.errors';
@@ -9,6 +8,8 @@ import { DomainError } from '@/core/errors/domain-error';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
 import { PlayerSearchSyncEvent } from '../../domain/events/player-search-sync.event';
+import { UpdatePlayerProfileRequestDto } from '../../api/dtos/update-player-profile.request.dto';
+import { PlayerPrivateProfileResponse } from '../../api/presenters/player-private-profile.response';
 
 @Injectable()
 export class UpdatePlayerProfileUseCase {
@@ -19,7 +20,7 @@ export class UpdatePlayerProfileUseCase {
     @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
-  async execute(slug: string, dto: UpdatePlayerProfileDTO, isAdmin: boolean): Promise<PlayerPrivateProfilePresenter> {
+  async execute(slug: string, dto: UpdatePlayerProfileRequestDto, isAdmin: boolean): Promise<PlayerPrivateProfileResponse> {
     const hasAdminFields =
       dto.firstname !== undefined ||
       dto.lastname !== undefined ||
@@ -50,10 +51,15 @@ export class UpdatePlayerProfileUseCase {
     if (dto.firstname !== undefined) profileUpdates.firstname = dto.firstname;
     if (dto.lastname !== undefined) profileUpdates.lastname = dto.lastname;
     if (dto.birthdate !== undefined) profileUpdates.birthDate = dto.birthdate;
+    if (dto.gender !== undefined) profileUpdates.gender = dto.gender;
     if (dto.description !== undefined) profileUpdates.description = dto.description;
     if (dto.citation !== undefined) profileUpdates.citation = dto.citation;
     if (dto.profilePicture !== undefined) profileUpdates.profilePicture = dto.profilePicture;
     if (dto.bannerPicture !== undefined) profileUpdates.bannerPicture = dto.bannerPicture;
+    if (dto.phone !== undefined) profileUpdates.phone = dto.phone;
+    if (dto.workSector !== undefined) profileUpdates.workSector = dto.workSector;
+    if (dto.contractType !== undefined) profileUpdates.contractType = dto.contractType;
+    if (dto.isDisabledPlayer !== undefined) profileUpdates.isDisabledPlayer = dto.isDisabledPlayer;
 
     if (dto.nationalityId !== undefined || dto.languageIds !== undefined) {
       const snapshot = this.resourcesStore.getSnapshot();
@@ -93,7 +99,7 @@ export class UpdatePlayerProfileUseCase {
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug }));
 
     return plainToInstance(
-      PlayerPrivateProfilePresenter,
+      PlayerPrivateProfileResponse,
       { ...updated.profile, email: updated.credentials.email },
       { excludeExtraneousValues: true },
     );

@@ -49,7 +49,7 @@ export class AddTeamRosterMemberUseCase {
         throw new TeamRosterInvalidGameError(gameId);
       }
 
-      const allowedPositions = new Set(game.positions.map((item) => item.rscPositionId));
+      const allowedPositions = new Set(game.rscGamePositions.map((item) => item.id));
       if (!allowedPositions.has(positionId)) {
         throw new TeamRosterInvalidPositionError(positionId, gameId);
       }

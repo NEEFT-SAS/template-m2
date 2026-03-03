@@ -18,7 +18,8 @@ const dataSource = new DataSource({
   password: process.env.DB_PASSWORD ?? '',
   database: process.env.DB_DATABASE,
   synchronize: process.env.DB_SYNCHRONIZE === 'true',
-  logging: process.env.DB_LOGGING === 'true',
+  // Keep query text/parameters out of logs; enable only warn/error when DB_LOGGING=true.
+  logging: process.env.DB_LOGGING === 'true' ? ['warn', 'error'] : false,
   entities: [
     resolve(process.cwd(), `${baseDir}/**/*.entity.${ext}`),
     resolve(process.cwd(), `${baseDir}/**/*.orm-entity.${ext}`),

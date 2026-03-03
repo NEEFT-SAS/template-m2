@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreatePlayerGameDTO, PlayerGamePresenter } from '@neeft-sas/shared';
-import { plainToInstance } from 'class-transformer';
+import { CreatePlayerGameDTO } from '@neeft-sas/shared';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
 import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../../ports/player.repository.port';
@@ -8,6 +7,8 @@ import { PlayerGameAlreadyExistsError, PlayerGameDuplicateSelectionError, Player
 import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
 import { PlayerSearchSyncEvent } from '@/contexts/players/domain/events/player-search-sync.event';
 import { buildAccountInput, collectDuplicates } from '../../services/player-game.utils';
+import { PlayerGameResponse } from '@/contexts/players/api/presenters/player-game.response';
+import { toPlayerGameResponse } from '../../services/player-game-response.mapper';
 
 @Injectable()
 export class CreatePlayerGameUseCase {
@@ -17,7 +18,7 @@ export class CreatePlayerGameUseCase {
     @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
   ) {}
 
-  async execute(userSlug: string, dto: CreatePlayerGameDTO): Promise<PlayerGamePresenter> {
+  async execute(userSlug: string, dto: CreatePlayerGameDTO): Promise<PlayerGameResponse> {
     const profileId = await this.repo.findProfileIdBySlug(userSlug);
     if (!profileId) {
       throw new PlayerNotFoundError(userSlug);
@@ -54,19 +55,19 @@ export class CreatePlayerGameUseCase {
       throw new PlayerGameDuplicateSelectionError(userSlug, 'characterIds', characterDuplicates);
     }
 
-    const allowedPositions = new Set(game.positions.map((item) => item.rscPositionId));
+    const allowedPositions = new Set(game.rscGamePositions.map((item) => item.id));
     const invalidPositions = positionIds.filter((id) => !allowedPositions.has(id));
     if (invalidPositions.length) {
       throw new PlayerGameInvalidPositionsError(userSlug, invalidPositions);
     }
 
-    const allowedPlatforms = new Set(game.platforms.map((item) => item.rscPlatformId));
+    const allowedPlatforms = new Set(game.rscGamePlatforms.map((item) => item.id));
     const invalidPlatforms = platformIds.filter((id) => !allowedPlatforms.has(id));
     if (invalidPlatforms.length) {
       throw new PlayerGameInvalidPlatformsError(userSlug, invalidPlatforms);
     }
 
-    const allowedCharacters = new Set(game.characters.map((item) => item.rscCharacterId));
+    const allowedCharacters = new Set(game.rscGameCharacters.map((item) => item.id));
     const invalidCharacters = characterIds.filter((id) => !allowedCharacters.has(id));
     if (invalidCharacters.length) {
       throw new PlayerGameInvalidCharactersError(userSlug, invalidCharacters);
@@ -79,8 +80,8 @@ export class CreatePlayerGameUseCase {
       throw new PlayerGameDuplicateSelectionError(userSlug, 'modeRanks', modeDuplicates);
     }
 
-    const allowedModes = new Set(game.modes.map((item) => item.rscModeId));
-    const allowedRanks = new Set(game.ranks.map((item) => item.rscRankId));
+    const allowedModes = new Set(game.rscGameModes.map((item) => item.id));
+    const allowedRanks = new Set(game.rscGameRanks.map((item) => item.id));
     const invalidModes = modeIds.filter((id) => !allowedModes.has(id));
     const invalidRanks = rankIds.filter((id) => !allowedRanks.has(id));
     if (invalidModes.length || invalidRanks.length) {
@@ -103,6 +104,6 @@ export class CreatePlayerGameUseCase {
 
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
 
-    return plainToInstance(PlayerGamePresenter, created, { excludeExtraneousValues: true });
+    return toPlayerGameResponse(created, game);
   }
 }

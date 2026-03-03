@@ -79,7 +79,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       select: ['id'],
     });
 
-    console.log(slug, entity);
+    console.log('profileIdySlug:', slug, entity);
     
     return entity ? entity.id : null;
   }
@@ -163,6 +163,13 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       );
 
       return repo.save(entities);
+    });
+  }
+
+  async findAvailabilities(userProfileId: string): Promise<UserProfileAvailabilityEntity[]> {
+    return this.dataSource.getRepository(UserProfileAvailabilityEntity).find({
+      where: { userProfile: { id: userProfileId } },
+      order: { weekday: 'ASC', slot: 'ASC' },
     });
   }
 
@@ -686,7 +693,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
         if (!mode || !rank) {
           throw new Error('Player game mode rank relation is missing');
         }
-        return { mode, rank };
+        return { mode, rank, elo: item.elo ?? null };
       });
 
       const entity = gameRepo.create({
@@ -739,6 +746,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
               game: saved,
               mode: relation.mode,
               rank: relation.rank,
+              elo: relation.elo,
             }),
           ),
         );
@@ -922,7 +930,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
             if (!mode || !rank) {
               throw new Error('Player game mode rank relation is missing');
             }
-            return { mode, rank };
+            return { mode, rank, elo: item.elo ?? null };
           });
 
           await modeRankRepo.save(
@@ -931,6 +939,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
                 game: entity,
                 mode: relation.mode,
                 rank: relation.rank,
+                elo: relation.elo,
               }),
             ),
           );

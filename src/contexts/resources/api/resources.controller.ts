@@ -15,12 +15,6 @@ export class ResourcesController {
         rscLanguages: snapshot.rscLanguages,
         rscSocialPlatforms: snapshot.rscSocialPlatforms,
         rscProfileBadges: snapshot.rscProfileBadges,
-        rscCharacters: snapshot.rscCharacters,
-        rscModes: snapshot.rscModes,
-        rscPlatforms: snapshot.rscPlatforms,
-        rscPositions: snapshot.rscPositions,
-        rscRanks: snapshot.rscRanks,
-        rscSeasons: snapshot.rscSeasons,
         rscGames: snapshot.rscGames,
       },
       meta: {

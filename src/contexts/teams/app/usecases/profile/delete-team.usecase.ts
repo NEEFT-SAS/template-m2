@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { DeleteTeamDTO, toLowerCaseTrim } from '@neeft-sas/shared';
+import { toLowerCaseTrim } from '@neeft-sas/shared';
 import { TEAM_REPOSITORY, TeamRepositoryPort } from '../../ports/team.repository.port';
 import { TeamNotFoundError, TeamSlugMismatchError } from '../../../domain/errors/team.errors';
+import { DeleteTeamDTO } from '@/typage';
 
 @Injectable()
 export class DeleteTeamUseCase {
