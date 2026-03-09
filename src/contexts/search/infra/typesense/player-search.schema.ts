@@ -1,7 +1,9 @@
 import type { BaseCollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 import type { CollectionFieldSchema } from 'typesense/lib/Typesense/Collection';
 
-type PlayerSearchSchema = BaseCollectionCreateSchema & { fields: CollectionFieldSchema[] };
+type PlayerSearchSchema = BaseCollectionCreateSchema & {
+  fields: CollectionFieldSchema[];
+};
 
 export const PLAYER_SEARCH_COLLECTION = 'player_search';
 
@@ -21,12 +23,17 @@ export const playerSearchSchema: PlayerSearchSchema = {
     { name: 'hasGame', type: 'bool' },
     { name: 'hasRecruitableGame', type: 'bool' },
     { name: 'gameIds', type: 'int32[]', optional: true },
+    { name: 'recruitableGameIds', type: 'int32[]', optional: true },
+    { name: 'nonRecruitableGameIds', type: 'int32[]', optional: true },
     { name: 'gamePositionKeys', type: 'int32[]', optional: true },
     { name: 'gamePlatformKeys', type: 'int32[]', optional: true },
     { name: 'gameCharacterKeys', type: 'int32[]', optional: true },
+    { name: 'gameModeKeys', type: 'int32[]', optional: true },
     { name: 'gameRankOrderKeys', type: 'int32[]', optional: true },
+    { name: 'gameEloKeys', type: 'int64[]', optional: true },
     { name: 'hasProfilePicture', type: 'bool' },
     { name: 'hasBannerPicture', type: 'bool' },
+    { name: 'birthDate', type: 'int64' },
     { name: 'experienceCount', type: 'int32' },
     { name: 'educationCount', type: 'int32' },
     { name: 'professionalExperienceCount', type: 'int32' },

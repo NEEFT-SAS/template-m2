@@ -11,6 +11,9 @@ import { ResourcesModule } from './contexts/resources/resources.module';
 import { BillingModule } from './contexts/billing/billing.module';
 import { SearchModule } from './contexts/search/search.module';
 import { TeamsModule } from './contexts/teams/teams.module';
+import { SocialGraphModule } from './contexts/follows/social-graph.module';
+import { MessagingModule } from './contexts/messaging/messaging.module';
+import { NotificationsModule } from './contexts/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -23,7 +26,10 @@ import { TeamsModule } from './contexts/teams/teams.module';
     PlayerModule,
     ResourcesModule,
     SearchModule,
-    TeamsModule
+    TeamsModule,
+    SocialGraphModule,
+    MessagingModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,16 @@
 import { toBool, toInt, toStringArray, toNumberArray } from '@neeft-sas/shared';
 import { Transform } from 'class-transformer';
-import { IsArray, IsBoolean, IsInt, IsOptional, IsString, IsUUID, Max, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class SearchPlayersQueryDto {
   @IsOptional()
@@ -59,22 +69,93 @@ export class SearchPlayersQueryDto {
   minProfileScore?: number;
 
   @IsOptional()
-  @Transform(({ value }) => (value === undefined || value === null || value === '' ? undefined : toInt(value, 0)))
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : toInt(value, 0),
+  )
   @IsInt()
   @Min(1)
   gameId?: number;
 
   @IsOptional()
-  @Transform(({ value }) => (value === undefined || value === null || value === '' ? undefined : toInt(value, 0)))
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : toInt(value, 0),
+  )
+  @IsInt()
+  @Min(0)
+  ageMin?: number;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : toInt(value, 0),
+  )
+  @IsInt()
+  @Min(0)
+  ageMax?: number;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : toInt(value, 0),
+  )
+  @IsInt()
+  @Min(1)
+  modeId?: number;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : toInt(value, 0),
+  )
   @IsInt()
   @Min(0)
   rankMin?: number;
 
   @IsOptional()
-  @Transform(({ value }) => (value === undefined || value === null || value === '' ? undefined : toInt(value, 0)))
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : toInt(value, 0),
+  )
   @IsInt()
   @Min(0)
   rankMax?: number;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : toInt(value, 0),
+  )
+  @IsInt()
+  @Min(0)
+  eloMin?: number;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    value === undefined || value === null || value === ''
+      ? undefined
+      : toInt(value, 0),
+  )
+  @IsInt()
+  @Min(0)
+  eloMax?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null) return undefined;
+    const normalized = String(value).trim();
+    return normalized === '' ? undefined : normalized;
+  })
+  @IsIn(['available', 'unavailable'])
+  recruitable?: 'available' | 'unavailable';
 
   @IsOptional()
   @Transform(({ value }) => toNumberArray(value))

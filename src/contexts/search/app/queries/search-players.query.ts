@@ -8,11 +8,42 @@ import { BillingPlanKeyEnum } from '@/contexts/billing/infra/entitlements/billin
 import { SearchPremiumFiltersError } from '../../domain/errors/search.errors';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { PlayerSearchDocument } from '../../infra/typesense/player-search.types';
-import { RscProfileBadgePresenter, UserGamePresenter } from '@neeft-sas/shared';
+import {
+  RscGameCharacterPresenter,
+  RscGameModePresenter,
+  RscGamePlatformPresenter,
+  RscGamePositionPresenter,
+  RscGamePresenter,
+  RscGameRankPresenter,
+  RscProfileBadgePresenter,
+  UserGamePresenter,
+} from '@neeft-sas/shared';
 import { TypesenseService } from '../../infra/typesense/typesense.service';
 import { PLAYER_SEARCH_COLLECTION } from '../../infra/typesense/player-search.schema';
 import { SearchPlayersQueryDto } from '../../api/dtos/search-players.query.dto';
-import { buildPlayerGameKey } from '../../infra/typesense/player-search.constants';
+import {
+  buildPlayerGameEloKey,
+  buildPlayerGameKey,
+} from '../../infra/typesense/player-search.constants';
+
+type SearchGameModeRankPresenter = {
+  elo: number | null;
+  rscGameMode: RscGameModePresenter | null;
+  rscGameRank: RscGameRankPresenter | null;
+};
+
+type SearchGamePresenter = {
+  id: number;
+  isRecruitable: boolean;
+  isFavoriteGame: boolean;
+  trackerUrl: string | null;
+  account: UserGamePresenter['account'];
+  game: RscGamePresenter | null;
+  rscGamePositions: RscGamePositionPresenter[];
+  rscGamePlatforms: RscGamePlatformPresenter[];
+  rscGameCharacters: RscGameCharacterPresenter[];
+  modeRanks: SearchGameModeRankPresenter[];
+};
 
 type SearchPlayersResult = {
   data: Array<{
@@ -23,7 +54,7 @@ type SearchPlayersResult = {
     bannerPicture: string | null;
     createdAt: string;
     badges: RscProfileBadgePresenter[];
-    games: UserGamePresenter[];
+    games: SearchGamePresenter[];
   }>;
   meta: {
     found: number;
@@ -37,12 +68,17 @@ type SearchPlayersResult = {
 export class SearchPlayersQuery {
   constructor(
     private readonly typesense: TypesenseService,
-    @InjectRepository(UserProfileEntity) private readonly profilesRepo: Repository<UserProfileEntity>,
-    @InjectRepository(UserGameEntity) private readonly gamesRepo: Repository<UserGameEntity>,
+    @InjectRepository(UserProfileEntity)
+    private readonly profilesRepo: Repository<UserProfileEntity>,
+    @InjectRepository(UserGameEntity)
+    private readonly gamesRepo: Repository<UserGameEntity>,
     private readonly resourcesStore: ResourcesStore,
   ) {}
 
-  async execute(query: SearchPlayersQueryDto, user?: AccessTokenPayload): Promise<SearchPlayersResult> {
+  async execute(
+    query: SearchPlayersQueryDto,
+    user?: AccessTokenPayload,
+  ): Promise<SearchPlayersResult> {
     const premiumFiltersUsed = this.getPremiumFiltersUsed(query);
     if (premiumFiltersUsed.length) {
       const isPremium = await this.isPremiumUser(user);
@@ -56,9 +92,10 @@ export class SearchPlayersQuery {
     const perPage = query.perPage ?? 20;
 
     const filterBy = this.buildFilters(query);
-    const sortBy = q === '*'
-      ? 'hasRecruitableGame:desc,hasGame:desc,profileScore:desc'
-      : '_text_match:desc,hasRecruitableGame:desc,hasGame:desc,profileScore:desc';
+    const sortBy =
+      q === '*'
+        ? 'hasRecruitableGame:desc,hasGame:desc,profileScore:desc'
+        : '_text_match:desc,hasRecruitableGame:desc,hasGame:desc,profileScore:desc';
 
     const response = await this.typesense.client
       .collections(PLAYER_SEARCH_COLLECTION)
@@ -81,7 +118,11 @@ export class SearchPlayersQuery {
 
     return {
       data: hits.map((hit) =>
-        this.mapDocument(hit.document as PlayerSearchDocument, badgeMap, gamesMap),
+        this.mapDocument(
+          hit.document as PlayerSearchDocument,
+          badgeMap,
+          gamesMap,
+        ),
       ),
       meta: {
         found: response.found ?? 0,
@@ -112,7 +153,8 @@ export class SearchPlayersQuery {
     const filters: string[] = [];
 
     if (query.minProfileScore !== undefined) filters.push('minProfileScore');
-    if (query.minExperienceCount !== undefined) filters.push('minExperienceCount');
+    if (query.minExperienceCount !== undefined)
+      filters.push('minExperienceCount');
     if (query.badgeIds && query.badgeIds.length) filters.push('badgeIds');
     if (query.hasSocialLinks !== undefined) filters.push('hasSocialLinks');
 
@@ -152,37 +194,155 @@ export class SearchPlayersQuery {
       filters.push(`profileScore:>=${query.minProfileScore}`);
     }
 
+    const { min: ageMin, max: ageMax } = this.normalizeRange(
+      query.ageMin,
+      query.ageMax,
+    );
+    const birthDateRange = this.getBirthDateRangeFromAgeBounds(ageMin, ageMax);
+    if (birthDateRange.minBirthDate !== undefined) {
+      filters.push(`birthDate:>=${birthDateRange.minBirthDate}`);
+    }
+    if (birthDateRange.maxBirthDate !== undefined) {
+      filters.push(`birthDate:<=${birthDateRange.maxBirthDate}`);
+    }
+
     if (query.gameId !== undefined) {
       filters.push(`gameIds:=[${query.gameId}]`);
     }
 
     if (query.gameId !== undefined) {
       const gameId = query.gameId;
+      const { min: rankMin, max: rankMax } = this.normalizeRange(
+        query.rankMin,
+        query.rankMax,
+      );
+      const { min: eloMin, max: eloMax } = this.normalizeRange(
+        query.eloMin,
+        query.eloMax,
+      );
+
+      if (query.recruitable === 'available') {
+        filters.push(`recruitableGameIds:=[${gameId}]`);
+      } else if (query.recruitable === 'unavailable') {
+        filters.push(`nonRecruitableGameIds:=[${gameId}]`);
+      }
+
       if (query.positionIds && query.positionIds.length) {
-        const values = query.positionIds.map((id) => buildPlayerGameKey(gameId, id)).join(',');
+        const values = query.positionIds
+          .map((id) => buildPlayerGameKey(gameId, id))
+          .join(',');
         filters.push(`gamePositionKeys:=[${values}]`);
       }
 
       if (query.platformIds && query.platformIds.length) {
-        const values = query.platformIds.map((id) => buildPlayerGameKey(gameId, id)).join(',');
+        const values = query.platformIds
+          .map((id) => buildPlayerGameKey(gameId, id))
+          .join(',');
         filters.push(`gamePlatformKeys:=[${values}]`);
       }
 
       if (query.characterIds && query.characterIds.length) {
-        const values = query.characterIds.map((id) => buildPlayerGameKey(gameId, id)).join(',');
+        const values = query.characterIds
+          .map((id) => buildPlayerGameKey(gameId, id))
+          .join(',');
         filters.push(`gameCharacterKeys:=[${values}]`);
       }
 
-      if (query.rankMin !== undefined) {
-        filters.push(`gameRankOrderKeys:>=${buildPlayerGameKey(gameId, query.rankMin)}`);
+      if (query.modeId !== undefined) {
+        filters.push(
+          `gameModeKeys:=[${buildPlayerGameKey(gameId, query.modeId)}]`,
+        );
       }
 
-      if (query.rankMax !== undefined) {
-        filters.push(`gameRankOrderKeys:<=${buildPlayerGameKey(gameId, query.rankMax)}`);
+      if (rankMin !== undefined) {
+        filters.push(
+          `gameRankOrderKeys:>=${buildPlayerGameKey(gameId, rankMin)}`,
+        );
+      }
+
+      if (rankMax !== undefined) {
+        filters.push(
+          `gameRankOrderKeys:<=${buildPlayerGameKey(gameId, rankMax)}`,
+        );
+      }
+
+      if (eloMin !== undefined) {
+        filters.push(`gameEloKeys:>=${buildPlayerGameEloKey(gameId, eloMin)}`);
+      }
+
+      if (eloMax !== undefined) {
+        filters.push(`gameEloKeys:<=${buildPlayerGameEloKey(gameId, eloMax)}`);
+      }
+    }
+
+    if (query.gameId === undefined) {
+      if (query.recruitable === 'available') {
+        filters.push('hasRecruitableGame:=true');
+      } else if (query.recruitable === 'unavailable') {
+        filters.push('hasRecruitableGame:=false');
       }
     }
 
     return filters.join(' && ');
+  }
+
+  private normalizeRange(
+    min?: number,
+    max?: number,
+  ): { min?: number; max?: number } {
+    if (min === undefined && max === undefined) return {};
+    if (min !== undefined && max !== undefined && min > max) {
+      return { min: max, max: min };
+    }
+    return { min, max };
+  }
+
+  private getBirthDateRangeFromAgeBounds(
+    minAge?: number,
+    maxAge?: number,
+  ): { minBirthDate?: number; maxBirthDate?: number } {
+    if (minAge === undefined && maxAge === undefined) return {};
+
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      0,
+      0,
+      0,
+      0,
+    );
+    const endOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      23,
+      59,
+      59,
+      999,
+    );
+
+    const range: { minBirthDate?: number; maxBirthDate?: number } = {};
+
+    if (maxAge !== undefined) {
+      const minBirthDate = this.shiftYears(startOfToday, -(maxAge + 1));
+      minBirthDate.setDate(minBirthDate.getDate() + 1);
+      range.minBirthDate = minBirthDate.getTime();
+    }
+
+    if (minAge !== undefined) {
+      const maxBirthDate = this.shiftYears(endOfToday, -minAge);
+      range.maxBirthDate = maxBirthDate.getTime();
+    }
+
+    return range;
+  }
+
+  private shiftYears(date: Date, years: number): Date {
+    const copy = new Date(date);
+    copy.setFullYear(copy.getFullYear() + years);
+    return copy;
   }
 
   private buildBadgeMap(): Map<number, RscProfileBadgePresenter> {
@@ -197,7 +357,7 @@ export class SearchPlayersQuery {
   private mapDocument(
     doc: PlayerSearchDocument,
     badgeMap: Map<number, RscProfileBadgePresenter>,
-    gamesMap: Map<string, UserGamePresenter[]>,
+    gamesMap: Map<string, SearchGamePresenter[]>,
   ): {
     id: string;
     username: string;
@@ -206,7 +366,7 @@ export class SearchPlayersQuery {
     bannerPicture: string | null;
     createdAt: string;
     badges: RscProfileBadgePresenter[];
-    games: UserGamePresenter[];
+    games: SearchGamePresenter[];
   } {
     const createdAt = new Date(Number(doc.createdAt));
     const badgeIds = doc.badgeIds ?? [];
@@ -221,7 +381,9 @@ export class SearchPlayersQuery {
       slug: doc.slug,
       profilePicture: doc.profilePicture ?? null,
       bannerPicture: doc.bannerPicture ?? null,
-      createdAt: Number.isNaN(createdAt.getTime()) ? new Date(0).toISOString() : createdAt.toISOString(),
+      createdAt: Number.isNaN(createdAt.getTime())
+        ? new Date(0).toISOString()
+        : createdAt.toISOString(),
       badges,
       games: gamesMap.get(doc.id) ?? [],
     };
@@ -230,8 +392,13 @@ export class SearchPlayersQuery {
   private async loadUserGamesMap(
     profileIds: string[],
     preferredGameId?: number,
-  ): Promise<Map<string, UserGamePresenter[]>> {
+  ): Promise<Map<string, SearchGamePresenter[]>> {
     if (!profileIds.length) return new Map();
+
+    const resourcesSnapshot = this.resourcesStore.getSnapshot();
+    const gamesById = new Map<number, RscGamePresenter>(
+      resourcesSnapshot.rscGames.map((game) => [game.id, game]),
+    );
 
     const games = await this.gamesRepo.find({
       where: { profile: { id: In(profileIds) } },
@@ -239,12 +406,15 @@ export class SearchPlayersQuery {
       order: { id: 'ASC' },
     });
 
-    const map = new Map<string, UserGamePresenter[]>();
+    const map = new Map<string, SearchGamePresenter[]>();
     for (const game of games) {
       const profileId = game.profile?.id;
       if (!profileId) continue;
       const entry = map.get(profileId);
-      const mapped = this.mapUserGame(game);
+      const mapped = this.mapUserGame(
+        game,
+        gamesById.get(game.rscGame?.id ?? 0) ?? null,
+      );
       if (entry) {
         entry.push(mapped);
       } else {
@@ -259,48 +429,93 @@ export class SearchPlayersQuery {
     return map;
   }
 
-  private sortUserGames(games: UserGamePresenter[], preferredGameId?: number): UserGamePresenter[] {
+  private sortUserGames(
+    games: SearchGamePresenter[],
+    preferredGameId?: number,
+  ): SearchGamePresenter[] {
     return games.sort((a, b) => {
-      const aPreferred = preferredGameId !== undefined && a.gameId === preferredGameId;
-      const bPreferred = preferredGameId !== undefined && b.gameId === preferredGameId;
+      const aGameId = a.game?.id ?? 0;
+      const bGameId = b.game?.id ?? 0;
+      const aPreferred =
+        preferredGameId !== undefined && aGameId === preferredGameId;
+      const bPreferred =
+        preferredGameId !== undefined && bGameId === preferredGameId;
       if (aPreferred !== bPreferred) return aPreferred ? -1 : 1;
       if (a.isRecruitable !== b.isRecruitable) return a.isRecruitable ? -1 : 1;
-      return a.gameId - b.gameId;
+      return aGameId - bGameId;
     });
   }
 
-  private mapUserGame(entity: UserGameEntity): UserGamePresenter {
-    const toIdList = <T>(items: T[] | null | undefined, mapper: (item: T) => number | null | undefined) => {
+  private mapUserGame(
+    entity: UserGameEntity,
+    gameResource: RscGamePresenter | null,
+  ): SearchGamePresenter {
+    const toIdList = <T>(
+      items: T[] | null | undefined,
+      mapper: (item: T) => number | null | undefined,
+    ) => {
       if (!Array.isArray(items)) return [];
       return items
         .map(mapper)
         .filter((id): id is number => Number.isInteger(id) && id > 0);
     };
 
+    const modesById = new Map(
+      (gameResource?.rscGameModes ?? []).map((item) => [item.id, item]),
+    );
+    const ranksById = new Map(
+      (gameResource?.rscGameRanks ?? []).map((item) => [item.id, item]),
+    );
+
     const modeRanks = (entity.modeRanks ?? [])
       .map((relation) => {
         const modeId = relation.mode?.rscModeId;
         const rankId = relation.rank?.rscRankId;
         if (!modeId || !rankId) return null;
-        return { modeId, rankId, elo: relation.elo ?? null };
+        return {
+          elo: relation.elo ?? null,
+          rscGameMode: modesById.get(modeId) ?? null,
+          rscGameRank: ranksById.get(rankId) ?? null,
+        } satisfies SearchGameModeRankPresenter;
       })
-      .filter((item): item is { modeId: number; rankId: number; elo: number | null } => Boolean(item));
+      .filter((item): item is SearchGameModeRankPresenter => Boolean(item));
+
+    const positionIds = toIdList(
+      entity.positions,
+      (relation) => relation.position?.id,
+    );
+    const platformIds = toIdList(
+      entity.platforms,
+      (relation) => relation.platform?.id,
+    );
+    const characterIds = toIdList(
+      entity.characters,
+      (relation) => relation.character?.id,
+    );
 
     return {
       id: entity.id,
-      gameId: entity.rscGame?.id ?? 0,
       isRecruitable: entity.isRecruitable,
       isFavoriteGame: entity.isFavoriteGame,
       trackerUrl: entity.trackerUrl ?? null,
-      positionIds: toIdList(entity.positions, (relation) => relation.position?.id),
-      platformIds: toIdList(entity.platforms, (relation) => relation.platform?.id),
-      characterIds: toIdList(entity.characters, (relation) => relation.character?.id),
+      game: gameResource,
+      rscGamePositions: (gameResource?.rscGamePositions ?? []).filter((item) =>
+        positionIds.includes(item.id),
+      ),
+      rscGamePlatforms: (gameResource?.rscGamePlatforms ?? []).filter((item) =>
+        platformIds.includes(item.id),
+      ),
+      rscGameCharacters: (gameResource?.rscGameCharacters ?? []).filter(
+        (item) => characterIds.includes(item.id),
+      ),
       modeRanks,
       account: this.mapUserGameAccount(entity),
     };
   }
 
-  private mapUserGameAccount(entity: UserGameEntity): UserGamePresenter['account'] {
+  private mapUserGameAccount(
+    entity: UserGameEntity,
+  ): UserGamePresenter['account'] {
     const slug = entity.rscGame?.slug?.toLowerCase();
     if (!slug) return null;
 

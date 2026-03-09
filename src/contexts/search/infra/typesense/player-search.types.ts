@@ -12,12 +12,17 @@ export type PlayerSearchDocument = {
   hasGame: boolean;
   hasRecruitableGame: boolean;
   gameIds?: number[];
+  recruitableGameIds?: number[];
+  nonRecruitableGameIds?: number[];
   gamePositionKeys?: number[];
   gamePlatformKeys?: number[];
   gameCharacterKeys?: number[];
+  gameModeKeys?: number[];
   gameRankOrderKeys?: number[];
+  gameEloKeys?: number[];
   hasProfilePicture: boolean;
   hasBannerPicture: boolean;
+  birthDate: number;
   experienceCount: number;
   educationCount: number;
   professionalExperienceCount: number;

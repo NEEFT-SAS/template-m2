@@ -3,9 +3,15 @@ import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 import { TypesenseService } from './typesense.service';
-import { PLAYER_SEARCH_COLLECTION, playerSearchSchema } from './player-search.schema';
+import {
+  PLAYER_SEARCH_COLLECTION,
+  playerSearchSchema,
+} from './player-search.schema';
 import { PlayerSearchDocument } from './player-search.types';
-import { buildPlayerGameKey } from './player-search.constants';
+import {
+  buildPlayerGameEloKey,
+  buildPlayerGameKey,
+} from './player-search.constants';
 
 type BaseProfileRow = {
   id: string;
@@ -16,8 +22,11 @@ type BaseProfileRow = {
   profilePicture: string | null;
   bannerPicture: string | null;
   nationalityId: string | null;
+  birthDate: Date | string;
   createdAt: Date | string;
 };
+
+type CollectionState = 'ready' | 'empty' | 'created' | 'recreated';
 
 @Injectable()
 export class PlayerSearchIndexer implements OnModuleInit {
@@ -26,26 +35,60 @@ export class PlayerSearchIndexer implements OnModuleInit {
   constructor(
     private readonly typesense: TypesenseService,
     @InjectDataSource() private readonly dataSource: DataSource,
-    @InjectRepository(UserProfileEntity) private readonly profilesRepo: Repository<UserProfileEntity>,
+    @InjectRepository(UserProfileEntity)
+    private readonly profilesRepo: Repository<UserProfileEntity>,
   ) {}
 
   async onModuleInit(): Promise<void> {
     try {
-      await this.ensureCollection();
+      const state = await this.ensureCollection();
+      if (state === 'ready') return;
+
+      const result = await this.syncAll();
+      this.logger.log(
+        `Typesense index synchronized on init (${state}): ${result.indexed} documents.`,
+      );
     } catch (err: any) {
       this.logger.error(`Typesense init failed: ${err?.message ?? err}`);
     }
   }
 
-  async ensureCollection(): Promise<void> {
+  async ensureCollection(): Promise<CollectionState> {
     try {
-      await this.typesense.client.collections(PLAYER_SEARCH_COLLECTION).retrieve();
+      const collection = await this.typesense.client
+        .collections(PLAYER_SEARCH_COLLECTION)
+        .retrieve();
+
+      const existingFields = new Set(
+        (collection.fields ?? []).map((field) => field.name),
+      );
+      const missingFields = playerSearchSchema.fields
+        .map((field) => field.name)
+        .filter((fieldName) => !existingFields.has(fieldName));
+
+      if (!missingFields.length) {
+        return Number(collection.num_documents ?? 0) > 0 ? 'ready' : 'empty';
+      }
+
+      this.logger.warn(
+        `Typesense collection "${PLAYER_SEARCH_COLLECTION}" missing fields (${missingFields.join(', ')}), recreating.`,
+      );
+      await this.typesense.client
+        .collections(PLAYER_SEARCH_COLLECTION)
+        .delete();
+      await this.typesense.client.collections().create(playerSearchSchema);
+      this.logger.log(
+        `Typesense collection recreated: ${PLAYER_SEARCH_COLLECTION}`,
+      );
+      return 'recreated';
     } catch (err: any) {
       const status = err?.httpStatus ?? err?.status;
       if (status === 404) {
         await this.typesense.client.collections().create(playerSearchSchema);
-        this.logger.log(`Typesense collection created: ${PLAYER_SEARCH_COLLECTION}`);
-        return;
+        this.logger.log(
+          `Typesense collection created: ${PLAYER_SEARCH_COLLECTION}`,
+        );
+        return 'created';
       }
       throw err;
     }
@@ -68,10 +111,14 @@ export class PlayerSearchIndexer implements OnModuleInit {
       socialLinksMap,
       recruitableGameCountMap,
       gameIdsMap,
+      recruitableGameIdsMap,
+      nonRecruitableGameIdsMap,
       gamePositionKeysMap,
       gamePlatformKeysMap,
       gameCharacterKeysMap,
+      gameModeKeysMap,
       gameRankOrderKeysMap,
+      gameEloKeysMap,
     ] = await Promise.all([
       this.loadStringArrayMap('user_profile_languages', 'language_id'),
       this.loadIntArrayMap('user_badges', 'rsc_badge_id'),
@@ -81,10 +128,17 @@ export class PlayerSearchIndexer implements OnModuleInit {
       this.loadCountMap('user_social_links'),
       this.loadRecruitableGameCountMap(),
       this.loadGameIdsMap(),
+      this.loadRecruitableGameIdsMap(),
+      this.loadNonRecruitableGameIdsMap(),
       this.loadGameRelationKeysMap('player_game_positions', 'rsc_position_id'),
       this.loadGameRelationKeysMap('player_game_platforms', 'rsc_platform_id'),
-      this.loadGameRelationKeysMap('player_game_characters', 'rsc_character_id'),
+      this.loadGameRelationKeysMap(
+        'player_game_characters',
+        'rsc_character_id',
+      ),
+      this.loadGameModeKeysMap(),
       this.loadGameRankOrderKeysMap(),
+      this.loadGameEloKeysMap(),
     ]);
 
     const documents = baseProfiles.map((profile) =>
@@ -97,10 +151,14 @@ export class PlayerSearchIndexer implements OnModuleInit {
         socialLinksCount: socialLinksMap.get(profile.id) ?? 0,
         hasRecruitableGame: (recruitableGameCountMap.get(profile.id) ?? 0) > 0,
         gameIds: gameIdsMap.get(profile.id) ?? [],
+        recruitableGameIds: recruitableGameIdsMap.get(profile.id) ?? [],
+        nonRecruitableGameIds: nonRecruitableGameIdsMap.get(profile.id) ?? [],
         gamePositionKeys: gamePositionKeysMap.get(profile.id) ?? [],
         gamePlatformKeys: gamePlatformKeysMap.get(profile.id) ?? [],
         gameCharacterKeys: gameCharacterKeysMap.get(profile.id) ?? [],
+        gameModeKeys: gameModeKeysMap.get(profile.id) ?? [],
         gameRankOrderKeys: gameRankOrderKeysMap.get(profile.id) ?? [],
+        gameEloKeys: gameEloKeysMap.get(profile.id) ?? [],
       }),
     );
 
@@ -123,23 +181,55 @@ export class PlayerSearchIndexer implements OnModuleInit {
       socialLinksCount,
       recruitableGameCount,
       gameIds,
+      recruitableGameIds,
+      nonRecruitableGameIds,
       gamePositionKeys,
       gamePlatformKeys,
       gameCharacterKeys,
+      gameModeKeys,
       gameRankOrderKeys,
+      gameEloKeys,
     ] = await Promise.all([
-      this.loadStringArrayByProfile('user_profile_languages', 'language_id', base.id),
+      this.loadStringArrayByProfile(
+        'user_profile_languages',
+        'language_id',
+        base.id,
+      ),
       this.loadIntArrayByProfile('user_badges', 'rsc_badge_id', base.id),
       this.loadCountByProfile('user_experiences', base.id),
-      this.loadCountByProfile('user_profile_school_experiences', base.id, 'profile_id'),
-      this.loadCountByProfile('user_profile_professional_experiences', base.id, 'profile_id'),
+      this.loadCountByProfile(
+        'user_profile_school_experiences',
+        base.id,
+        'profile_id',
+      ),
+      this.loadCountByProfile(
+        'user_profile_professional_experiences',
+        base.id,
+        'profile_id',
+      ),
       this.loadCountByProfile('user_social_links', base.id),
       this.loadRecruitableGameCountByProfile(base.id),
       this.loadGameIdsByProfile(base.id),
-      this.loadGameRelationKeysByProfile('player_game_positions', 'rsc_position_id', base.id),
-      this.loadGameRelationKeysByProfile('player_game_platforms', 'rsc_platform_id', base.id),
-      this.loadGameRelationKeysByProfile('player_game_characters', 'rsc_character_id', base.id),
+      this.loadRecruitableGameIdsByProfile(base.id),
+      this.loadNonRecruitableGameIdsByProfile(base.id),
+      this.loadGameRelationKeysByProfile(
+        'player_game_positions',
+        'rsc_position_id',
+        base.id,
+      ),
+      this.loadGameRelationKeysByProfile(
+        'player_game_platforms',
+        'rsc_platform_id',
+        base.id,
+      ),
+      this.loadGameRelationKeysByProfile(
+        'player_game_characters',
+        'rsc_character_id',
+        base.id,
+      ),
+      this.loadGameModeKeysByProfile(base.id),
       this.loadGameRankOrderKeysByProfile(base.id),
+      this.loadGameEloKeysByProfile(base.id),
     ]);
 
     const document = this.buildDocument(base, {
@@ -151,10 +241,14 @@ export class PlayerSearchIndexer implements OnModuleInit {
       socialLinksCount,
       hasRecruitableGame: recruitableGameCount > 0,
       gameIds,
+      recruitableGameIds,
+      nonRecruitableGameIds,
       gamePositionKeys,
       gamePlatformKeys,
       gameCharacterKeys,
+      gameModeKeys,
       gameRankOrderKeys,
+      gameEloKeys,
     });
 
     await this.importDocuments([document]);
@@ -172,12 +266,15 @@ export class PlayerSearchIndexer implements OnModuleInit {
       .addSelect('profile.citation', 'citation')
       .addSelect('profile.profilePicture', 'profilePicture')
       .addSelect('profile.bannerPicture', 'bannerPicture')
+      .addSelect('profile.birthDate', 'birthDate')
       .addSelect('profile.createdAt', 'createdAt')
       .addSelect('nationality.id', 'nationalityId')
       .getRawMany<BaseProfileRow>();
   }
 
-  private async fetchBaseProfileBySlug(slug: string): Promise<BaseProfileRow | null> {
+  private async fetchBaseProfileBySlug(
+    slug: string,
+  ): Promise<BaseProfileRow | null> {
     const row = await this.profilesRepo
       .createQueryBuilder('profile')
       .leftJoin('profile.nationality', 'nationality')
@@ -188,6 +285,7 @@ export class PlayerSearchIndexer implements OnModuleInit {
       .addSelect('profile.citation', 'citation')
       .addSelect('profile.profilePicture', 'profilePicture')
       .addSelect('profile.bannerPicture', 'bannerPicture')
+      .addSelect('profile.birthDate', 'birthDate')
       .addSelect('profile.createdAt', 'createdAt')
       .addSelect('nationality.id', 'nationalityId')
       .where('LOWER(profile.slug) = LOWER(:slug)', { slug })
@@ -196,7 +294,10 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return row ?? null;
   }
 
-  private async loadCountMap(tableName: string, profileColumn = 'user_profile_id'): Promise<Map<string, number>> {
+  private async loadCountMap(
+    tableName: string,
+    profileColumn = 'user_profile_id',
+  ): Promise<Map<string, number>> {
     const rows = await this.dataSource
       .createQueryBuilder()
       .select(`t.${profileColumn}`, 'profileId')
@@ -212,7 +313,11 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return map;
   }
 
-  private async loadCountByProfile(tableName: string, profileId: string, profileColumn = 'user_profile_id'): Promise<number> {
+  private async loadCountByProfile(
+    tableName: string,
+    profileId: string,
+    profileColumn = 'user_profile_id',
+  ): Promise<number> {
     const row = await this.dataSource
       .createQueryBuilder()
       .select('COUNT(1)', 'count')
@@ -223,7 +328,10 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return Number(row?.count ?? 0);
   }
 
-  private async loadStringArrayMap(tableName: string, valueColumn: string): Promise<Map<string, string[]>> {
+  private async loadStringArrayMap(
+    tableName: string,
+    valueColumn: string,
+  ): Promise<Map<string, string[]>> {
     const rows = await this.dataSource
       .createQueryBuilder()
       .select('t.user_profile_id', 'profileId')
@@ -240,13 +348,20 @@ export class PlayerSearchIndexer implements OnModuleInit {
       }
       map.set(
         row.profileId,
-        row.values.split(',').map((value) => value.trim()).filter(Boolean),
+        row.values
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
       );
     }
     return map;
   }
 
-  private async loadStringArrayByProfile(tableName: string, valueColumn: string, profileId: string): Promise<string[]> {
+  private async loadStringArrayByProfile(
+    tableName: string,
+    valueColumn: string,
+    profileId: string,
+  ): Promise<string[]> {
     const row = await this.dataSource
       .createQueryBuilder()
       .select(`GROUP_CONCAT(t.${valueColumn})`, 'values')
@@ -255,10 +370,16 @@ export class PlayerSearchIndexer implements OnModuleInit {
       .getRawOne<{ values: string | null }>();
 
     if (!row?.values) return [];
-    return row.values.split(',').map((value) => value.trim()).filter(Boolean);
+    return row.values
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
   }
 
-  private async loadIntArrayMap(tableName: string, valueColumn: string): Promise<Map<string, number[]>> {
+  private async loadIntArrayMap(
+    tableName: string,
+    valueColumn: string,
+  ): Promise<Map<string, number[]>> {
     const rows = await this.dataSource
       .createQueryBuilder()
       .select('t.user_profile_id', 'profileId')
@@ -284,7 +405,11 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return map;
   }
 
-  private async loadIntArrayByProfile(tableName: string, valueColumn: string, profileId: string): Promise<number[]> {
+  private async loadIntArrayByProfile(
+    tableName: string,
+    valueColumn: string,
+    profileId: string,
+  ): Promise<number[]> {
     const row = await this.dataSource
       .createQueryBuilder()
       .select(`GROUP_CONCAT(t.${valueColumn})`, 'values')
@@ -316,7 +441,9 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return map;
   }
 
-  private async loadRecruitableGameCountByProfile(profileId: string): Promise<number> {
+  private async loadRecruitableGameCountByProfile(
+    profileId: string,
+  ): Promise<number> {
     const row = await this.dataSource
       .createQueryBuilder()
       .select('COUNT(1)', 'count')
@@ -353,10 +480,80 @@ export class PlayerSearchIndexer implements OnModuleInit {
       .where('g.profile_id = :profileId', { profileId })
       .getRawMany<{ gameId: number }>();
 
-    return [...new Set(rows.map((row) => Number(row.gameId)).filter((value) => Number.isFinite(value)))];
+    return [
+      ...new Set(
+        rows
+          .map((row) => Number(row.gameId))
+          .filter((value) => Number.isFinite(value)),
+      ),
+    ];
   }
 
-  private async loadGameRelationKeysMap(tableName: string, valueColumn: string): Promise<Map<string, number[]>> {
+  private async loadRecruitableGameIdsMap(): Promise<Map<string, number[]>> {
+    return this.loadGameIdsMapByRecruitable(true);
+  }
+
+  private async loadNonRecruitableGameIdsMap(): Promise<Map<string, number[]>> {
+    return this.loadGameIdsMapByRecruitable(false);
+  }
+
+  private async loadRecruitableGameIdsByProfile(
+    profileId: string,
+  ): Promise<number[]> {
+    return this.loadGameIdsByProfileAndRecruitable(profileId, true);
+  }
+
+  private async loadNonRecruitableGameIdsByProfile(
+    profileId: string,
+  ): Promise<number[]> {
+    return this.loadGameIdsByProfileAndRecruitable(profileId, false);
+  }
+
+  private async loadGameIdsMapByRecruitable(
+    isRecruitable: boolean,
+  ): Promise<Map<string, number[]>> {
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .select('g.profile_id', 'profileId')
+      .addSelect('g.rsc_game_id', 'gameId')
+      .from('player_games', 'g')
+      .where('g.isRecruitable = :isRecruitable', { isRecruitable })
+      .getRawMany<{ profileId: string; gameId: number }>();
+
+    const map = new Map<string, Set<number>>();
+    for (const row of rows) {
+      const gameId = Number(row.gameId);
+      if (!Number.isFinite(gameId)) continue;
+      this.pushIntMap(map, row.profileId, gameId);
+    }
+    return this.finalizeIntMap(map);
+  }
+
+  private async loadGameIdsByProfileAndRecruitable(
+    profileId: string,
+    isRecruitable: boolean,
+  ): Promise<number[]> {
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .select('g.rsc_game_id', 'gameId')
+      .from('player_games', 'g')
+      .where('g.profile_id = :profileId', { profileId })
+      .andWhere('g.isRecruitable = :isRecruitable', { isRecruitable })
+      .getRawMany<{ gameId: number }>();
+
+    return [
+      ...new Set(
+        rows
+          .map((row) => Number(row.gameId))
+          .filter((value) => Number.isFinite(value)),
+      ),
+    ];
+  }
+
+  private async loadGameRelationKeysMap(
+    tableName: string,
+    valueColumn: string,
+  ): Promise<Map<string, number[]>> {
     const rows = await this.dataSource
       .createQueryBuilder()
       .select('g.profile_id', 'profileId')
@@ -400,6 +597,50 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return [...values];
   }
 
+  private async loadGameModeKeysMap(): Promise<Map<string, number[]>> {
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .select('g.profile_id', 'profileId')
+      .addSelect('g.rsc_game_id', 'gameId')
+      .addSelect('m.mode_id', 'modeId')
+      .from('player_game_mode_ranks', 't')
+      .innerJoin('player_games', 'g', 'g.id = t.player_game_id')
+      .innerJoin('rsc_game_modes', 'm', 'm.id = t.rsc_game_mode_id')
+      .getRawMany<{ profileId: string; gameId: number; modeId: number }>();
+
+    const map = new Map<string, Set<number>>();
+    for (const row of rows) {
+      const gameId = Number(row.gameId);
+      const modeId = Number(row.modeId);
+      if (!Number.isFinite(gameId) || !Number.isFinite(modeId)) continue;
+      this.pushIntMap(map, row.profileId, buildPlayerGameKey(gameId, modeId));
+    }
+    return this.finalizeIntMap(map);
+  }
+
+  private async loadGameModeKeysByProfile(
+    profileId: string,
+  ): Promise<number[]> {
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .select('g.rsc_game_id', 'gameId')
+      .addSelect('m.mode_id', 'modeId')
+      .from('player_game_mode_ranks', 't')
+      .innerJoin('player_games', 'g', 'g.id = t.player_game_id')
+      .innerJoin('rsc_game_modes', 'm', 'm.id = t.rsc_game_mode_id')
+      .where('g.profile_id = :profileId', { profileId })
+      .getRawMany<{ gameId: number; modeId: number }>();
+
+    const values = new Set<number>();
+    for (const row of rows) {
+      const gameId = Number(row.gameId);
+      const modeId = Number(row.modeId);
+      if (!Number.isFinite(gameId) || !Number.isFinite(modeId)) continue;
+      values.add(buildPlayerGameKey(gameId, modeId));
+    }
+    return [...values];
+  }
+
   private async loadGameRankOrderKeysMap(): Promise<Map<string, number[]>> {
     const rows = await this.dataSource
       .createQueryBuilder()
@@ -416,12 +657,18 @@ export class PlayerSearchIndexer implements OnModuleInit {
       const gameId = Number(row.gameId);
       const rankOrder = Number(row.rankOrder);
       if (!Number.isFinite(gameId) || !Number.isFinite(rankOrder)) continue;
-      this.pushIntMap(map, row.profileId, buildPlayerGameKey(gameId, rankOrder));
+      this.pushIntMap(
+        map,
+        row.profileId,
+        buildPlayerGameKey(gameId, rankOrder),
+      );
     }
     return this.finalizeIntMap(map);
   }
 
-  private async loadGameRankOrderKeysByProfile(profileId: string): Promise<number[]> {
+  private async loadGameRankOrderKeysByProfile(
+    profileId: string,
+  ): Promise<number[]> {
     const rows = await this.dataSource
       .createQueryBuilder()
       .select('g.rsc_game_id', 'gameId')
@@ -442,7 +689,53 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return [...values];
   }
 
-  private pushIntMap(map: Map<string, Set<number>>, profileId: string, value: number): void {
+  private async loadGameEloKeysMap(): Promise<Map<string, number[]>> {
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .select('g.profile_id', 'profileId')
+      .addSelect('g.rsc_game_id', 'gameId')
+      .addSelect('t.elo', 'elo')
+      .from('player_game_mode_ranks', 't')
+      .innerJoin('player_games', 'g', 'g.id = t.player_game_id')
+      .where('t.elo IS NOT NULL')
+      .getRawMany<{ profileId: string; gameId: number; elo: number }>();
+
+    const map = new Map<string, Set<number>>();
+    for (const row of rows) {
+      const gameId = Number(row.gameId);
+      const elo = Number(row.elo);
+      if (!Number.isFinite(gameId) || !Number.isFinite(elo)) continue;
+      this.pushIntMap(map, row.profileId, buildPlayerGameEloKey(gameId, elo));
+    }
+    return this.finalizeIntMap(map);
+  }
+
+  private async loadGameEloKeysByProfile(profileId: string): Promise<number[]> {
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .select('g.rsc_game_id', 'gameId')
+      .addSelect('t.elo', 'elo')
+      .from('player_game_mode_ranks', 't')
+      .innerJoin('player_games', 'g', 'g.id = t.player_game_id')
+      .where('g.profile_id = :profileId', { profileId })
+      .andWhere('t.elo IS NOT NULL')
+      .getRawMany<{ gameId: number; elo: number }>();
+
+    const values = new Set<number>();
+    for (const row of rows) {
+      const gameId = Number(row.gameId);
+      const elo = Number(row.elo);
+      if (!Number.isFinite(gameId) || !Number.isFinite(elo)) continue;
+      values.add(buildPlayerGameEloKey(gameId, elo));
+    }
+    return [...values];
+  }
+
+  private pushIntMap(
+    map: Map<string, Set<number>>,
+    profileId: string,
+    value: number,
+  ): void {
     if (!profileId || !Number.isFinite(value)) return;
     const existing = map.get(profileId);
     if (existing) {
@@ -471,13 +764,30 @@ export class PlayerSearchIndexer implements OnModuleInit {
       socialLinksCount: number;
       hasRecruitableGame: boolean;
       gameIds: number[];
+      recruitableGameIds: number[];
+      nonRecruitableGameIds: number[];
       gamePositionKeys: number[];
       gamePlatformKeys: number[];
       gameCharacterKeys: number[];
+      gameModeKeys: number[];
       gameRankOrderKeys: number[];
+      gameEloKeys: number[];
     },
   ): PlayerSearchDocument {
-    const createdAt = profile.createdAt instanceof Date ? profile.createdAt : new Date(profile.createdAt);
+    const birthDate =
+      profile.birthDate instanceof Date
+        ? profile.birthDate
+        : new Date(profile.birthDate);
+    const createdAt =
+      profile.createdAt instanceof Date
+        ? profile.createdAt
+        : new Date(profile.createdAt);
+    const birthDateValue = Number.isNaN(birthDate.getTime())
+      ? 0
+      : birthDate.getTime();
+    const createdAtValue = Number.isNaN(createdAt.getTime())
+      ? 0
+      : createdAt.getTime();
     const profileScore = this.computeProfileScore({
       profilePicture: profile.profilePicture,
       bannerPicture: profile.bannerPicture,
@@ -498,6 +808,7 @@ export class PlayerSearchIndexer implements OnModuleInit {
       slug: profile.slug,
       hasProfilePicture: Boolean(profile.profilePicture),
       hasBannerPicture: Boolean(profile.bannerPicture),
+      birthDate: birthDateValue,
       hasGame: aggregates.gameIds.length > 0,
       hasRecruitableGame: aggregates.hasRecruitableGame,
       experienceCount: aggregates.experienceCount,
@@ -506,7 +817,7 @@ export class PlayerSearchIndexer implements OnModuleInit {
       socialLinksCount: aggregates.socialLinksCount,
       badgesCount: aggregates.badgeIds.length,
       profileScore,
-      createdAt: createdAt.getTime(),
+      createdAt: createdAtValue,
     };
 
     if (profile.description) doc.description = profile.description;
@@ -517,10 +828,21 @@ export class PlayerSearchIndexer implements OnModuleInit {
     if (profile.profilePicture) doc.profilePicture = profile.profilePicture;
     if (profile.bannerPicture) doc.bannerPicture = profile.bannerPicture;
     if (aggregates.gameIds.length) doc.gameIds = aggregates.gameIds;
-    if (aggregates.gamePositionKeys.length) doc.gamePositionKeys = aggregates.gamePositionKeys;
-    if (aggregates.gamePlatformKeys.length) doc.gamePlatformKeys = aggregates.gamePlatformKeys;
-    if (aggregates.gameCharacterKeys.length) doc.gameCharacterKeys = aggregates.gameCharacterKeys;
-    if (aggregates.gameRankOrderKeys.length) doc.gameRankOrderKeys = aggregates.gameRankOrderKeys;
+    if (aggregates.recruitableGameIds.length)
+      doc.recruitableGameIds = aggregates.recruitableGameIds;
+    if (aggregates.nonRecruitableGameIds.length)
+      doc.nonRecruitableGameIds = aggregates.nonRecruitableGameIds;
+    if (aggregates.gamePositionKeys.length)
+      doc.gamePositionKeys = aggregates.gamePositionKeys;
+    if (aggregates.gamePlatformKeys.length)
+      doc.gamePlatformKeys = aggregates.gamePlatformKeys;
+    if (aggregates.gameCharacterKeys.length)
+      doc.gameCharacterKeys = aggregates.gameCharacterKeys;
+    if (aggregates.gameModeKeys.length)
+      doc.gameModeKeys = aggregates.gameModeKeys;
+    if (aggregates.gameRankOrderKeys.length)
+      doc.gameRankOrderKeys = aggregates.gameRankOrderKeys;
+    if (aggregates.gameEloKeys.length) doc.gameEloKeys = aggregates.gameEloKeys;
 
     return doc;
   }
@@ -563,15 +885,68 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return Math.min(score, 100);
   }
 
-  private async importDocuments(documents: PlayerSearchDocument[]): Promise<void> {
+  private async importDocuments(
+    documents: PlayerSearchDocument[],
+  ): Promise<void> {
     if (!documents.length) return;
 
     const batchSize = 200;
     for (let i = 0; i < documents.length; i += batchSize) {
       const batch = documents.slice(i, i + batchSize);
-      await this.typesense.client.collections(PLAYER_SEARCH_COLLECTION).documents().import(batch, {
-        action: 'upsert',
-      });
+      const response = await this.typesense.client
+        .collections(PLAYER_SEARCH_COLLECTION)
+        .documents()
+        .import(batch, {
+          action: 'upsert',
+        });
+
+      const lines = this.parseImportResponse(response);
+      const failedLines = lines.filter((line) => line.success === false);
+      if (!failedLines.length) continue;
+
+      const firstError =
+        failedLines[0]?.error ?? 'Unknown Typesense import error';
+      throw new Error(
+        `Typesense import failed for ${failedLines.length}/${lines.length} documents. First error: ${firstError}`,
+      );
     }
+  }
+
+  private parseImportResponse(
+    response: unknown,
+  ): Array<{ success: boolean; error?: string }> {
+    if (Array.isArray(response)) {
+      return response.filter(
+        (item): item is { success: boolean; error?: string } => {
+          return (
+            typeof item === 'object' &&
+            item !== null &&
+            'success' in item &&
+            typeof (item as { success?: unknown }).success === 'boolean'
+          );
+        },
+      );
+    }
+
+    if (typeof response !== 'string') return [];
+
+    return response
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          const parsed = JSON.parse(line) as {
+            success: boolean;
+            error?: string;
+          };
+          return parsed;
+        } catch {
+          return {
+            success: false,
+            error: `Unparseable Typesense import line: ${line}`,
+          };
+        }
+      });
   }
 }
