@@ -4,6 +4,10 @@ export type MessagingEntityType = (typeof MESSAGING_ENTITY_TYPES)[number];
 export const MESSAGING_SCOPES = ['SELF', 'TEAM'] as const;
 export type MessagingScope = (typeof MESSAGING_SCOPES)[number];
 
+export const MESSAGING_MESSAGE_SENDER_TYPES = ['PROFILE', 'SYSTEM'] as const;
+export type MessagingMessageSenderType =
+  (typeof MESSAGING_MESSAGE_SENDER_TYPES)[number];
+
 export type MessagingActor = {
   id: string;
   type: MessagingEntityType;
@@ -26,8 +30,10 @@ export type MessagingConversationSummary = {
   counterpart: MessagingActor;
   unreadCount: number;
   lastMessage: {
+    senderType: MessagingMessageSenderType;
     preview: string;
     senderProfileId: string | null;
+    senderSystemKey: string | null;
     createdAt: string | null;
   } | null;
 };
@@ -35,7 +41,9 @@ export type MessagingConversationSummary = {
 export type MessagingMessagePresenter = {
   id: string;
   conversationId: string;
-  senderProfileId: string;
+  senderType: MessagingMessageSenderType;
+  senderProfileId: string | null;
+  senderSystemKey: string | null;
   content: string;
   createdAt: string;
   isOwn: boolean;

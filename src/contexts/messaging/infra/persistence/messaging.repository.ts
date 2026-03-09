@@ -8,6 +8,7 @@ import {
   MessagingMarkReadResult,
   MessagingMessagePageResult,
   MessagingMessageRecord,
+  MessagingMessageSender,
   MessagingRepositoryPort,
 } from '../../app/ports/messaging.repository.port';
 import { MessagingConversationEntity } from '../entities/messaging-conversation.entity';
@@ -35,7 +36,9 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
         c.participant_b_player_id AS participantBPlayerId,
         c.participant_b_team_id AS participantBTeamId,
         c.last_message_preview AS lastMessagePreview,
+        c.last_message_sender_type AS lastMessageSenderType,
         c.last_message_sender_profile_id AS lastMessageSenderProfileId,
+        c.last_message_sender_system_key AS lastMessageSenderSystemKey,
         c.last_message_at AS lastMessageAt,
         c.created_at AS createdAt,
         c.updated_at AS updatedAt
@@ -63,7 +66,9 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
         c.participant_b_player_id AS participantBPlayerId,
         c.participant_b_team_id AS participantBTeamId,
         c.last_message_preview AS lastMessagePreview,
+        c.last_message_sender_type AS lastMessageSenderType,
         c.last_message_sender_profile_id AS lastMessageSenderProfileId,
+        c.last_message_sender_system_key AS lastMessageSenderSystemKey,
         c.last_message_at AS lastMessageAt,
         c.created_at AS createdAt,
         c.updated_at AS updatedAt
@@ -110,14 +115,16 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
   async touchConversationLastMessage(
     conversationId: string,
     preview: string,
-    senderProfileId: string,
+    sender: MessagingMessageSender,
     createdAt: Date,
   ): Promise<void> {
     await this.conversationRepo.update(
       { id: conversationId },
       {
         lastMessagePreview: preview,
-        lastMessageSenderProfileId: senderProfileId,
+        lastMessageSenderType: sender.type,
+        lastMessageSenderProfileId: sender.profileId,
+        lastMessageSenderSystemKey: sender.systemKey,
         lastMessageAt: createdAt,
       },
     );
@@ -141,7 +148,9 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
         c.participant_b_player_id AS participantBPlayerId,
         c.participant_b_team_id AS participantBTeamId,
         c.last_message_preview AS lastMessagePreview,
+        c.last_message_sender_type AS lastMessageSenderType,
         c.last_message_sender_profile_id AS lastMessageSenderProfileId,
+        c.last_message_sender_system_key AS lastMessageSenderSystemKey,
         c.last_message_at AS lastMessageAt,
         c.created_at AS createdAt,
         c.updated_at AS updatedAt,
@@ -149,7 +158,7 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
           SELECT COUNT(*)
           FROM messaging_messages m
           WHERE m.conversation_id = c.id
-            AND m.sender_profile_id <> ?
+            AND NOT (m.sender_type = 'PROFILE' AND m.sender_profile_id = ?)
             AND NOT EXISTS (
               SELECT 1
               FROM messaging_message_reads mr
@@ -209,7 +218,9 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
         c.participant_b_player_id AS participantBPlayerId,
         c.participant_b_team_id AS participantBTeamId,
         c.last_message_preview AS lastMessagePreview,
+        c.last_message_sender_type AS lastMessageSenderType,
         c.last_message_sender_profile_id AS lastMessageSenderProfileId,
+        c.last_message_sender_system_key AS lastMessageSenderSystemKey,
         c.last_message_at AS lastMessageAt,
         c.created_at AS createdAt,
         c.updated_at AS updatedAt,
@@ -217,7 +228,7 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
           SELECT COUNT(*)
           FROM messaging_messages m
           WHERE m.conversation_id = c.id
-            AND m.sender_profile_id <> ?
+            AND NOT (m.sender_type = 'PROFILE' AND m.sender_profile_id = ?)
             AND NOT EXISTS (
               SELECT 1
               FROM messaging_message_reads mr
@@ -305,14 +316,19 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
       SELECT
         m.id AS id,
         m.conversation_id AS conversationId,
+        m.sender_type AS senderType,
         m.sender_profile_id AS senderProfileId,
+        m.sender_system_key AS senderSystemKey,
         m.content AS content,
         m.created_at AS createdAt,
         (
           SELECT COUNT(*)
           FROM messaging_message_reads mr
           WHERE mr.message_id = m.id
-            AND mr.reader_profile_id <> m.sender_profile_id
+            AND (
+              (m.sender_type = 'PROFILE' AND mr.reader_profile_id <> m.sender_profile_id)
+              OR m.sender_type = 'SYSTEM'
+            )
         ) AS readByCount
       FROM messaging_messages m
       WHERE ${whereParts.join(' AND ')}
@@ -337,12 +353,14 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
 
   async createMessage(
     conversationId: string,
-    senderProfileId: string,
+    sender: MessagingMessageSender,
     content: string,
   ): Promise<MessagingMessageRecord> {
     const entity = this.messageRepo.create({
       conversation: { id: conversationId },
-      senderProfile: { id: senderProfileId },
+      senderType: sender.type,
+      senderProfile: sender.profileId ? { id: sender.profileId } : null,
+      senderSystemKey: sender.systemKey,
       content,
     });
 
@@ -351,7 +369,9 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
     return {
       id: entity.id,
       conversationId,
-      senderProfileId,
+      senderType: sender.type,
+      senderProfileId: sender.profileId,
+      senderSystemKey: sender.systemKey,
       content: entity.content,
       createdAt: entity.createdAt,
       readByCount: 0,
@@ -398,7 +418,7 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
       SELECT UUID(), m.id, ?, NOW(6)
       FROM messaging_messages m
       WHERE m.conversation_id = ?
-        AND m.sender_profile_id <> ?
+        AND NOT (m.sender_type = 'PROFILE' AND m.sender_profile_id = ?)
         AND (m.created_at < ? OR (m.created_at = ? AND m.id <= ?))
       `,
       [readerProfileId, conversationId, readerProfileId, cursorCreatedAt, cursorCreatedAt, cursorId],
@@ -416,7 +436,7 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
       SELECT COUNT(*) AS total
       FROM messaging_messages m
       WHERE m.conversation_id = ?
-        AND m.sender_profile_id <> ?
+        AND NOT (m.sender_type = 'PROFILE' AND m.sender_profile_id = ?)
         AND NOT EXISTS (
           SELECT 1
           FROM messaging_message_reads mr
@@ -443,7 +463,7 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
       SELECT COUNT(*) AS total
       FROM messaging_messages m
       INNER JOIN messaging_conversations c ON c.id = m.conversation_id
-      WHERE m.sender_profile_id <> ?
+      WHERE NOT (m.sender_type = 'PROFILE' AND m.sender_profile_id = ?)
         AND NOT EXISTS (
           SELECT 1
           FROM messaging_message_reads mr
@@ -475,7 +495,7 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
       SELECT m.id AS id
       FROM messaging_messages m
       WHERE m.conversation_id = ?
-        AND m.sender_profile_id <> ?
+        AND NOT (m.sender_type = 'PROFILE' AND m.sender_profile_id = ?)
         AND NOT EXISTS (
           SELECT 1
           FROM messaging_message_reads mr
@@ -510,7 +530,13 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
       participantBPlayerId: row.participantBPlayerId ? String(row.participantBPlayerId) : null,
       participantBTeamId: row.participantBTeamId ? String(row.participantBTeamId) : null,
       lastMessagePreview: row.lastMessagePreview ? String(row.lastMessagePreview) : null,
+      lastMessageSenderType: row.lastMessageSenderType
+        ? String(row.lastMessageSenderType) as MessagingConversationRecord['lastMessageSenderType']
+        : null,
       lastMessageSenderProfileId: row.lastMessageSenderProfileId ? String(row.lastMessageSenderProfileId) : null,
+      lastMessageSenderSystemKey: row.lastMessageSenderSystemKey
+        ? String(row.lastMessageSenderSystemKey)
+        : null,
       lastMessageAt: this.toDateOrNull(row.lastMessageAt),
       createdAt: this.toDate(row.createdAt),
       updatedAt: this.toDate(row.updatedAt),
@@ -521,7 +547,9 @@ export class MessagingRepositoryTypeorm implements MessagingRepositoryPort {
     return {
       id: String(row.id),
       conversationId: String(row.conversationId),
-      senderProfileId: String(row.senderProfileId),
+      senderType: String(row.senderType) as MessagingMessageRecord['senderType'],
+      senderProfileId: row.senderProfileId ? String(row.senderProfileId) : null,
+      senderSystemKey: row.senderSystemKey ? String(row.senderSystemKey) : null,
       content: String(row.content ?? ''),
       createdAt: this.toDate(row.createdAt),
       readByCount: Number(row.readByCount ?? 0),

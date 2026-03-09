@@ -258,28 +258,43 @@ export class NotificationsService {
     const recipientProfileIds = Array.from(
       new Set(
         payload.recipientProfileIds.filter(
-          (profileId) => profileId && profileId !== payload.senderProfileId,
+          (profileId) =>
+            profileId &&
+            !(
+              payload.senderType === 'PROFILE' &&
+              payload.senderProfileId &&
+              profileId === payload.senderProfileId
+            ),
         ),
       ),
     );
     if (!recipientProfileIds.length) return;
 
-    const sender = await this.notificationsRepo.findProfileSnapshotById(
-      payload.senderProfileId,
-    );
-    const senderLabel = sender?.username ?? 'Utilisateur';
+    const sender =
+      payload.senderType === 'PROFILE' && payload.senderProfileId
+        ? await this.notificationsRepo.findProfileSnapshotById(
+            payload.senderProfileId,
+          )
+        : null;
+    const senderLabel =
+      payload.senderType === 'SYSTEM'
+        ? this.resolveSystemSenderLabel(payload.senderSystemKey)
+        : sender?.username ?? 'Utilisateur';
     const body = payload.preview || 'Vous avez reçu un nouveau message.';
 
     const created = await this.notificationsRepo.createMany(
       recipientProfileIds.map((recipientProfileId) => ({
         recipientProfileId,
-        actorProfileId: payload.senderProfileId,
+        actorProfileId:
+          payload.senderType === 'PROFILE' ? payload.senderProfileId : null,
         type: 'MESSAGING_MESSAGE_RECEIVED',
         title: `Nouveau message de ${senderLabel}`,
         body,
         payload: {
           conversationId: payload.conversationId,
           messageId: payload.messageId,
+          senderType: payload.senderType,
+          senderSystemKey: payload.senderSystemKey,
         },
         contextConversationId: payload.conversationId,
         contextMessageId: payload.messageId,
@@ -365,6 +380,15 @@ export class NotificationsService {
       NOTIFICATIONS_SOCKET_EVENTS.UNREAD_COUNT_UPDATED,
       { unreadCount },
     );
+  }
+
+  private resolveSystemSenderLabel(systemKey: string | null) {
+    const normalized = String(systemKey ?? '')
+      .trim()
+      .toLowerCase();
+    if (normalized === 'neeft') return 'Neeft';
+    if (!normalized) return 'Systeme';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
   }
 
   private toPresenter(row: {

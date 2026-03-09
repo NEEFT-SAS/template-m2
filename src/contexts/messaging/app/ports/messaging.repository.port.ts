@@ -1,4 +1,7 @@
-import { MessagingEntityType } from '../../domain/types/messaging.types';
+import {
+  MessagingEntityType,
+  MessagingMessageSenderType,
+} from '../../domain/types/messaging.types';
 
 export const MESSAGING_REPOSITORY = Symbol('MESSAGING_REPOSITORY');
 
@@ -12,7 +15,9 @@ export type MessagingConversationRecord = {
   participantBPlayerId: string | null;
   participantBTeamId: string | null;
   lastMessagePreview: string | null;
+  lastMessageSenderType: MessagingMessageSenderType | null;
   lastMessageSenderProfileId: string | null;
+  lastMessageSenderSystemKey: string | null;
   lastMessageAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -30,10 +35,18 @@ export type MessagingConversationListResult = {
 export type MessagingMessageRecord = {
   id: string;
   conversationId: string;
-  senderProfileId: string;
+  senderType: MessagingMessageSenderType;
+  senderProfileId: string | null;
+  senderSystemKey: string | null;
   content: string;
   createdAt: Date;
   readByCount: number;
+};
+
+export type MessagingMessageSender = {
+  type: MessagingMessageSenderType;
+  profileId: string | null;
+  systemKey: string | null;
 };
 
 export type MessagingMessagePageResult = {
@@ -62,7 +75,7 @@ export interface MessagingRepositoryPort {
   touchConversationLastMessage(
     conversationId: string,
     preview: string,
-    senderProfileId: string,
+    sender: MessagingMessageSender,
     createdAt: Date,
   ): Promise<void>;
   listConversationsForPlayer(
@@ -84,7 +97,7 @@ export interface MessagingRepositoryPort {
   ): Promise<MessagingMessagePageResult>;
   createMessage(
     conversationId: string,
-    senderProfileId: string,
+    sender: MessagingMessageSender,
     content: string,
   ): Promise<MessagingMessageRecord>;
   markConversationAsRead(

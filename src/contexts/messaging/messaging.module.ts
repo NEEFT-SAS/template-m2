@@ -50,5 +50,6 @@ import { MessagingRealtimeService } from './infra/realtime/messaging-realtime.se
     { provide: MESSAGING_REPOSITORY, useClass: MessagingRepositoryTypeorm },
     { provide: MESSAGING_ACCESS_REPOSITORY, useClass: MessagingAccessRepositoryTypeorm },
   ],
+  exports: [MessagingService],
 })
 export class MessagingModule {}

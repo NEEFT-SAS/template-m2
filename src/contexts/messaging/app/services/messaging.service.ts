@@ -10,12 +10,14 @@ import {
   MESSAGING_REPOSITORY,
   MessagingConversationListItem,
   MessagingConversationRecord,
+  MessagingMessageSender,
   MessagingRepositoryPort,
 } from '../ports/messaging.repository.port';
 import {
   MessagingConversationSummary,
   MessagingEntityType,
   MessagingMessagePresenter,
+  MessagingMessageSenderType,
   MESSAGING_SCOPES,
   MessagingScope,
   MESSAGING_SOCKET_EVENTS,
@@ -149,9 +151,12 @@ export class MessagingService {
     const items = page.items.map((message) => {
       const recipientCount = this.computeRecipientCount(
         participantProfileIds,
+        message.senderType,
         message.senderProfileId,
       );
-      const isOwn = message.senderProfileId === requesterProfileId;
+      const isOwn =
+        message.senderType === 'PROFILE' &&
+        message.senderProfileId === requesterProfileId;
       const deliveryStatus = isOwn
         ? recipientCount > 0 && message.readByCount >= recipientCount
           ? 'READ'
@@ -161,7 +166,9 @@ export class MessagingService {
       return {
         id: message.id,
         conversationId: message.conversationId,
+        senderType: message.senderType,
         senderProfileId: message.senderProfileId,
+        senderSystemKey: message.senderSystemKey,
         content: message.content,
         createdAt: message.createdAt.toISOString(),
         isOwn,
@@ -250,16 +257,17 @@ export class MessagingService {
       throw new MessagingEmptyMessageError();
     }
 
+    const sender = this.buildProfileSender(requesterProfileId);
     const message = await this.messagingRepo.createMessage(
       conversation.id,
-      requesterProfileId,
+      sender,
       content,
     );
     const preview = this.buildPreview(content);
     await this.messagingRepo.touchConversationLastMessage(
       conversation.id,
       preview,
-      requesterProfileId,
+      sender,
       message.createdAt,
     );
 
@@ -267,10 +275,16 @@ export class MessagingService {
       await this.listConversationParticipantProfileIds(conversation);
     const recipientCount = this.computeRecipientCount(
       participantProfileIds,
+      message.senderType,
       message.senderProfileId,
     );
     const recipientProfileIds = participantProfileIds.filter(
-      (profileId) => profileId !== requesterProfileId,
+      (profileId) =>
+        !this.isSenderProfile(
+          profileId,
+          message.senderType,
+          message.senderProfileId,
+        ),
     );
 
     this.messagingRealtime.emitToProfiles(
@@ -281,7 +295,9 @@ export class MessagingService {
         message: {
           id: message.id,
           conversationId: message.conversationId,
+          senderType: message.senderType,
           senderProfileId: message.senderProfileId,
+          senderSystemKey: message.senderSystemKey,
           content: message.content,
           createdAt: message.createdAt.toISOString(),
         },
@@ -295,7 +311,9 @@ export class MessagingService {
         conversationId: conversation.id,
         lastMessage: {
           preview,
-          senderProfileId: requesterProfileId,
+          senderType: message.senderType,
+          senderProfileId: message.senderProfileId,
+          senderSystemKey: message.senderSystemKey,
           createdAt: message.createdAt.toISOString(),
         },
       },
@@ -305,7 +323,9 @@ export class MessagingService {
       MessagingMessageSentEvent.create({
         conversationId: conversation.id,
         messageId: message.id,
-        senderProfileId: requesterProfileId,
+        senderType: message.senderType,
+        senderProfileId: message.senderProfileId,
+        senderSystemKey: message.senderSystemKey,
         recipientProfileIds,
         preview,
         createdAt: message.createdAt.toISOString(),
@@ -317,12 +337,125 @@ export class MessagingService {
     return {
       id: message.id,
       conversationId: message.conversationId,
+      senderType: message.senderType,
       senderProfileId: message.senderProfileId,
+      senderSystemKey: message.senderSystemKey,
       content: message.content,
       createdAt: message.createdAt.toISOString(),
       isOwn: true,
-      deliveryStatus: recipientCount > 0 ? 'UNREAD' : null,
-      readByCount: 0,
+      deliveryStatus:
+        recipientCount > 0
+          ? message.readByCount >= recipientCount
+            ? 'READ'
+            : 'UNREAD'
+          : null,
+      readByCount: message.readByCount,
+      recipientCount,
+    } satisfies MessagingMessagePresenter;
+  }
+
+  async sendSystemMessage(
+    conversationId: string,
+    payload: {
+      content: string;
+      systemKey?: string;
+    },
+  ) {
+    const conversation = await this.getConversationOrThrow(conversationId);
+
+    const content = String(payload.content ?? '').trim();
+    if (!content) {
+      throw new MessagingEmptyMessageError();
+    }
+
+    const sender = this.buildSystemSender(payload.systemKey);
+    const message = await this.messagingRepo.createMessage(
+      conversation.id,
+      sender,
+      content,
+    );
+    const preview = this.buildPreview(content);
+    await this.messagingRepo.touchConversationLastMessage(
+      conversation.id,
+      preview,
+      sender,
+      message.createdAt,
+    );
+
+    const participantProfileIds =
+      await this.listConversationParticipantProfileIds(conversation);
+    const recipientCount = this.computeRecipientCount(
+      participantProfileIds,
+      message.senderType,
+      message.senderProfileId,
+    );
+    const recipientProfileIds = participantProfileIds.filter(
+      (profileId) =>
+        !this.isSenderProfile(
+          profileId,
+          message.senderType,
+          message.senderProfileId,
+        ),
+    );
+
+    this.messagingRealtime.emitToProfiles(
+      participantProfileIds,
+      MESSAGING_SOCKET_EVENTS.MESSAGE_CREATED,
+      {
+        conversationId: conversation.id,
+        message: {
+          id: message.id,
+          conversationId: message.conversationId,
+          senderType: message.senderType,
+          senderProfileId: message.senderProfileId,
+          senderSystemKey: message.senderSystemKey,
+          content: message.content,
+          createdAt: message.createdAt.toISOString(),
+        },
+      },
+    );
+
+    this.messagingRealtime.emitToProfiles(
+      participantProfileIds,
+      MESSAGING_SOCKET_EVENTS.CONVERSATION_UPDATED,
+      {
+        conversationId: conversation.id,
+        lastMessage: {
+          preview,
+          senderType: message.senderType,
+          senderProfileId: message.senderProfileId,
+          senderSystemKey: message.senderSystemKey,
+          createdAt: message.createdAt.toISOString(),
+        },
+      },
+    );
+
+    await this.eventBus.publish(
+      MessagingMessageSentEvent.create({
+        conversationId: conversation.id,
+        messageId: message.id,
+        senderType: message.senderType,
+        senderProfileId: message.senderProfileId,
+        senderSystemKey: message.senderSystemKey,
+        recipientProfileIds,
+        preview,
+        createdAt: message.createdAt.toISOString(),
+      }),
+    );
+
+    await this.emitUnreadCountUpdates(participantProfileIds);
+
+    return {
+      id: message.id,
+      conversationId: message.conversationId,
+      senderType: message.senderType,
+      senderProfileId: message.senderProfileId,
+      senderSystemKey: message.senderSystemKey,
+      content: message.content,
+      createdAt: message.createdAt.toISOString(),
+      isOwn: false,
+      deliveryStatus: null,
+      readByCount: message.readByCount,
       recipientCount,
     } satisfies MessagingMessagePresenter;
   }
@@ -470,8 +603,13 @@ export class MessagingService {
           lastMessage:
             row.lastMessageAt || row.lastMessagePreview
               ? {
+                  senderType: this.resolveStoredSenderType(
+                    row.lastMessageSenderType,
+                    row.lastMessageSenderProfileId,
+                  ),
                   preview: row.lastMessagePreview ?? '',
                   senderProfileId: row.lastMessageSenderProfileId ?? null,
+                  senderSystemKey: row.lastMessageSenderSystemKey ?? null,
                   createdAt: row.lastMessageAt
                     ? row.lastMessageAt.toISOString()
                     : null,
@@ -530,8 +668,13 @@ export class MessagingService {
           lastMessage:
             row.lastMessageAt || row.lastMessagePreview
               ? {
+                  senderType: this.resolveStoredSenderType(
+                    row.lastMessageSenderType,
+                    row.lastMessageSenderProfileId,
+                  ),
                   preview: row.lastMessagePreview ?? '',
                   senderProfileId: row.lastMessageSenderProfileId ?? null,
+                  senderSystemKey: row.lastMessageSenderSystemKey ?? null,
                   createdAt: row.lastMessageAt
                     ? row.lastMessageAt.toISOString()
                     : null,
@@ -855,13 +998,56 @@ export class MessagingService {
 
   private computeRecipientCount(
     participantProfileIds: string[],
-    senderProfileId: string,
+    senderType: MessagingMessageSenderType,
+    senderProfileId: string | null,
   ) {
     if (!participantProfileIds.length) return 0;
-    const senderIncluded = participantProfileIds.includes(senderProfileId);
+    const senderIncluded =
+      senderType === 'PROFILE' &&
+      !!senderProfileId &&
+      participantProfileIds.includes(senderProfileId);
     return senderIncluded
       ? Math.max(participantProfileIds.length - 1, 0)
       : participantProfileIds.length;
+  }
+
+  private isSenderProfile(
+    profileId: string,
+    senderType: MessagingMessageSenderType,
+    senderProfileId: string | null,
+  ) {
+    return senderType === 'PROFILE' && !!senderProfileId && profileId === senderProfileId;
+  }
+
+  private buildProfileSender(profileId: string): MessagingMessageSender {
+    return {
+      type: 'PROFILE',
+      profileId,
+      systemKey: null,
+    };
+  }
+
+  private buildSystemSender(systemKey?: string): MessagingMessageSender {
+    return {
+      type: 'SYSTEM',
+      profileId: null,
+      systemKey: this.resolveSystemKey(systemKey),
+    };
+  }
+
+  private resolveSystemKey(value?: string | null) {
+    const normalized = String(value ?? 'neeft')
+      .trim()
+      .toLowerCase();
+    return normalized || 'neeft';
+  }
+
+  private resolveStoredSenderType(
+    senderType: MessagingMessageSenderType | null,
+    senderProfileId: string | null,
+  ): MessagingMessageSenderType {
+    if (senderType === 'PROFILE' || senderType === 'SYSTEM') return senderType;
+    return senderProfileId ? 'PROFILE' : 'SYSTEM';
   }
 
   private buildPreview(content: string) {

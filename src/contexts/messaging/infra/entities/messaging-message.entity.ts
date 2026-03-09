@@ -8,6 +8,10 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
+import {
+  MESSAGING_MESSAGE_SENDER_TYPES,
+  MessagingMessageSenderType,
+} from '../../domain/types/messaging.types';
 import { MessagingConversationEntity } from './messaging-conversation.entity';
 import { MessagingMessageReadEntity } from './messaging-message-read.entity';
 
@@ -20,9 +24,20 @@ export class MessagingMessageEntity {
   @JoinColumn({ name: 'conversation_id' })
   conversation!: MessagingConversationEntity;
 
-  @ManyToOne(() => UserProfileEntity, { nullable: false, onDelete: 'CASCADE' })
+  @Column({
+    name: 'sender_type',
+    type: 'enum',
+    enum: MESSAGING_MESSAGE_SENDER_TYPES,
+    enumName: 'messaging_message_sender_type_enum',
+  })
+  senderType!: MessagingMessageSenderType;
+
+  @ManyToOne(() => UserProfileEntity, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'sender_profile_id' })
-  senderProfile!: UserProfileEntity;
+  senderProfile!: UserProfileEntity | null;
+
+  @Column({ name: 'sender_system_key', type: 'varchar', length: 64, nullable: true })
+  senderSystemKey!: string | null;
 
   @Column({ type: 'text' })
   content!: string;
