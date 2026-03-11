@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from "@nestjs/common";
-import { CreatePlayerRecommendationDTO } from "@neeft-sas/shared";
+import { CreatePlayerRecommendationDTO, PlayerRecommendationsQueryDto } from "@neeft-sas/shared";
 import { ConnectedGuard } from "@/contexts/auth/infra/guards/connected.guard";
 import { PlayerOwnerOrAdminGuard } from "../infra/guards/player-owner-or-admin.guard";
 import { OptionalAuthGuard } from "@/contexts/auth/infra/guards/optional-auth.guard";
@@ -8,7 +8,6 @@ import { CreateRecommendationUseCase } from "../app/usecases/recommendations/cre
 import { DeleteRecommendationUseCase } from "../app/usecases/recommendations/delete-recommendation.usecase";
 import { ListPlayerReceivedRecommendationsUseCase } from "../app/usecases/recommendations/list-player-received-recommendations.usecase";
 import { ListPlayerGivenRecommendationsUseCase } from "../app/usecases/recommendations/list-player-given-recommendations.usecase";
-import { PlayerRecommendationsQueryDto } from "./dtos/player-recommendations.query.dto";
 
 type JwtUser = {
   pid?: string;

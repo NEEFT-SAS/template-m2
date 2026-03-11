@@ -2,8 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query
 import { Request } from 'express';
 import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
 import { OptionalAuthGuard } from '@/contexts/auth/infra/guards/optional-auth.guard';
-import { FollowActionDto } from '../dtos/follow-action.dto';
-import { FollowListQueryDto } from '../dtos/follow-list.query.dto';
+import { FollowActionDto, FollowListQueryDto } from '@neeft-sas/shared';
 import { FollowEntityUseCase } from '../../app/usecases/follow-entity.usecase';
 import { UnfollowEntityUseCase } from '../../app/usecases/unfollow-entity.usecase';
 import { GetFollowingUseCase } from '../../app/usecases/get-following.usecase';

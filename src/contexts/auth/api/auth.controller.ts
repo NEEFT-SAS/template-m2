@@ -1,11 +1,10 @@
 
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
-import { UserLoginDto } from '@neeft-sas/shared';
+import { UserLoginDto, UserRegisterRequestDto } from '@neeft-sas/shared';
 import { UserRegisterUsecase } from '../app/usecases/register.usecase';
 import { UserLoginUsecase } from '../app/usecases/login.usecase';
 import { ConnectedGuard } from '../infra/guards/connected.guard';
 import { GetUserSessionUseCase } from '../app/usecases/session.usecase';
-import { UserRegisterRequestDto } from './dtos/user-register.request.dto';
 
 @Controller('auth')
 export class AuthController {

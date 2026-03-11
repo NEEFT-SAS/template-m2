@@ -1,8 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { BillingSubjectTypeEnum } from '@neeft-sas/shared';
+import { BillingInvoicesQueryDto, BillingSubjectTypeEnum } from '@neeft-sas/shared';
 import { BILLING_SUBJECT_REPOSITORY, BillingSubjectRepositoryPort } from '../ports/billing-subject.repository.port';
 import { StripeService } from '../../infra/stripe/stripe.service';
-import { BillingInvoicesQueryDto } from '../../api/dtos/billing-invoices-query.dto';
 import { StripeInvoiceListPresenter } from '../../billing-management.types';
 
 export type GetBillingInvoicesInput = {

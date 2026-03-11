@@ -1,8 +1,8 @@
 import { Body, Controller, HttpCode, HttpStatus, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { CreateProfileReportDto } from '@neeft-sas/shared';
 import { Request } from 'express';
 import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
 import { CreateProfileReportUseCase } from '@/contexts/players/app/usecases/reports/create-profile-report.usecase';
-import { CreateProfileReportDto } from '@/contexts/players/api/dtos/create-profile-report.dto';
 
 type JwtUser = {
   slug: string;

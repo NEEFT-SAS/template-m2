@@ -11,6 +11,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { GetNotificationsQueryDto, MockNotificationsDto } from '@neeft-sas/shared';
 import { Request } from 'express';
 import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
 import { GetNotificationsUseCase } from '../../app/usecases/get-notifications.usecase';
@@ -18,8 +19,6 @@ import { GetNotificationsUnreadCountUseCase } from '../../app/usecases/get-notif
 import { MarkNotificationReadUseCase } from '../../app/usecases/mark-notification-read.usecase';
 import { MarkAllNotificationsReadUseCase } from '../../app/usecases/mark-all-notifications-read.usecase';
 import { DeleteNotificationUseCase } from '../../app/usecases/delete-notification.usecase';
-import { GetNotificationsQueryDto } from '../dtos/get-notifications.query.dto';
-import { MockNotificationsDto } from '../dtos/mock-notifications.dto';
 import { MockNotificationsUseCase } from '../../app/usecases/mock-notifications.usecase';
 
 type JwtUser = {

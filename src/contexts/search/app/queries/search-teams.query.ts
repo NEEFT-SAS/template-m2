@@ -5,51 +5,12 @@ import { TeamMemberEntity } from '@/contexts/teams/infra/entities/team-member.en
 import { TeamRosterEntity } from '@/contexts/teams/infra/entities/team-roster.entity';
 import { TeamRosterMemberEntity } from '@/contexts/teams/infra/entities/team-roster-member.entity';
 import { TeamEntity } from '@/contexts/teams/infra/entities/team.entity';
-import { SearchTeamsQueryDto } from '../../api/dtos/search-teams.query.dto';
-
-type SearchTeamGamePresenter = {
-  key: string;
-  name: string;
-  shortLabel?: string;
-  icon: string;
-  composition: {
-    rosters: number;
-    players: number;
-    staff: number;
-  };
-  performance: {
-    averageRank: string;
-    averagePr: string;
-  };
-};
-
-type SearchTeamPresenter = {
-  slug: string;
-  name: string;
-  handle: string;
-  logoUrl: string;
-  bannerUrl: string;
-  heroTheme: 'violet' | 'blue';
-  flags: string[];
-  trustScore: number;
-  profileScore: number;
-  legalType: string;
-  openings: number;
-  countryCode: string;
-  games: SearchTeamGamePresenter[];
-  activeGameKey?: string;
-  recruitLabel: string;
-};
-
-type SearchTeamsResult = {
-  data: SearchTeamPresenter[];
-  meta: {
-    found: number;
-    page: number;
-    perPage: number;
-    outOf: number;
-  };
-};
+import { SearchTeamsQueryDto } from '@neeft-sas/shared';
+import type {
+  SearchTeamGamePresenter,
+  SearchTeamPresenter,
+  SearchTeamsPresenter,
+} from '@neeft-sas/shared';
 
 @Injectable()
 export class SearchTeamsQuery {
@@ -58,7 +19,7 @@ export class SearchTeamsQuery {
     private readonly teamsRepo: Repository<TeamEntity>,
   ) {}
 
-  async execute(query: SearchTeamsQueryDto): Promise<SearchTeamsResult> {
+  async execute(query: SearchTeamsQueryDto): Promise<SearchTeamsPresenter> {
     const page = query.page ?? 1;
     const perPage = query.perPage ?? 20;
     const offset = (page - 1) * perPage;
@@ -241,7 +202,7 @@ export class SearchTeamsQuery {
       flags,
       trustScore: Number(team.trustScore ?? 0),
       profileScore: Number(team.completenessScore ?? 0),
-      legalType: String(team.organizationType ?? 'ASSOCIATION'),
+      legalType: (team.organizationType ?? 'ASSOCIATION') as SearchTeamPresenter['legalType'],
       openings,
       countryCode,
       games,

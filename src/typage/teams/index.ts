@@ -1,2 +1,8 @@
-export { CreateTeamDTO, DeleteTeamDTO, UpdateTeamDTO } from './dtos/team.dto';
-export { TeamOwnerPresenter, TeamPresenter, TeamPrivateProfilePresenter } from './presenters/team.presenter';
+export {
+  CreateTeamDTO,
+  DeleteTeamDTO,
+  TeamOwnerPresenter,
+  TeamPrivateProfilePresenter,
+  TeamPresenter,
+  UpdateTeamDTO,
+} from '@neeft-sas/shared';

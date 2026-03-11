@@ -4,10 +4,9 @@ import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
 import { OptionalAuthGuard } from '@/contexts/auth/infra/guards/optional-auth.guard';
 import { AdminGuard } from '@/contexts/auth/infra/guards/admin.guard';
 import { AccessTokenPayload } from '@/contexts/auth/app/ports/token.port';
+import { SearchPlayersQueryDto, SearchTeamsQueryDto } from '@neeft-sas/shared';
 import { SearchPlayersQuery } from '../app/queries/search-players.query';
-import { SearchPlayersQueryDto } from './dtos/search-players.query.dto';
 import { SearchTeamsQuery } from '../app/queries/search-teams.query';
-import { SearchTeamsQueryDto } from './dtos/search-teams.query.dto';
 import { PlayerSearchIndexer } from '../infra/typesense/player-search.indexer';
 
 type RequestWithUser = Request & { user?: AccessTokenPayload };

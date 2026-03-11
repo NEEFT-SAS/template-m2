@@ -14,12 +14,10 @@ import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Put, Query, R
 import { ListBillingCatalogUseCase } from '../app/usecases/list-billing-catalog.usecase';
 import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
 import { CreateSubscriptionPaymentIntentUseCase } from '../app/usecases/create-subscription-payment-intent.use-case';
-import { BillingSubjectTypeEnum } from '@neeft-sas/shared';
+import { BillingAddressDto, BillingInvoicesQueryDto, BillingSubjectTypeEnum } from '@neeft-sas/shared';
 import { GetBillingOverviewUseCase } from '../app/usecases/get-billing-overview.usecase';
 import { GetBillingInvoicesUseCase } from '../app/usecases/get-billing-invoices.usecase';
 import { UpdateBillingAddressUseCase } from '../app/usecases/update-billing-address.usecase';
-import { BillingInvoicesQueryDto } from './dtos/billing-invoices-query.dto';
-import { BillingAddressDto } from './dtos/billing-address.dto';
 
 type JwtUser = {
   sub: string; // userCredentialId

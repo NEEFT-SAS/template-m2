@@ -9,60 +9,21 @@ import { SearchPremiumFiltersError } from '../../domain/errors/search.errors';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { PlayerSearchDocument } from '../../infra/typesense/player-search.types';
 import {
-  RscGameCharacterPresenter,
-  RscGameModePresenter,
-  RscGamePlatformPresenter,
-  RscGamePositionPresenter,
   RscGamePresenter,
-  RscGameRankPresenter,
   RscProfileBadgePresenter,
+  SearchPlayerGameModeRankPresenter,
+  SearchPlayerGamePresenter,
+  SearchPlayerPresenter,
+  SearchPlayersPresenter,
+  SearchPlayersQueryDto,
   UserGamePresenter,
 } from '@neeft-sas/shared';
 import { TypesenseService } from '../../infra/typesense/typesense.service';
 import { PLAYER_SEARCH_COLLECTION } from '../../infra/typesense/player-search.schema';
-import { SearchPlayersQueryDto } from '../../api/dtos/search-players.query.dto';
 import {
   buildPlayerGameEloKey,
   buildPlayerGameKey,
 } from '../../infra/typesense/player-search.constants';
-
-type SearchGameModeRankPresenter = {
-  elo: number | null;
-  rscGameMode: RscGameModePresenter | null;
-  rscGameRank: RscGameRankPresenter | null;
-};
-
-type SearchGamePresenter = {
-  id: number;
-  isRecruitable: boolean;
-  isFavoriteGame: boolean;
-  trackerUrl: string | null;
-  account: UserGamePresenter['account'];
-  game: RscGamePresenter | null;
-  rscGamePositions: RscGamePositionPresenter[];
-  rscGamePlatforms: RscGamePlatformPresenter[];
-  rscGameCharacters: RscGameCharacterPresenter[];
-  modeRanks: SearchGameModeRankPresenter[];
-};
-
-type SearchPlayersResult = {
-  data: Array<{
-    id: string;
-    username: string;
-    slug: string;
-    profilePicture: string | null;
-    bannerPicture: string | null;
-    createdAt: string;
-    badges: RscProfileBadgePresenter[];
-    games: SearchGamePresenter[];
-  }>;
-  meta: {
-    found: number;
-    page: number;
-    perPage: number;
-    outOf: number;
-  };
-};
 
 @Injectable()
 export class SearchPlayersQuery {
@@ -78,7 +39,7 @@ export class SearchPlayersQuery {
   async execute(
     query: SearchPlayersQueryDto,
     user?: AccessTokenPayload,
-  ): Promise<SearchPlayersResult> {
+  ): Promise<SearchPlayersPresenter> {
     const premiumFiltersUsed = this.getPremiumFiltersUsed(query);
     if (premiumFiltersUsed.length) {
       const isPremium = await this.isPremiumUser(user);
@@ -357,17 +318,8 @@ export class SearchPlayersQuery {
   private mapDocument(
     doc: PlayerSearchDocument,
     badgeMap: Map<number, RscProfileBadgePresenter>,
-    gamesMap: Map<string, SearchGamePresenter[]>,
-  ): {
-    id: string;
-    username: string;
-    slug: string;
-    profilePicture: string | null;
-    bannerPicture: string | null;
-    createdAt: string;
-    badges: RscProfileBadgePresenter[];
-    games: SearchGamePresenter[];
-  } {
+    gamesMap: Map<string, SearchPlayerGamePresenter[]>,
+  ): SearchPlayerPresenter {
     const createdAt = new Date(Number(doc.createdAt));
     const badgeIds = doc.badgeIds ?? [];
     const badges = badgeIds
@@ -392,7 +344,7 @@ export class SearchPlayersQuery {
   private async loadUserGamesMap(
     profileIds: string[],
     preferredGameId?: number,
-  ): Promise<Map<string, SearchGamePresenter[]>> {
+  ): Promise<Map<string, SearchPlayerGamePresenter[]>> {
     if (!profileIds.length) return new Map();
 
     const resourcesSnapshot = this.resourcesStore.getSnapshot();
@@ -406,7 +358,7 @@ export class SearchPlayersQuery {
       order: { id: 'ASC' },
     });
 
-    const map = new Map<string, SearchGamePresenter[]>();
+    const map = new Map<string, SearchPlayerGamePresenter[]>();
     for (const game of games) {
       const profileId = game.profile?.id;
       if (!profileId) continue;
@@ -430,9 +382,9 @@ export class SearchPlayersQuery {
   }
 
   private sortUserGames(
-    games: SearchGamePresenter[],
+    games: SearchPlayerGamePresenter[],
     preferredGameId?: number,
-  ): SearchGamePresenter[] {
+  ): SearchPlayerGamePresenter[] {
     return games.sort((a, b) => {
       const aGameId = a.game?.id ?? 0;
       const bGameId = b.game?.id ?? 0;
@@ -449,7 +401,7 @@ export class SearchPlayersQuery {
   private mapUserGame(
     entity: UserGameEntity,
     gameResource: RscGamePresenter | null,
-  ): SearchGamePresenter {
+  ): SearchPlayerGamePresenter {
     const toIdList = <T>(
       items: T[] | null | undefined,
       mapper: (item: T) => number | null | undefined,
@@ -476,9 +428,9 @@ export class SearchPlayersQuery {
           elo: relation.elo ?? null,
           rscGameMode: modesById.get(modeId) ?? null,
           rscGameRank: ranksById.get(rankId) ?? null,
-        } satisfies SearchGameModeRankPresenter;
+        } satisfies SearchPlayerGameModeRankPresenter;
       })
-      .filter((item): item is SearchGameModeRankPresenter => Boolean(item));
+      .filter((item): item is SearchPlayerGameModeRankPresenter => Boolean(item));
 
     const positionIds = toIdList(
       entity.positions,

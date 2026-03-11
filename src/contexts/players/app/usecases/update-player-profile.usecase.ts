@@ -8,7 +8,7 @@ import { DomainError } from '@/core/errors/domain-error';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
 import { PlayerSearchSyncEvent } from '../../domain/events/player-search-sync.event';
-import { UpdatePlayerProfileRequestDto } from '../../api/dtos/update-player-profile.request.dto';
+import { UpdatePlayerProfileRequestDto } from '@neeft-sas/shared';
 import { PlayerPrivateProfileResponse } from '../../api/presenters/player-private-profile.response';
 
 @Injectable()

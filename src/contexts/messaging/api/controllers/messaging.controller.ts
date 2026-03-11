@@ -12,6 +12,13 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
+import {
+  GetConversationMessagesQueryDto,
+  GetConversationsQueryDto,
+  MarkConversationReadDto,
+  SendConversationMessageDto,
+  StartConversationDto,
+} from '@neeft-sas/shared';
 import { GetConversationsUseCase } from '../../app/usecases/get-conversations.usecase';
 import { GetConversationMessagesUseCase } from '../../app/usecases/get-conversation-messages.usecase';
 import { SendConversationMessageUseCase } from '../../app/usecases/send-conversation-message.usecase';
@@ -19,11 +26,6 @@ import { MarkConversationReadUseCase } from '../../app/usecases/mark-conversatio
 import { GetUnreadCountUseCase } from '../../app/usecases/get-unread-count.usecase';
 import { GetTeamContextsUseCase } from '../../app/usecases/get-team-contexts.usecase';
 import { StartConversationUseCase } from '../../app/usecases/start-conversation.usecase';
-import { GetConversationsQueryDto } from '../dtos/get-conversations.query.dto';
-import { GetConversationMessagesQueryDto } from '../dtos/get-conversation-messages.query.dto';
-import { SendConversationMessageDto } from '../dtos/send-conversation-message.dto';
-import { MarkConversationReadDto } from '../dtos/mark-conversation-read.dto';
-import { StartConversationDto } from '../dtos/start-conversation.dto';
 
 type JwtUser = {
   pid?: string;

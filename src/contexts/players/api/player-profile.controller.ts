@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Patch, Req, UseGuards } from "@nestjs/common";
-import { UpdatePlayerAvailabilitiesDTO } from "@neeft-sas/shared";
+import { UpdatePlayerAvailabilitiesDTO, UpdatePlayerProfileRequestDto } from "@neeft-sas/shared";
 import { ConnectedGuard } from "@/contexts/auth/infra/guards/connected.guard";
 import { PlayerOwnerOrAdminGuard } from "../infra/guards/player-owner-or-admin.guard";
 import { GetPlayerBySlugUseCase } from "../app/usecases/get-player-by-slug.usecase";
@@ -7,7 +7,6 @@ import { UpdatePlayerProfileUseCase } from "../app/usecases/update-player-profil
 import { UpdatePlayerAvailabilitiesUseCase } from "../app/usecases/availabilities/update-availabilities.usecase";
 import { GetPlayerAvailabilitiesUseCase } from "../app/usecases/availabilities/get-availabilities.usecase";
 import { Request } from "express";
-import { UpdatePlayerProfileRequestDto } from "./dtos/update-player-profile.request.dto";
 
 type JwtUser = {
   slug: string;

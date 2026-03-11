@@ -1,8 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { BillingSubjectTypeEnum } from '@neeft-sas/shared';
+import { BillingAddressDto, BillingSubjectTypeEnum } from '@neeft-sas/shared';
 import { BILLING_SUBJECT_REPOSITORY, BillingSubjectRepositoryPort } from '../ports/billing-subject.repository.port';
 import { StripeService } from '../../infra/stripe/stripe.service';
-import { BillingAddressDto } from '../../api/dtos/billing-address.dto';
 import { StripeBillingOverview } from '../../billing-management.types';
 
 export type UpdateBillingAddressInput = {

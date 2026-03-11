@@ -9,8 +9,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { CreateCustomerInput, CreateSubscriptionInput, CreateSubscriptionOutput, ListPricesInput, StripeCustomerRecord, StripePort, StripePriceRecord } from '@/contexts/billing/app/ports/stripe.port';
-import { BillingAddressDto } from '../../api/dtos/billing-address.dto';
-import { BillingInvoicesQueryDto } from '../../api/dtos/billing-invoices-query.dto';
+import { BillingAddressDto, BillingInvoicesQueryDto } from '@neeft-sas/shared';
 import { StripeBillingAddress, StripeBillingOverview, StripeBillingPaymentMethod, StripeInvoiceListPresenter, StripeInvoicePresenter, StripeOffer } from '../../billing-management.types';
 
 @Injectable()

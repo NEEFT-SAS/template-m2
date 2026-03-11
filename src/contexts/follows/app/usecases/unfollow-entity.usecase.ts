@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { FollowStatusPresenter } from '@neeft-sas/shared';
 import { plainToInstance } from 'class-transformer';
 import { FollowActionInput, FollowService } from '../services/follow.service';
 import { FollowEntityType } from '../../domain/types/follow.types';
-import { FollowStatusPresenter } from '../../api/presenters/follow-status.presenter';
 
 @Injectable()
 export class UnfollowEntityUseCase {
