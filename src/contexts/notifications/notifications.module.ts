@@ -11,6 +11,7 @@ import { GetNotificationsUseCase } from './app/usecases/get-notifications.usecas
 import { GetNotificationsUnreadCountUseCase } from './app/usecases/get-notifications-unread-count.usecase';
 import { MarkNotificationReadUseCase } from './app/usecases/mark-notification-read.usecase';
 import { MarkAllNotificationsReadUseCase } from './app/usecases/mark-all-notifications-read.usecase';
+import { DeleteNotificationUseCase } from './app/usecases/delete-notification.usecase';
 import { MockNotificationsUseCase } from './app/usecases/mock-notifications.usecase';
 import { CreateMessageReceivedNotificationHandler } from './app/handlers/create-message-received-notification.handler';
 import { MarkConversationNotificationsReadHandler } from './app/handlers/mark-conversation-notifications-read.handler';
@@ -31,6 +32,7 @@ import { NotificationsRepositoryTypeorm } from './infra/persistence/notification
     GetNotificationsUnreadCountUseCase,
     MarkNotificationReadUseCase,
     MarkAllNotificationsReadUseCase,
+    DeleteNotificationUseCase,
     MockNotificationsUseCase,
     CreateMessageReceivedNotificationHandler,
     MarkConversationNotificationsReadHandler,

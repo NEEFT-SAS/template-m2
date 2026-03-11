@@ -4,16 +4,18 @@ import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/us
 import { UserGameEntity } from '@/contexts/players/infra/entities/game/user-game.entity';
 import { SearchController } from './api/search.controller';
 import { SearchPlayersQuery } from './app/queries/search-players.query';
+import { SearchTeamsQuery } from './app/queries/search-teams.query';
 import { PlayerSearchIndexer } from './infra/typesense/player-search.indexer';
 import { TypesenseService } from './infra/typesense/typesense.service';
 import { AuthModule } from '../auth/auth.module';
 import { ResourcesModule } from '../resources/resources.module';
 import { SyncPlayerSearchOnRegisterHandler } from './app/handlers/sync-player-search-on-register.handler';
 import { SyncPlayerSearchOnUpdateHandler } from './app/handlers/sync-player-search-on-update.handler';
+import { TeamEntity } from '../teams/infra/entities/team.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserProfileEntity, UserGameEntity]),
+    TypeOrmModule.forFeature([UserProfileEntity, UserGameEntity, TeamEntity]),
     AuthModule,
     ResourcesModule,
   ],
@@ -22,6 +24,7 @@ import { SyncPlayerSearchOnUpdateHandler } from './app/handlers/sync-player-sear
     TypesenseService,
     PlayerSearchIndexer,
     SearchPlayersQuery,
+    SearchTeamsQuery,
     SyncPlayerSearchOnRegisterHandler,
     SyncPlayerSearchOnUpdateHandler,
   ],

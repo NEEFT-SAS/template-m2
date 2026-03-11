@@ -6,6 +6,8 @@ import { AdminGuard } from '@/contexts/auth/infra/guards/admin.guard';
 import { AccessTokenPayload } from '@/contexts/auth/app/ports/token.port';
 import { SearchPlayersQuery } from '../app/queries/search-players.query';
 import { SearchPlayersQueryDto } from './dtos/search-players.query.dto';
+import { SearchTeamsQuery } from '../app/queries/search-teams.query';
+import { SearchTeamsQueryDto } from './dtos/search-teams.query.dto';
 import { PlayerSearchIndexer } from '../infra/typesense/player-search.indexer';
 
 type RequestWithUser = Request & { user?: AccessTokenPayload };
@@ -14,6 +16,7 @@ type RequestWithUser = Request & { user?: AccessTokenPayload };
 export class SearchController {
   constructor(
     private readonly searchPlayersQuery: SearchPlayersQuery,
+    private readonly searchTeamsQuery: SearchTeamsQuery,
     private readonly playerSearchIndexer: PlayerSearchIndexer,
   ) {}
 
@@ -22,6 +25,13 @@ export class SearchController {
   @UseGuards(OptionalAuthGuard)
   searchPlayers(@Req() req: RequestWithUser, @Query() query: SearchPlayersQueryDto) {
     return this.searchPlayersQuery.execute(query, req.user);
+  }
+
+  @Get('teams')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(OptionalAuthGuard)
+  searchTeams(@Query() query: SearchTeamsQueryDto) {
+    return this.searchTeamsQuery.execute(query);
   }
 
   @Post('players/index')

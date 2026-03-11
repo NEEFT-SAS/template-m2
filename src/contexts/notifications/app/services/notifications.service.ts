@@ -107,6 +107,49 @@ export class NotificationsService {
     };
   }
 
+  async deleteNotification(
+    requesterProfileId: string,
+    notificationId: string,
+  ) {
+    const existing = await this.notificationsRepo.findByIdForRecipient(
+      notificationId,
+      requesterProfileId,
+    );
+    if (!existing) {
+      throw new NotificationNotFoundError(notificationId);
+    }
+
+    const deleted = await this.notificationsRepo.deleteByIdForRecipient(
+      notificationId,
+      requesterProfileId,
+    );
+    const unreadCount =
+      await this.notificationsRepo.countUnreadForRecipient(requesterProfileId);
+
+    if (deleted) {
+      this.notificationsRealtime.emitToProfile(
+        requesterProfileId,
+        NOTIFICATIONS_SOCKET_EVENTS.DELETED,
+        {
+          notificationIds: [notificationId],
+          all: false,
+        },
+      );
+    }
+
+    this.notificationsRealtime.emitToProfile(
+      requesterProfileId,
+      NOTIFICATIONS_SOCKET_EVENTS.UNREAD_COUNT_UPDATED,
+      { unreadCount },
+    );
+
+    return {
+      notificationId,
+      deleted,
+      unreadCount,
+    };
+  }
+
   async markAllNotificationsRead(requesterProfileId: string) {
     const markedCount =
       await this.notificationsRepo.markAllAsRead(requesterProfileId);

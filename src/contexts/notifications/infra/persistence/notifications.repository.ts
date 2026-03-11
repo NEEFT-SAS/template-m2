@@ -175,6 +175,22 @@ export class NotificationsRepositoryTypeorm implements NotificationsRepositoryPo
     return Number(result?.affectedRows ?? 0) > 0;
   }
 
+  async deleteByIdForRecipient(
+    notificationId: string,
+    recipientProfileId: string,
+  ): Promise<boolean> {
+    const result = await this.notificationRepo.query(
+      `
+      DELETE FROM notifications
+      WHERE id = ?
+        AND recipient_profile_id = ?
+      `,
+      [notificationId, recipientProfileId],
+    );
+
+    return Number(result?.affectedRows ?? 0) > 0;
+  }
+
   async markAllAsRead(recipientProfileId: string): Promise<number> {
     const result = await this.notificationRepo.query(
       `

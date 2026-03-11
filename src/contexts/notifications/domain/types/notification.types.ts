@@ -27,5 +27,6 @@ export type NotificationPresenter = {
 export const NOTIFICATIONS_SOCKET_EVENTS = {
   CREATED: 'notifications.created',
   READ: 'notifications.read',
+  DELETED: 'notifications.deleted',
   UNREAD_COUNT_UPDATED: 'notifications.unread-count.updated',
 } as const;

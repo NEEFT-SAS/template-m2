@@ -17,6 +17,7 @@ import { GetNotificationsUseCase } from '../../app/usecases/get-notifications.us
 import { GetNotificationsUnreadCountUseCase } from '../../app/usecases/get-notifications-unread-count.usecase';
 import { MarkNotificationReadUseCase } from '../../app/usecases/mark-notification-read.usecase';
 import { MarkAllNotificationsReadUseCase } from '../../app/usecases/mark-all-notifications-read.usecase';
+import { DeleteNotificationUseCase } from '../../app/usecases/delete-notification.usecase';
 import { GetNotificationsQueryDto } from '../dtos/get-notifications.query.dto';
 import { MockNotificationsDto } from '../dtos/mock-notifications.dto';
 import { MockNotificationsUseCase } from '../../app/usecases/mock-notifications.usecase';
@@ -35,6 +36,7 @@ export class NotificationsController {
     private readonly getNotificationsUnreadCountUseCase: GetNotificationsUnreadCountUseCase,
     private readonly markNotificationReadUseCase: MarkNotificationReadUseCase,
     private readonly markAllNotificationsReadUseCase: MarkAllNotificationsReadUseCase,
+    private readonly deleteNotificationUseCase: DeleteNotificationUseCase,
     private readonly mockNotificationsUseCase: MockNotificationsUseCase,
   ) {}
 
@@ -73,6 +75,19 @@ export class NotificationsController {
   markAllRead(@Req() req: RequestWithUser) {
     const requesterProfileId = req.user?.pid ?? '';
     return this.markAllNotificationsReadUseCase.execute(requesterProfileId);
+  }
+
+  @Post(':notificationId/delete')
+  @HttpCode(HttpStatus.OK)
+  deleteNotification(
+    @Req() req: RequestWithUser,
+    @Param('notificationId') notificationId: string,
+  ) {
+    const requesterProfileId = req.user?.pid ?? '';
+    return this.deleteNotificationUseCase.execute(
+      requesterProfileId,
+      notificationId,
+    );
   }
 
   @Post('mock')

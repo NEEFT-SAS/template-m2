@@ -62,6 +62,10 @@ export interface NotificationsRepositoryPort {
     notificationId: string,
     recipientProfileId: string,
   ): Promise<boolean>;
+  deleteByIdForRecipient(
+    notificationId: string,
+    recipientProfileId: string,
+  ): Promise<boolean>;
   markAllAsRead(recipientProfileId: string): Promise<number>;
   markMessageNotificationsAsReadForConversation(
     recipientProfileId: string,
