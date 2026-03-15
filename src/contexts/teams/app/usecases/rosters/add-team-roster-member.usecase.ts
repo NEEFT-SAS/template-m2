@@ -1,7 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateTeamRosterMemberDTO, TeamRosterMemberPresenter } from '@neeft-sas/shared';
+import {
+  CreateTeamRosterMemberDTO,
+  TeamRosterMemberPresenter,
+} from '@neeft-sas/shared';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
-import { TEAM_REPOSITORY, TeamRepositoryPort } from '../../ports/team.repository.port';
+import {
+  TEAM_REPOSITORY,
+  TeamRepositoryPort,
+} from '../../ports/team.repository.port';
 import {
   TeamMemberNotFoundError,
   TeamNotFoundError,
@@ -11,15 +17,21 @@ import {
   TeamRosterNotFoundError,
 } from '../../../domain/errors/team.errors';
 import { plainToInstance } from 'class-transformer';
+import { TeamScoreService } from '../../services/team-score.service';
 
 @Injectable()
 export class AddTeamRosterMemberUseCase {
   constructor(
     @Inject(TEAM_REPOSITORY) private readonly repo: TeamRepositoryPort,
     private readonly resourcesStore: ResourcesStore,
+    private readonly teamScoreService: TeamScoreService,
   ) {}
 
-  async execute(teamId: string, rosterId: string, dto: CreateTeamRosterMemberDTO): Promise<TeamRosterMemberPresenter> {
+  async execute(
+    teamId: string,
+    rosterId: string,
+    dto: CreateTeamRosterMemberDTO,
+  ): Promise<TeamRosterMemberPresenter> {
     const team = await this.repo.findTeamById(teamId);
     if (!team) {
       throw new TeamNotFoundError(teamId);
@@ -35,7 +47,10 @@ export class AddTeamRosterMemberUseCase {
       throw new TeamMemberNotFoundError(teamId, dto.memberId);
     }
 
-    const existing = await this.repo.findRosterMemberByRosterAndMember(rosterId, dto.memberId);
+    const existing = await this.repo.findRosterMemberByRosterAndMember(
+      rosterId,
+      dto.memberId,
+    );
     if (existing) {
       throw new TeamRosterMemberAlreadyExistsError(rosterId, dto.memberId);
     }
@@ -49,7 +64,9 @@ export class AddTeamRosterMemberUseCase {
         throw new TeamRosterInvalidGameError(gameId);
       }
 
-      const allowedPositions = new Set(game.rscGamePositions.map((item) => item.id));
+      const allowedPositions = new Set(
+        game.rscGamePositions.map((item) => item.id),
+      );
       if (!allowedPositions.has(positionId)) {
         throw new TeamRosterInvalidPositionError(positionId, gameId);
       }
@@ -64,6 +81,10 @@ export class AddTeamRosterMemberUseCase {
       permissions: dto.permissions ?? 0,
     });
 
-    return plainToInstance(TeamRosterMemberPresenter, created, { excludeExtraneousValues: true });
+    await this.teamScoreService.recomputeTeamScores(teamId);
+
+    return plainToInstance(TeamRosterMemberPresenter, created, {
+      excludeExtraneousValues: true,
+    });
   }
 }

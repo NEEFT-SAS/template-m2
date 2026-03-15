@@ -28,6 +28,8 @@ export type PlayerSearchDocument = {
   professionalExperienceCount: number;
   socialLinksCount: number;
   badgesCount: number;
+  completenessScore: number;
+  trustScore: number;
   profileScore: number;
   createdAt: number;
 };

@@ -1,4 +1,4 @@
-import {
+import type {
   RscGameCharacterPresenter,
   RscGameModePresenter,
   RscGamePlatformPresenter,
@@ -68,14 +68,19 @@ const mapGamePositions = (
     return game.rscGamePositions.filter((item) => selectedIds.has(item.id));
   }
 
-  return (entity.positions ?? [])
-    .flatMap((relation) => (relation.position ? [{
-      id: relation.position.id,
-      name: relation.position.name,
-      slug: relation.position.slug,
-      icon: relation.position.icon,
-      order: relation.position.order ?? 0,
-    }] : []));
+  return (entity.positions ?? []).flatMap((relation) =>
+    relation.position
+      ? [
+          {
+            id: relation.position.id,
+            name: relation.position.name,
+            slug: relation.position.slug,
+            icon: relation.position.icon,
+            order: relation.position.order ?? 0,
+          },
+        ]
+      : [],
+  );
 };
 
 const mapGamePlatforms = (
@@ -92,13 +97,18 @@ const mapGamePlatforms = (
     return game.rscGamePlatforms.filter((item) => selectedIds.has(item.id));
   }
 
-  return (entity.platforms ?? [])
-    .flatMap((relation) => (relation.platform ? [{
-      id: relation.platform.id,
-      name: relation.platform.name,
-      slug: relation.platform.slug,
-      icon: relation.platform.icon,
-    }] : []));
+  return (entity.platforms ?? []).flatMap((relation) =>
+    relation.platform
+      ? [
+          {
+            id: relation.platform.id,
+            name: relation.platform.name,
+            slug: relation.platform.slug,
+            icon: relation.platform.icon,
+          },
+        ]
+      : [],
+  );
 };
 
 const mapGameCharacters = (
@@ -115,16 +125,23 @@ const mapGameCharacters = (
     return game.rscGameCharacters.filter((item) => selectedIds.has(item.id));
   }
 
-  return (entity.characters ?? [])
-    .flatMap((relation) => (relation.character ? [{
-      id: relation.character.id,
-      name: relation.character.name,
-      slug: relation.character.slug,
-      icon: relation.character.icon,
-    }] : []));
+  return (entity.characters ?? []).flatMap((relation) =>
+    relation.character
+      ? [
+          {
+            id: relation.character.id,
+            name: relation.character.name,
+            slug: relation.character.slug,
+            icon: relation.character.icon,
+          },
+        ]
+      : [],
+  );
 };
 
-const toFallbackMode = (entity: UserGameEntity['modeRanks'] extends Array<infer T> ? T : never): RscGameModePresenter | null => {
+const toFallbackMode = (
+  entity: UserGameEntity['modeRanks'] extends Array<infer T> ? T : never,
+): RscGameModePresenter | null => {
   const mode = entity.mode?.mode;
   if (!mode) return null;
 
@@ -138,7 +155,9 @@ const toFallbackMode = (entity: UserGameEntity['modeRanks'] extends Array<infer 
   };
 };
 
-const toFallbackRank = (entity: UserGameEntity['modeRanks'] extends Array<infer T> ? T : never): RscGameRankPresenter | null => {
+const toFallbackRank = (
+  entity: UserGameEntity['modeRanks'] extends Array<infer T> ? T : never,
+): RscGameRankPresenter | null => {
   const rank = entity.rank?.rank;
   if (!rank) return null;
 
@@ -153,42 +172,57 @@ const toFallbackRank = (entity: UserGameEntity['modeRanks'] extends Array<infer 
   };
 };
 
-const mapModeRanks = (entity: UserGameEntity, game: RscGamePresenter | null): PlayerGameResponse['modeRanks'] => {
-  const modesById = new Map(game?.rscGameModes.map((item) => [item.id, item]) ?? []);
-  const ranksById = new Map(game?.rscGameRanks.map((item) => [item.id, item]) ?? []);
+const mapModeRanks = (
+  entity: UserGameEntity,
+  game: RscGamePresenter | null,
+): PlayerGameResponse['modeRanks'] => {
+  const modesById = new Map(
+    game?.rscGameModes.map((item) => [item.id, item]) ?? [],
+  );
+  const ranksById = new Map(
+    game?.rscGameRanks.map((item) => [item.id, item]) ?? [],
+  );
 
-  return (entity.modeRanks ?? [])
-    .flatMap((relation) => {
-      const modeId = toPositiveInt(relation.mode?.rscModeId);
-      const rankId = toPositiveInt(relation.rank?.rscRankId);
+  return (entity.modeRanks ?? []).flatMap((relation) => {
+    const modeId = toPositiveInt(relation.mode?.rscModeId);
+    const rankId = toPositiveInt(relation.rank?.rscRankId);
 
-      const rscGameMode = (modeId ? modesById.get(modeId) : null) ?? toFallbackMode(relation);
-      const rscGameRank = (rankId ? ranksById.get(rankId) : null) ?? toFallbackRank(relation);
+    const rscGameMode =
+      (modeId ? modesById.get(modeId) : null) ?? toFallbackMode(relation);
+    const rscGameRank =
+      (rankId ? ranksById.get(rankId) : null) ?? toFallbackRank(relation);
 
-      if (!rscGameMode || !rscGameRank) return [];
+    if (!rscGameMode || !rscGameRank) return [];
 
-      return [{
+    return [
+      {
         rscGameMode,
         rscGameRank,
         elo: relation.elo ?? null,
-      }];
-    });
+      },
+    ];
+  });
 };
 
 export const toPlayerGameResponse = (
   entity: UserGameEntity,
   game: RscGamePresenter | null = null,
-): PlayerGameResponse => plainToInstance(PlayerGameResponse, {
-  id: entity.id,
-  gameId: entity.rscGame?.id ?? 0,
-  isRecruitable: entity.isRecruitable,
-  isFavoriteGame: entity.isFavoriteGame,
-  trackerUrl: entity.trackerUrl ?? null,
-  rscGamePositions: mapGamePositions(entity, game),
-  rscGamePlatforms: mapGamePlatforms(entity, game),
-  rscGameCharacters: mapGameCharacters(entity, game),
-  modeRanks: mapModeRanks(entity, game),
-  account: mapAccount(entity),
-}, {
-  excludeExtraneousValues: true,
-});
+): PlayerGameResponse =>
+  plainToInstance(
+    PlayerGameResponse,
+    {
+      id: entity.id,
+      gameId: entity.rscGame?.id ?? 0,
+      isRecruitable: entity.isRecruitable,
+      isFavoriteGame: entity.isFavoriteGame,
+      trackerUrl: entity.trackerUrl ?? null,
+      rscGamePositions: mapGamePositions(entity, game),
+      rscGamePlatforms: mapGamePlatforms(entity, game),
+      rscGameCharacters: mapGameCharacters(entity, game),
+      modeRanks: mapModeRanks(entity, game),
+      account: mapAccount(entity),
+    },
+    {
+      excludeExtraneousValues: true,
+    },
+  );

@@ -10,3 +10,14 @@ export class SearchPremiumFiltersError extends DomainError {
     });
   }
 }
+
+export class SearchProviderUnavailableError extends DomainError {
+  constructor(details?: Record<string, unknown>) {
+    super({
+      code: 'SEARCH_UNAVAILABLE',
+      message: 'Search service is temporarily unavailable',
+      statusCode: 503,
+      details,
+    });
+  }
+}

@@ -14,6 +14,11 @@ import { RscPositionsSeeder } from './seeders/resources/rsc-positions.seeder';
 import { RscRanksSeeder } from './seeders/resources/rsc-ranks.seeder';
 import { RscSeasonsSeeder } from './seeders/resources/rsc-seasons.seeder';
 import { RscSocialPlatformsSeeder } from './seeders/resources/rsc-social-platforms.seeder';
+import { RscStaffGroupOptionsSeeder } from './seeders/resources/rsc-staff-group-options.seeder';
+import { RscStaffOptionGroupsSeeder } from './seeders/resources/rsc-staff-option-groups.seeder';
+import { RscStaffOptionsSeeder } from './seeders/resources/rsc-staff-options.seeder';
+import { RscStaffRoleOptionLinksSeeder } from './seeders/resources/rsc-staff-role-option-links.seeder';
+import { RscStaffRolesSeeder } from './seeders/resources/rsc-staff-roles.seeder';
 
 export const seeders = [
   new RscCountriesSeeder(),
@@ -32,4 +37,9 @@ export const seeders = [
   new RscGameRanksSeeder(),
   new RscGameSeasonsSeeder(),
   new RscGameCharactersSeeder(),
+  new RscStaffRolesSeeder(),
+  new RscStaffOptionGroupsSeeder(),
+  new RscStaffOptionsSeeder(),
+  new RscStaffGroupOptionsSeeder(),
+  new RscStaffRoleOptionLinksSeeder(),
 ];

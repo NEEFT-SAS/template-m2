@@ -1,18 +1,33 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { CreateTeamRosterDTO, TeamRosterPresenter, slugifyUnique } from '@neeft-sas/shared';
+import {
+  CreateTeamRosterDTO,
+  TeamRosterPresenter,
+  slugifyUnique,
+} from '@neeft-sas/shared';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
-import { TEAM_REPOSITORY, TeamRepositoryPort } from '../../ports/team.repository.port';
-import { TeamNotFoundError, TeamRosterInvalidGameError } from '../../../domain/errors/team.errors';
+import {
+  TEAM_REPOSITORY,
+  TeamRepositoryPort,
+} from '../../ports/team.repository.port';
+import {
+  TeamNotFoundError,
+  TeamRosterInvalidGameError,
+} from '../../../domain/errors/team.errors';
 import { plainToInstance } from 'class-transformer';
+import { TeamScoreService } from '../../services/team-score.service';
 
 @Injectable()
 export class CreateTeamRosterUseCase {
   constructor(
     @Inject(TEAM_REPOSITORY) private readonly repo: TeamRepositoryPort,
     private readonly resourcesStore: ResourcesStore,
+    private readonly teamScoreService: TeamScoreService,
   ) {}
 
-  async execute(teamId: string, dto: CreateTeamRosterDTO): Promise<TeamRosterPresenter> {
+  async execute(
+    teamId: string,
+    dto: CreateTeamRosterDTO,
+  ): Promise<TeamRosterPresenter> {
     const team = await this.repo.findTeamById(teamId);
     if (!team) {
       throw new TeamNotFoundError(teamId);
@@ -38,6 +53,10 @@ export class CreateTeamRosterUseCase {
       isActive: dto.isActive ?? true,
     });
 
-    return plainToInstance(TeamRosterPresenter, created, { excludeExtraneousValues: true });
+    await this.teamScoreService.recomputeTeamScores(teamId);
+
+    return plainToInstance(TeamRosterPresenter, created, {
+      excludeExtraneousValues: true,
+    });
   }
 }

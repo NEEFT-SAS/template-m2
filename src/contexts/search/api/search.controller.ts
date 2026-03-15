@@ -1,13 +1,26 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
 import { OptionalAuthGuard } from '@/contexts/auth/infra/guards/optional-auth.guard';
 import { AdminGuard } from '@/contexts/auth/infra/guards/admin.guard';
 import { AccessTokenPayload } from '@/contexts/auth/app/ports/token.port';
-import { SearchPlayersQueryDto, SearchTeamsQueryDto } from '@neeft-sas/shared';
 import { SearchPlayersQuery } from '../app/queries/search-players.query';
 import { SearchTeamsQuery } from '../app/queries/search-teams.query';
 import { PlayerSearchIndexer } from '../infra/typesense/player-search.indexer';
+import {
+  SearchPlayersQueryDto,
+  SearchTeamsQueryDto,
+} from './dtos/search-query.dtos';
 
 type RequestWithUser = Request & { user?: AccessTokenPayload };
 
@@ -22,7 +35,10 @@ export class SearchController {
   @Get('players')
   @HttpCode(HttpStatus.OK)
   @UseGuards(OptionalAuthGuard)
-  searchPlayers(@Req() req: RequestWithUser, @Query() query: SearchPlayersQueryDto) {
+  searchPlayers(
+    @Req() req: RequestWithUser,
+    @Query() query: SearchPlayersQueryDto,
+  ) {
     return this.searchPlayersQuery.execute(query, req.user);
   }
 

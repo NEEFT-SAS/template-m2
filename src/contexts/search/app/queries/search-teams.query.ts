@@ -5,12 +5,12 @@ import { TeamMemberEntity } from '@/contexts/teams/infra/entities/team-member.en
 import { TeamRosterEntity } from '@/contexts/teams/infra/entities/team-roster.entity';
 import { TeamRosterMemberEntity } from '@/contexts/teams/infra/entities/team-roster-member.entity';
 import { TeamEntity } from '@/contexts/teams/infra/entities/team.entity';
-import { SearchTeamsQueryDto } from '@neeft-sas/shared';
 import type {
   SearchTeamGamePresenter,
   SearchTeamPresenter,
   SearchTeamsPresenter,
 } from '@neeft-sas/shared';
+import type { SearchTeamsQueryDto } from '../../api/dtos/search-query.dtos';
 
 @Injectable()
 export class SearchTeamsQuery {
@@ -115,7 +115,9 @@ export class SearchTeamsQuery {
     }
 
     if (query.countryId) {
-      qb.andWhere('team.country_id = :countryId', { countryId: query.countryId });
+      qb.andWhere('team.country_id = :countryId', {
+        countryId: query.countryId,
+      });
     }
 
     if (query.languageIds?.length) {
@@ -167,7 +169,10 @@ export class SearchTeamsQuery {
     }
   }
 
-  private toPresenter(team: TeamEntity, preferredGameId?: number): SearchTeamPresenter {
+  private toPresenter(
+    team: TeamEntity,
+    preferredGameId?: number,
+  ): SearchTeamPresenter {
     const countryCode = String(team.country?.code ?? '')
       .trim()
       .toUpperCase();
@@ -175,7 +180,11 @@ export class SearchTeamsQuery {
     const languageFlags = Array.from(
       new Set(
         (team.languages ?? [])
-          .map((language) => String(language.code ?? '').trim().toUpperCase())
+          .map((language) =>
+            String(language.code ?? '')
+              .trim()
+              .toUpperCase(),
+          )
           .filter(Boolean),
       ),
     );
@@ -186,11 +195,19 @@ export class SearchTeamsQuery {
         ? [countryCode]
         : [];
 
-    const activeRosters = (team.rosters ?? []).filter((roster) => roster.isActive);
+    const activeRosters = (team.rosters ?? []).filter(
+      (roster) => roster.isActive,
+    );
     const openings = activeRosters.length;
     const recruitLabel = openings > 0 ? 'Recrute' : 'Complet';
 
     const games = this.mapGames(team, preferredGameId);
+    const trustScore = Number(team.trustScore ?? 0);
+    const completenessScore = Number(team.completenessScore ?? 0);
+    const profileScore = this.computeProfileScore(
+      trustScore,
+      completenessScore,
+    );
 
     return {
       slug: team.slug,
@@ -200,18 +217,23 @@ export class SearchTeamsQuery {
       bannerUrl: String(team.bannerPicture ?? ''),
       heroTheme: this.resolveTheme(team.slug),
       flags,
-      trustScore: Number(team.trustScore ?? 0),
-      profileScore: Number(team.completenessScore ?? 0),
-      legalType: (team.organizationType ?? 'ASSOCIATION') as SearchTeamPresenter['legalType'],
+      trustScore,
+      completenessScore,
+      profileScore,
+      legalType: (team.organizationType ??
+        'ASSOCIATION') as SearchTeamPresenter['legalType'],
       openings,
       countryCode,
       games,
       activeGameKey: games[0]?.key,
       recruitLabel,
-    };
+    } as SearchTeamPresenter;
   }
 
-  private mapGames(team: TeamEntity, preferredGameId?: number): SearchTeamGamePresenter[] {
+  private mapGames(
+    team: TeamEntity,
+    preferredGameId?: number,
+  ): SearchTeamGamePresenter[] {
     const teamMembers = Array.isArray(team.members) ? team.members : [];
     const teamPlayersCount = this.countUniqueTeamMembersByRole(
       teamMembers,
@@ -264,18 +286,15 @@ export class SearchTeamsQuery {
         this.appendRosterMemberByRole(rosterMember, playerIds, staffIds);
       }
 
-      const players =
-        playerIds.size > 0 ? playerIds.size : teamPlayersCount;
-      const staff =
-        staffIds.size > 0 ? staffIds.size : teamStaffCount;
+      const players = playerIds.size > 0 ? playerIds.size : teamPlayersCount;
+      const staff = staffIds.size > 0 ? staffIds.size : teamStaffCount;
 
       return {
         gameId,
         key: entry.slug || String(gameId),
         name: entry.name,
         shortLabel:
-          entry.shortName?.trim() ||
-          entry.name.slice(0, 3).toUpperCase(),
+          entry.shortName?.trim() || entry.name.slice(0, 3).toUpperCase(),
         icon: entry.icon ?? 'uil:game-structure',
         composition: {
           rosters: entry.rosters.length,
@@ -285,21 +304,17 @@ export class SearchTeamsQuery {
         performance: {
           averageRank: '-',
           averagePr: String(
-            Math.max(
-              0,
-              Math.min(
-                100,
-                Math.round((Number(team.trustScore) + Number(team.completenessScore)) / 2),
-              ),
-            ),
+            this.computeProfileScore(team.trustScore, team.completenessScore),
           ),
         },
       } satisfies SearchTeamGamePresenter & { gameId: number };
     });
 
     games.sort((left, right) => {
-      const leftPreferred = preferredGameId !== undefined && left.gameId === preferredGameId;
-      const rightPreferred = preferredGameId !== undefined && right.gameId === preferredGameId;
+      const leftPreferred =
+        preferredGameId !== undefined && left.gameId === preferredGameId;
+      const rightPreferred =
+        preferredGameId !== undefined && right.gameId === preferredGameId;
       if (leftPreferred !== rightPreferred) return leftPreferred ? -1 : 1;
 
       if (left.composition.rosters !== right.composition.rosters) {
@@ -309,7 +324,11 @@ export class SearchTeamsQuery {
       return left.name.localeCompare(right.name, 'fr');
     });
 
-    return games.map(({ gameId: _gameId, ...game }) => game);
+    return games.map((game) => {
+      const { gameId, ...presenter } = game;
+      void gameId;
+      return presenter;
+    });
   }
 
   private appendRosterMemberByRole(
@@ -336,9 +355,7 @@ export class SearchTeamsQuery {
       rosterRole === 'SUBSTITUTE';
 
     const isStaff =
-      !isPlayer ||
-      rosterRole === 'COACH' ||
-      rosterRole === 'ANALYST';
+      !isPlayer || rosterRole === 'COACH' || rosterRole === 'ANALYST';
 
     if (isPlayer) {
       playerIds.add(memberId);
@@ -374,5 +391,18 @@ export class SearchTeamsQuery {
       hash = (hash * 31 + char.charCodeAt(0)) | 0;
     }
     return Math.abs(hash) % 2 === 0 ? 'blue' : 'violet';
+  }
+
+  private computeProfileScore(
+    trustScore: number | null | undefined,
+    completenessScore: number | null | undefined,
+  ): number {
+    const trust = Number.isFinite(Number(trustScore)) ? Number(trustScore) : 0;
+    const completeness = Number.isFinite(Number(completenessScore))
+      ? Number(completenessScore)
+      : 0;
+
+    const score = Math.round(completeness * 0.65 + trust * 0.35);
+    return Math.max(0, Math.min(100, score));
   }
 }

@@ -1,15 +1,25 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
-import { TEAM_REPOSITORY, TeamRepositoryPort, UpdateTeamInput } from '../../ports/team.repository.port';
-import { TeamInvalidCountryError, TeamInvalidLanguagesError, TeamNotFoundError } from '../../../domain/errors/team.errors';
-import { plainToInstance } from 'class-transformer';
+import {
+  TEAM_REPOSITORY,
+  TeamRepositoryPort,
+  UpdateTeamInput,
+} from '../../ports/team.repository.port';
+import {
+  TeamInvalidCountryError,
+  TeamInvalidLanguagesError,
+  TeamNotFoundError,
+} from '../../../domain/errors/team.errors';
 import { TeamPresenter, UpdateTeamDTO } from '@/typage';
+import { TeamScoreService } from '../../services/team-score.service';
+import { mapTeamResponse } from '../../services/team-response.mapper';
 
 @Injectable()
 export class UpdateTeamUseCase {
   constructor(
     @Inject(TEAM_REPOSITORY) private readonly repo: TeamRepositoryPort,
     private readonly resourcesStore: ResourcesStore,
+    private readonly teamScoreService: TeamScoreService,
   ) {}
 
   async execute(teamId: string, dto: UpdateTeamDTO): Promise<TeamPresenter> {
@@ -21,10 +31,13 @@ export class UpdateTeamUseCase {
     const updates: UpdateTeamInput = {};
 
     if (dto.acronym !== undefined) updates.acronym = dto.acronym;
-    if (dto.description !== undefined) updates.description = dto.description ?? null;
+    if (dto.description !== undefined)
+      updates.description = dto.description ?? null;
     if (dto.quote !== undefined) updates.quote = dto.quote ?? null;
-    if (dto.bannerPicture !== undefined) updates.bannerPicture = dto.bannerPicture ?? null;
-    if (dto.logoPicture !== undefined) updates.logoPicture = dto.logoPicture ?? null;
+    if (dto.bannerPicture !== undefined)
+      updates.bannerPicture = dto.bannerPicture ?? null;
+    if (dto.logoPicture !== undefined)
+      updates.logoPicture = dto.logoPicture ?? null;
     if (dto.foundedAt !== undefined) updates.foundedAt = dto.foundedAt ?? null;
     if (dto.city !== undefined) updates.city = dto.city ?? null;
 
@@ -32,7 +45,9 @@ export class UpdateTeamUseCase {
 
     if (dto.countryId !== undefined) {
       if (dto.countryId !== null) {
-        const allowedCountries = new Set(snapshot.rscCountries.map((country) => country.id));
+        const allowedCountries = new Set(
+          snapshot.rscCountries.map((country) => country.id),
+        );
         if (!allowedCountries.has(dto.countryId)) {
           throw new TeamInvalidCountryError(dto.countryId);
         }
@@ -42,8 +57,12 @@ export class UpdateTeamUseCase {
 
     if (dto.languageIds !== undefined) {
       const uniqueLanguageIds = Array.from(new Set(dto.languageIds));
-      const allowedLanguages = new Set(snapshot.rscLanguages.map((language) => language.id));
-      const invalidLanguageIds = uniqueLanguageIds.filter((id) => !allowedLanguages.has(id));
+      const allowedLanguages = new Set(
+        snapshot.rscLanguages.map((language) => language.id),
+      );
+      const invalidLanguageIds = uniqueLanguageIds.filter(
+        (id) => !allowedLanguages.has(id),
+      );
       if (invalidLanguageIds.length) {
         throw new TeamInvalidLanguagesError(invalidLanguageIds);
       }
@@ -51,7 +70,7 @@ export class UpdateTeamUseCase {
     }
 
     if (!Object.keys(updates).length) {
-      return plainToInstance(TeamPresenter, existing, { excludeExtraneousValues: true });
+      return mapTeamResponse(existing, this.teamScoreService);
     }
 
     const updated = await this.repo.updateTeam(teamId, updates);
@@ -59,6 +78,9 @@ export class UpdateTeamUseCase {
       throw new TeamNotFoundError(teamId);
     }
 
-    return plainToInstance(TeamPresenter, updated, { excludeExtraneousValues: true });
+    await this.teamScoreService.recomputeTeamScores(teamId);
+    const withScores = await this.repo.findTeamById(teamId);
+
+    return mapTeamResponse(withScores ?? updated, this.teamScoreService);
   }
 }

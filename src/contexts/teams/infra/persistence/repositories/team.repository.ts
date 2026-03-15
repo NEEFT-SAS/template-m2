@@ -41,6 +41,9 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
 
     const entity = await this.teamRepo
       .createQueryBuilder('team')
+      .leftJoinAndSelect('team.country', 'country')
+      .leftJoinAndSelect('team.languages', 'language')
+      .leftJoinAndSelect('team.owner', 'owner')
       .where('LOWER(team.slug) = LOWER(:slug)', { slug: normalized })
       .getOne();
 

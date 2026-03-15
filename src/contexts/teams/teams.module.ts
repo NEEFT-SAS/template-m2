@@ -23,6 +23,7 @@ import { TeamRecommendationsController } from './api/team-recommendations.contro
 import { TeamReportsController } from './api/team-reports.controller';
 import { CreateRecommendationUseCase } from '@/contexts/players/app/usecases/recommendations/create-recommendation.usecase';
 import { DeleteRecommendationUseCase } from '@/contexts/players/app/usecases/recommendations/delete-recommendation.usecase';
+import { TeamScoreService } from './app/services/team-score.service';
 
 @Module({
   imports: [
@@ -37,7 +38,11 @@ import { DeleteRecommendationUseCase } from '@/contexts/players/app/usecases/rec
     AuthModule,
     forwardRef(() => PlayerModule),
   ],
-  controllers: [TeamController, TeamRecommendationsController, TeamReportsController],
+  controllers: [
+    TeamController,
+    TeamRecommendationsController,
+    TeamReportsController,
+  ],
   providers: [
     CreateTeamUseCase,
     GetTeamProfileUseCase,
@@ -46,11 +51,12 @@ import { DeleteRecommendationUseCase } from '@/contexts/players/app/usecases/rec
     CreateTeamMemberUseCase,
     CreateTeamRosterUseCase,
     AddTeamRosterMemberUseCase,
+    TeamScoreService,
     TeamOwnerOrAdminGuard,
     CreateRecommendationUseCase,
     DeleteRecommendationUseCase,
     { provide: TEAM_REPOSITORY, useClass: TeamRepositoryTypeorm },
   ],
-  exports: [TEAM_REPOSITORY],
+  exports: [TEAM_REPOSITORY, TeamScoreService],
 })
 export class TeamsModule {}

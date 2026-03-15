@@ -2,12 +2,14 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
+import { UserCredentialsEntity } from '@/contexts/auth/infra/persistence/entities/user-credentials.entity';
 import { TypesenseService } from './typesense.service';
 import {
   PLAYER_SEARCH_COLLECTION,
   playerSearchSchema,
 } from './player-search.schema';
 import { PlayerSearchDocument } from './player-search.types';
+import { PlayerScoreService } from '../../app/services/player-score.service';
 import {
   buildPlayerGameEloKey,
   buildPlayerGameKey,
@@ -24,6 +26,9 @@ type BaseProfileRow = {
   nationalityId: string | null;
   birthDate: Date | string;
   createdAt: Date | string;
+  isEmailVerified: boolean | number | string | null;
+  accountStatus: string | null;
+  lastLoginAt: Date | string | null;
 };
 
 type CollectionState = 'ready' | 'empty' | 'created' | 'recreated';
@@ -34,6 +39,7 @@ export class PlayerSearchIndexer implements OnModuleInit {
 
   constructor(
     private readonly typesense: TypesenseService,
+    private readonly playerScore: PlayerScoreService,
     @InjectDataSource() private readonly dataSource: DataSource,
     @InjectRepository(UserProfileEntity)
     private readonly profilesRepo: Repository<UserProfileEntity>,
@@ -42,11 +48,14 @@ export class PlayerSearchIndexer implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       const state = await this.ensureCollection();
-      if (state === 'ready') return;
+      const shouldSyncByState = state !== 'ready';
+      const shouldSyncByCount = await this.isCollectionOutOfSync();
+
+      if (!shouldSyncByState && !shouldSyncByCount) return;
 
       const result = await this.syncAll();
       this.logger.log(
-        `Typesense index synchronized on init (${state}): ${result.indexed} documents.`,
+        `Typesense index synchronized on init (${state}${shouldSyncByCount ? ', count-mismatch' : ''}): ${result.indexed} documents.`,
       );
     } catch (err: any) {
       this.logger.error(`Typesense init failed: ${err?.message ?? err}`);
@@ -119,6 +128,8 @@ export class PlayerSearchIndexer implements OnModuleInit {
       gameModeKeysMap,
       gameRankOrderKeysMap,
       gameEloKeysMap,
+      profileReportStatsMap,
+      verifiedBadgeId,
     ] = await Promise.all([
       this.loadStringArrayMap('user_profile_languages', 'language_id'),
       this.loadIntArrayMap('user_badges', 'rsc_badge_id'),
@@ -139,6 +150,8 @@ export class PlayerSearchIndexer implements OnModuleInit {
       this.loadGameModeKeysMap(),
       this.loadGameRankOrderKeysMap(),
       this.loadGameEloKeysMap(),
+      this.loadProfileReportStatsMap(),
+      this.loadVerifiedBadgeId(),
     ]);
 
     const documents = baseProfiles.map((profile) =>
@@ -159,6 +172,13 @@ export class PlayerSearchIndexer implements OnModuleInit {
         gameModeKeys: gameModeKeysMap.get(profile.id) ?? [],
         gameRankOrderKeys: gameRankOrderKeysMap.get(profile.id) ?? [],
         gameEloKeys: gameEloKeysMap.get(profile.id) ?? [],
+        unresolvedReportsCount:
+          profileReportStatsMap.get(profile.id)?.unresolvedCount ?? 0,
+        resolvedNegativeReportsCount:
+          profileReportStatsMap.get(profile.id)?.resolvedCount ?? 0,
+        hasVerifiedBadge:
+          verifiedBadgeId !== null &&
+          (badgeMap.get(profile.id) ?? []).includes(verifiedBadgeId),
       }),
     );
 
@@ -189,6 +209,8 @@ export class PlayerSearchIndexer implements OnModuleInit {
       gameModeKeys,
       gameRankOrderKeys,
       gameEloKeys,
+      profileReportStats,
+      verifiedBadgeId,
     ] = await Promise.all([
       this.loadStringArrayByProfile(
         'user_profile_languages',
@@ -230,6 +252,8 @@ export class PlayerSearchIndexer implements OnModuleInit {
       this.loadGameModeKeysByProfile(base.id),
       this.loadGameRankOrderKeysByProfile(base.id),
       this.loadGameEloKeysByProfile(base.id),
+      this.loadProfileReportStatsByProfile(base.id),
+      this.loadVerifiedBadgeId(),
     ]);
 
     const document = this.buildDocument(base, {
@@ -249,6 +273,10 @@ export class PlayerSearchIndexer implements OnModuleInit {
       gameModeKeys,
       gameRankOrderKeys,
       gameEloKeys,
+      unresolvedReportsCount: profileReportStats.unresolvedCount,
+      resolvedNegativeReportsCount: profileReportStats.resolvedCount,
+      hasVerifiedBadge:
+        verifiedBadgeId !== null && badgeIds.includes(verifiedBadgeId),
     });
 
     await this.importDocuments([document]);
@@ -259,6 +287,11 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return this.profilesRepo
       .createQueryBuilder('profile')
       .leftJoin('profile.nationality', 'nationality')
+      .leftJoin(
+        UserCredentialsEntity,
+        'credentials',
+        'credentials.id = profile.userCredentialId',
+      )
       .select('profile.id', 'id')
       .addSelect('profile.username', 'username')
       .addSelect('profile.slug', 'slug')
@@ -269,6 +302,9 @@ export class PlayerSearchIndexer implements OnModuleInit {
       .addSelect('profile.birthDate', 'birthDate')
       .addSelect('profile.createdAt', 'createdAt')
       .addSelect('nationality.id', 'nationalityId')
+      .addSelect('credentials.isEmailVerified', 'isEmailVerified')
+      .addSelect('credentials.status', 'accountStatus')
+      .addSelect('credentials.lastLoginAt', 'lastLoginAt')
       .getRawMany<BaseProfileRow>();
   }
 
@@ -278,6 +314,11 @@ export class PlayerSearchIndexer implements OnModuleInit {
     const row = await this.profilesRepo
       .createQueryBuilder('profile')
       .leftJoin('profile.nationality', 'nationality')
+      .leftJoin(
+        UserCredentialsEntity,
+        'credentials',
+        'credentials.id = profile.userCredentialId',
+      )
       .select('profile.id', 'id')
       .addSelect('profile.username', 'username')
       .addSelect('profile.slug', 'slug')
@@ -288,6 +329,9 @@ export class PlayerSearchIndexer implements OnModuleInit {
       .addSelect('profile.birthDate', 'birthDate')
       .addSelect('profile.createdAt', 'createdAt')
       .addSelect('nationality.id', 'nationalityId')
+      .addSelect('credentials.isEmailVerified', 'isEmailVerified')
+      .addSelect('credentials.status', 'accountStatus')
+      .addSelect('credentials.lastLoginAt', 'lastLoginAt')
       .where('LOWER(profile.slug) = LOWER(:slug)', { slug })
       .getRawOne<BaseProfileRow>();
 
@@ -731,6 +775,94 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return [...values];
   }
 
+  private async loadProfileReportStatsMap(): Promise<
+    Map<string, { unresolvedCount: number; resolvedCount: number }>
+  > {
+    const rows = await this.dataSource
+      .createQueryBuilder()
+      .select('r.reported_user_profile_id', 'profileId')
+      .addSelect(
+        `SUM(CASE WHEN r.status IN ('PENDING', 'IN_REVIEW') THEN 1 ELSE 0 END)`,
+        'unresolvedCount',
+      )
+      .addSelect(
+        `SUM(CASE WHEN r.status = 'RESOLVED' THEN 1 ELSE 0 END)`,
+        'resolvedCount',
+      )
+      .from('profile_reports', 'r')
+      .where('r.target_type = :targetType', { targetType: 'user' })
+      .andWhere('r.reported_user_profile_id IS NOT NULL')
+      .groupBy('r.reported_user_profile_id')
+      .getRawMany<{
+        profileId: string;
+        unresolvedCount: string | number | null;
+        resolvedCount: string | number | null;
+      }>();
+
+    const map = new Map<
+      string,
+      { unresolvedCount: number; resolvedCount: number }
+    >();
+
+    for (const row of rows) {
+      const profileId = String(row.profileId ?? '').trim();
+      if (!profileId) continue;
+      map.set(profileId, {
+        unresolvedCount: this.toSafeCount(row.unresolvedCount),
+        resolvedCount: this.toSafeCount(row.resolvedCount),
+      });
+    }
+
+    return map;
+  }
+
+  private async loadProfileReportStatsByProfile(
+    profileId: string,
+  ): Promise<{ unresolvedCount: number; resolvedCount: number }> {
+    const row = await this.dataSource
+      .createQueryBuilder()
+      .select(
+        `SUM(CASE WHEN r.status IN ('PENDING', 'IN_REVIEW') THEN 1 ELSE 0 END)`,
+        'unresolvedCount',
+      )
+      .addSelect(
+        `SUM(CASE WHEN r.status = 'RESOLVED' THEN 1 ELSE 0 END)`,
+        'resolvedCount',
+      )
+      .from('profile_reports', 'r')
+      .where('r.target_type = :targetType', { targetType: 'user' })
+      .andWhere('r.reported_user_profile_id = :profileId', { profileId })
+      .getRawOne<{
+        unresolvedCount: string | number | null;
+        resolvedCount: string | number | null;
+      }>();
+
+    return {
+      unresolvedCount: this.toSafeCount(row?.unresolvedCount),
+      resolvedCount: this.toSafeCount(row?.resolvedCount),
+    };
+  }
+
+  private async loadVerifiedBadgeId(): Promise<number | null> {
+    const row = await this.dataSource
+      .createQueryBuilder()
+      .select('badge.id', 'id')
+      .from('rsc_profile_badges', 'badge')
+      .where('badge.key = :key', { key: 'verified' })
+      .andWhere('badge.is_active = :active', { active: true })
+      .limit(1)
+      .getRawOne<{ id?: string | number }>();
+
+    const value = Number(row?.id);
+    return Number.isFinite(value) ? value : null;
+  }
+
+  private toSafeCount(value: string | number | null | undefined): number {
+    const parsed = Number(value ?? 0);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.max(0, Math.trunc(parsed));
+  }
+
   private pushIntMap(
     map: Map<string, Set<number>>,
     profileId: string,
@@ -772,6 +904,9 @@ export class PlayerSearchIndexer implements OnModuleInit {
       gameModeKeys: number[];
       gameRankOrderKeys: number[];
       gameEloKeys: number[];
+      unresolvedReportsCount: number;
+      resolvedNegativeReportsCount: number;
+      hasVerifiedBadge: boolean;
     },
   ): PlayerSearchDocument {
     const birthDate =
@@ -782,24 +917,32 @@ export class PlayerSearchIndexer implements OnModuleInit {
       profile.createdAt instanceof Date
         ? profile.createdAt
         : new Date(profile.createdAt);
+    const lastLoginAt = this.toNullableDate(profile.lastLoginAt);
     const birthDateValue = Number.isNaN(birthDate.getTime())
       ? 0
       : birthDate.getTime();
     const createdAtValue = Number.isNaN(createdAt.getTime())
       ? 0
       : createdAt.getTime();
-    const profileScore = this.computeProfileScore({
+    const scores = this.playerScore.compute({
       profilePicture: profile.profilePicture,
       bannerPicture: profile.bannerPicture,
       description: profile.description,
       citation: profile.citation,
       nationalityId: profile.nationalityId,
-      languageIds: aggregates.languageIds,
+      languageCount: aggregates.languageIds.length,
       experienceCount: aggregates.experienceCount,
       educationCount: aggregates.educationCount,
       professionalExperienceCount: aggregates.professionalExperienceCount,
       socialLinksCount: aggregates.socialLinksCount,
       badgesCount: aggregates.badgeIds.length,
+      hasVerifiedBadge: aggregates.hasVerifiedBadge,
+      isEmailVerified: this.toBoolean(profile.isEmailVerified),
+      accountStatus: profile.accountStatus ?? null,
+      createdAt: Number.isNaN(createdAt.getTime()) ? null : createdAt,
+      lastLoginAt,
+      unresolvedReportsCount: aggregates.unresolvedReportsCount,
+      resolvedNegativeReportsCount: aggregates.resolvedNegativeReportsCount,
     });
 
     const doc: PlayerSearchDocument = {
@@ -816,7 +959,9 @@ export class PlayerSearchIndexer implements OnModuleInit {
       professionalExperienceCount: aggregates.professionalExperienceCount,
       socialLinksCount: aggregates.socialLinksCount,
       badgesCount: aggregates.badgeIds.length,
-      profileScore,
+      completenessScore: scores.completenessScore,
+      trustScore: scores.trustScore,
+      profileScore: scores.profileScore,
       createdAt: createdAtValue,
     };
 
@@ -847,42 +992,20 @@ export class PlayerSearchIndexer implements OnModuleInit {
     return doc;
   }
 
-  private computeProfileScore(input: {
-    profilePicture: string | null;
-    bannerPicture: string | null;
-    description: string | null;
-    citation: string | null;
-    nationalityId: string | null;
-    languageIds: string[];
-    experienceCount: number;
-    educationCount: number;
-    professionalExperienceCount: number;
-    socialLinksCount: number;
-    badgesCount: number;
-  }): number {
-    let score = 0;
+  private toBoolean(value: boolean | number | string | null): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value === 1;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      return normalized === '1' || normalized === 'true';
+    }
+    return false;
+  }
 
-    if (input.profilePicture) score += 15;
-    if (input.bannerPicture) score += 5;
-
-    const descriptionLength = (input.description ?? '').trim().length;
-    if (descriptionLength >= 80) score += 10;
-    else if (descriptionLength >= 20) score += 5;
-
-    if (input.citation) score += 3;
-    if (input.nationalityId) score += 5;
-
-    const languageCount = input.languageIds.length;
-    if (languageCount >= 1) score += 5;
-    if (languageCount >= 2) score += 5;
-
-    score += Math.min(input.experienceCount, 3) * 5;
-    score += Math.min(input.professionalExperienceCount, 3) * 5;
-    score += Math.min(input.educationCount, 2) * 3;
-    score += Math.min(input.socialLinksCount, 5) * 2;
-    score += Math.min(input.badgesCount, 5) * 2;
-
-    return Math.min(score, 100);
+  private toNullableDate(value: Date | string | null): Date | null {
+    if (!value) return null;
+    const date = value instanceof Date ? value : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
   }
 
   private async importDocuments(
@@ -910,6 +1033,25 @@ export class PlayerSearchIndexer implements OnModuleInit {
         `Typesense import failed for ${failedLines.length}/${lines.length} documents. First error: ${firstError}`,
       );
     }
+  }
+
+  private async isCollectionOutOfSync(): Promise<boolean> {
+    const [dbCount, collection] = await Promise.all([
+      this.profilesRepo.count(),
+      this.typesense.client.collections(PLAYER_SEARCH_COLLECTION).retrieve(),
+    ]);
+
+    const indexedCount = Number(collection.num_documents ?? 0);
+    if (!Number.isFinite(indexedCount)) return true;
+
+    if (indexedCount !== dbCount) {
+      this.logger.warn(
+        `Typesense index count mismatch for "${PLAYER_SEARCH_COLLECTION}" (indexed=${indexedCount}, db=${dbCount}).`,
+      );
+      return true;
+    }
+
+    return false;
   }
 
   private parseImportResponse(

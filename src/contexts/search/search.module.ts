@@ -5,6 +5,7 @@ import { UserGameEntity } from '@/contexts/players/infra/entities/game/user-game
 import { SearchController } from './api/search.controller';
 import { SearchPlayersQuery } from './app/queries/search-players.query';
 import { SearchTeamsQuery } from './app/queries/search-teams.query';
+import { PlayerScoreService } from './app/services/player-score.service';
 import { PlayerSearchIndexer } from './infra/typesense/player-search.indexer';
 import { TypesenseService } from './infra/typesense/typesense.service';
 import { AuthModule } from '../auth/auth.module';
@@ -22,6 +23,7 @@ import { TeamEntity } from '../teams/infra/entities/team.entity';
   controllers: [SearchController],
   providers: [
     TypesenseService,
+    PlayerScoreService,
     PlayerSearchIndexer,
     SearchPlayersQuery,
     SearchTeamsQuery,

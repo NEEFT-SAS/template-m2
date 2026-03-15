@@ -1,6 +1,10 @@
-import { RscCountryPresenter, RscLanguagePresenter, getAgeParts } from '@neeft-sas/shared';
+import { getAgeParts } from '@neeft-sas/shared';
 import { Expose, Transform, Type } from 'class-transformer';
 import { UserProfileGenderEnum } from '@/contexts/auth/domain/types/user-profile-gender.enum';
+import {
+  PlayerProfileCountryResponse,
+  PlayerProfileLanguageResponse,
+} from './player-profile.response';
 
 export class PlayerPrivateProfileResponse {
   @Expose()
@@ -29,12 +33,12 @@ export class PlayerPrivateProfileResponse {
   bannerPicture!: string | null;
 
   @Expose()
-  @Type(() => RscCountryPresenter)
-  nationality!: RscCountryPresenter | null;
+  @Type(() => PlayerProfileCountryResponse)
+  nationality!: PlayerProfileCountryResponse | null;
 
   @Expose()
-  @Type(() => RscLanguagePresenter)
-  languages!: RscLanguagePresenter[];
+  @Type(() => PlayerProfileLanguageResponse)
+  languages!: PlayerProfileLanguageResponse[];
 
   @Expose()
   referralCode!: string;
@@ -59,4 +63,13 @@ export class PlayerPrivateProfileResponse {
 
   @Expose()
   isDisabledPlayer!: boolean | null;
+
+  @Expose()
+  completenessScore!: number;
+
+  @Expose()
+  trustScore!: number;
+
+  @Expose()
+  profileScore!: number;
 }

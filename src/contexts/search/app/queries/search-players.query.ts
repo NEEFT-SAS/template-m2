@@ -1,11 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AccessTokenPayload } from '@/contexts/auth/app/ports/token.port';
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 import { UserGameEntity } from '@/contexts/players/infra/entities/game/user-game.entity';
 import { BillingPlanKeyEnum } from '@/contexts/billing/infra/entitlements/billing-plans.registry';
-import { SearchPremiumFiltersError } from '../../domain/errors/search.errors';
+import {
+  SearchPremiumFiltersError,
+  SearchProviderUnavailableError,
+} from '../../domain/errors/search.errors';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { PlayerSearchDocument } from '../../infra/typesense/player-search.types';
 import {
@@ -15,9 +18,9 @@ import {
   SearchPlayerGamePresenter,
   SearchPlayerPresenter,
   SearchPlayersPresenter,
-  SearchPlayersQueryDto,
   UserGamePresenter,
 } from '@neeft-sas/shared';
+import type { SearchPlayersQueryDto } from '../../api/dtos/search-query.dtos';
 import { TypesenseService } from '../../infra/typesense/typesense.service';
 import { PLAYER_SEARCH_COLLECTION } from '../../infra/typesense/player-search.schema';
 import {
@@ -27,6 +30,8 @@ import {
 
 @Injectable()
 export class SearchPlayersQuery {
+  private readonly logger = new Logger(SearchPlayersQuery.name);
+
   constructor(
     private readonly typesense: TypesenseService,
     @InjectRepository(UserProfileEntity)
@@ -58,17 +63,35 @@ export class SearchPlayersQuery {
         ? 'hasRecruitableGame:desc,hasGame:desc,profileScore:desc'
         : '_text_match:desc,hasRecruitableGame:desc,hasGame:desc,profileScore:desc';
 
-    const response = await this.typesense.client
-      .collections(PLAYER_SEARCH_COLLECTION)
-      .documents()
-      .search({
-        q,
-        query_by: 'username,slug',
-        page,
-        per_page: perPage,
-        filter_by: filterBy || undefined,
-        sort_by: sortBy,
-      });
+    let response: {
+      hits?: Array<{ document: unknown }>;
+      found?: number;
+      page?: number;
+      out_of?: number;
+    };
+
+    try {
+      response = await this.typesense.client
+        .collections(PLAYER_SEARCH_COLLECTION)
+        .documents()
+        .search({
+          q,
+          query_by: 'username,slug',
+          page,
+          per_page: perPage,
+          filter_by: filterBy || undefined,
+          sort_by: sortBy,
+        });
+    } catch (error) {
+      this.logger.error(
+        `Typesense search failed for collection "${PLAYER_SEARCH_COLLECTION}"`,
+        (error as { stack?: string })?.stack,
+      );
+
+      throw new SearchProviderUnavailableError(
+        this.extractSearchErrorDetails(error),
+      );
+    }
 
     const hits = response.hits ?? [];
     const badgeMap = this.buildBadgeMap();
@@ -91,6 +114,31 @@ export class SearchPlayersQuery {
         perPage,
         outOf: response.out_of ?? 0,
       },
+    };
+  }
+
+  private extractSearchErrorDetails(error: unknown): Record<string, unknown> {
+    if (!error || typeof error !== 'object') {
+      return { message: String(error ?? 'Unknown search provider error') };
+    }
+
+    const err = error as {
+      name?: unknown;
+      message?: unknown;
+      code?: unknown;
+      status?: unknown;
+      response?: { status?: unknown; data?: unknown };
+    };
+
+    return {
+      name: typeof err.name === 'string' ? err.name : 'Error',
+      message:
+        typeof err.message === 'string' ? err.message : 'Search provider error',
+      ...(typeof err.code === 'string' ? { code: err.code } : {}),
+      ...(typeof err.status === 'number' ? { status: err.status } : {}),
+      ...(typeof err.response?.status === 'number'
+        ? { responseStatus: err.response.status }
+        : {}),
     };
   }
 
@@ -336,9 +384,12 @@ export class SearchPlayersQuery {
       createdAt: Number.isNaN(createdAt.getTime())
         ? new Date(0).toISOString()
         : createdAt.toISOString(),
+      completenessScore: Number(doc.completenessScore ?? 0),
+      trustScore: Number(doc.trustScore ?? 0),
+      profileScore: Number(doc.profileScore ?? 0),
       badges,
       games: gamesMap.get(doc.id) ?? [],
-    };
+    } as SearchPlayerPresenter;
   }
 
   private async loadUserGamesMap(
@@ -430,7 +481,9 @@ export class SearchPlayersQuery {
           rscGameRank: ranksById.get(rankId) ?? null,
         } satisfies SearchPlayerGameModeRankPresenter;
       })
-      .filter((item): item is SearchPlayerGameModeRankPresenter => Boolean(item));
+      .filter((item): item is SearchPlayerGameModeRankPresenter =>
+        Boolean(item),
+      );
 
     const positionIds = toIdList(
       entity.positions,

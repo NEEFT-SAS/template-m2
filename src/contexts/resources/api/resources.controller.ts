@@ -16,6 +16,7 @@ export class ResourcesController {
         rscSocialPlatforms: snapshot.rscSocialPlatforms,
         rscProfileBadges: snapshot.rscProfileBadges,
         rscGames: snapshot.rscGames,
+        rscStaffRoles: snapshot.rscStaffRoles,
       },
       meta: {
         version: snapshot.version,

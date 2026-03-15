@@ -20,6 +20,11 @@ import { RscGamePlatformEntity } from './infra/persistence/entities/games/relati
 import { RscGamePositionEntity } from './infra/persistence/entities/games/relations/rsc-game-positions.entity';
 import { RscGameRankEntity } from './infra/persistence/entities/games/relations/rsc-game-ranks.entity';
 import { RscGameSeasonEntity } from './infra/persistence/entities/games/relations/rsc-game-seasons.entity';
+import { RscStaffOptionEntity } from './infra/persistence/entities/staff/rsc-staff-option.entity';
+import { RscStaffOptionGroupEntity } from './infra/persistence/entities/staff/rsc-staff-option-group.entity';
+import { RscStaffGroupOptionEntity } from './infra/persistence/entities/staff/rsc-staff-group-option.entity';
+import { RscStaffRoleOptionLinkEntity } from './infra/persistence/entities/staff/rsc-staff-role-option-link.entity';
+import { RscStaffRoleEntity } from './infra/persistence/entities/staff/rsc-staff-role.entity';
 
 
 @Module({
@@ -41,6 +46,11 @@ import { RscGameSeasonEntity } from './infra/persistence/entities/games/relation
     RscGameRankEntity,
     RscGameSeasonEntity,
     RscGameCharacterEntity,
+    RscStaffRoleEntity,
+    RscStaffOptionGroupEntity,
+    RscStaffOptionEntity,
+    RscStaffGroupOptionEntity,
+    RscStaffRoleOptionLinkEntity,
   ])],
   controllers: [ResourcesController],
   providers: [GetResourcesUseCase, ResourcesStore],

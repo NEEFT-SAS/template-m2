@@ -2,21 +2,43 @@ import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Repository } from 'typeorm';
-import { CreateProfileReportDto, ProfileReportPresenter } from '@neeft-sas/shared';
-import { TEAM_REPOSITORY, TeamRepositoryPort } from '@/contexts/teams/app/ports/team.repository.port';
+import {
+  CreateProfileReportDto,
+  ProfileReportPresenter,
+} from '@neeft-sas/shared';
+import {
+  TEAM_REPOSITORY,
+  TeamRepositoryPort,
+} from '@/contexts/teams/app/ports/team.repository.port';
+import { TeamScoreService } from '@/contexts/teams/app/services/team-score.service';
 import { TeamNotFoundError } from '@/contexts/teams/domain/errors/team.errors';
-import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../../ports/player.repository.port';
+import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
+import {
+  PLAYER_REPOSITORY,
+  PlayerRepositoryPort,
+} from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '../../../domain/errors/player-profile.errors';
-import { ProfileReportDuplicateError, ProfileReportSelfError } from '../../../domain/errors/profile-report.errors';
-import { ReportStatusEnum, ReportTargetType } from '../../../domain/types/profile-report.types';
+import {
+  ProfileReportDuplicateError,
+  ProfileReportSelfError,
+} from '../../../domain/errors/profile-report.errors';
+import { PlayerSearchSyncEvent } from '../../../domain/events/player-search-sync.event';
+import {
+  ReportStatusEnum,
+  ReportTargetType,
+} from '../../../domain/types/profile-report.types';
 import { ProfileReportEntity } from '../../../infra/entities/profile/profile-report.entity';
 
 @Injectable()
 export class CreateProfileReportUseCase {
   constructor(
-    @Inject(PLAYER_REPOSITORY) private readonly playerRepo: PlayerRepositoryPort,
+    @Inject(PLAYER_REPOSITORY)
+    private readonly playerRepo: PlayerRepositoryPort,
     @Inject(TEAM_REPOSITORY) private readonly teamRepo: TeamRepositoryPort,
-    @InjectRepository(ProfileReportEntity) private readonly reportsRepo: Repository<ProfileReportEntity>,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBusPort,
+    @InjectRepository(ProfileReportEntity)
+    private readonly reportsRepo: Repository<ProfileReportEntity>,
+    private readonly teamScoreService: TeamScoreService,
   ) {}
 
   async execute(
@@ -25,7 +47,8 @@ export class CreateProfileReportUseCase {
     targetSlug: string,
     dto: CreateProfileReportDto,
   ): Promise<ProfileReportPresenter> {
-    const reporterProfileId = await this.playerRepo.findProfileIdBySlug(reporterSlug);
+    const reporterProfileId =
+      await this.playerRepo.findProfileIdBySlug(reporterSlug);
     if (!reporterProfileId) {
       throw new PlayerNotFoundError(reporterSlug);
     }
@@ -67,7 +90,10 @@ export class CreateProfileReportUseCase {
       });
 
       const saved = await this.reportsRepo.save(entity);
-      return plainToInstance(ProfileReportPresenter, saved, { excludeExtraneousValues: true });
+      await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug }));
+      return plainToInstance(ProfileReportPresenter, saved, {
+        excludeExtraneousValues: true,
+      });
     }
 
     const team = await this.teamRepo.findTeamBySlug(slug);
@@ -100,6 +126,9 @@ export class CreateProfileReportUseCase {
     });
 
     const saved = await this.reportsRepo.save(entity);
-    return plainToInstance(ProfileReportPresenter, saved, { excludeExtraneousValues: true });
+    await this.teamScoreService.recomputeTeamScores(team.id);
+    return plainToInstance(ProfileReportPresenter, saved, {
+      excludeExtraneousValues: true,
+    });
   }
 }

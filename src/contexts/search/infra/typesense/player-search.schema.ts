@@ -39,6 +39,8 @@ export const playerSearchSchema: PlayerSearchSchema = {
     { name: 'professionalExperienceCount', type: 'int32' },
     { name: 'socialLinksCount', type: 'int32' },
     { name: 'badgesCount', type: 'int32' },
+    { name: 'completenessScore', type: 'int32' },
+    { name: 'trustScore', type: 'int32' },
     { name: 'profileScore', type: 'int32' },
     { name: 'createdAt', type: 'int64' },
   ],

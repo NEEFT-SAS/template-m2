@@ -1,19 +1,31 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { slugifyUnique } from '@neeft-sas/shared';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
-import { TEAM_REPOSITORY, TeamRepositoryPort } from '../../ports/team.repository.port';
-import { TeamInvalidCountryError, TeamInvalidLanguagesError, TeamOwnerNotFoundError } from '../../../domain/errors/team.errors';
-import { plainToInstance } from 'class-transformer';
+import {
+  TEAM_REPOSITORY,
+  TeamRepositoryPort,
+} from '../../ports/team.repository.port';
+import {
+  TeamInvalidCountryError,
+  TeamInvalidLanguagesError,
+  TeamOwnerNotFoundError,
+} from '../../../domain/errors/team.errors';
 import { CreateTeamDTO, TeamPresenter } from '@/typage';
+import { TeamScoreService } from '../../services/team-score.service';
+import { mapTeamResponse } from '../../services/team-response.mapper';
 
 @Injectable()
 export class CreateTeamUseCase {
   constructor(
     @Inject(TEAM_REPOSITORY) private readonly repo: TeamRepositoryPort,
     private readonly resourcesStore: ResourcesStore,
+    private readonly teamScoreService: TeamScoreService,
   ) {}
 
-  async execute(ownerProfileId: string, dto: CreateTeamDTO): Promise<TeamPresenter> {
+  async execute(
+    ownerProfileId: string,
+    dto: CreateTeamDTO,
+  ): Promise<TeamPresenter> {
     if (!ownerProfileId) {
       throw new TeamOwnerNotFoundError(ownerProfileId);
     }
@@ -26,15 +38,21 @@ export class CreateTeamUseCase {
     const snapshot = this.resourcesStore.getSnapshot();
 
     if (dto.countryId !== undefined && dto.countryId !== null) {
-      const allowedCountries = new Set(snapshot.rscCountries.map((country) => country.id));
+      const allowedCountries = new Set(
+        snapshot.rscCountries.map((country) => country.id),
+      );
       if (!allowedCountries.has(dto.countryId)) {
         throw new TeamInvalidCountryError(dto.countryId);
       }
     }
 
     const languageIds = Array.from(new Set(dto.languageIds ?? []));
-    const allowedLanguages = new Set(snapshot.rscLanguages.map((language) => language.id));
-    const invalidLanguageIds = languageIds.filter((id) => !allowedLanguages.has(id));
+    const allowedLanguages = new Set(
+      snapshot.rscLanguages.map((language) => language.id),
+    );
+    const invalidLanguageIds = languageIds.filter(
+      (id) => !allowedLanguages.has(id),
+    );
     if (invalidLanguageIds.length) {
       throw new TeamInvalidLanguagesError(invalidLanguageIds);
     }
@@ -59,6 +77,9 @@ export class CreateTeamUseCase {
       countryId: dto.countryId ?? null,
       languageIds,
     });
-    return plainToInstance(TeamPresenter, created, { excludeExtraneousValues: true });
+    await this.teamScoreService.recomputeTeamScores(created.id);
+    const withScores = await this.repo.findTeamById(created.id);
+
+    return mapTeamResponse(withScores ?? created, this.teamScoreService);
   }
 }

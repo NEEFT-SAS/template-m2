@@ -1,21 +1,31 @@
 import {
-  PlayerGameAccountPresenter,
-  RscGameCharacterPresenter,
-  RscGameModePresenter,
-  RscGamePlatformPresenter,
-  RscGamePositionPresenter,
-  RscGameRankPresenter,
-} from '@neeft-sas/shared';
+  RscGameCharacterResponsePresenter,
+  RscGameModeResponsePresenter,
+  RscGamePlatformResponsePresenter,
+  RscGamePositionResponsePresenter,
+  RscGameRankResponsePresenter,
+} from '@/contexts/resources/app/presenters/resources.response';
 import { Expose, Type } from 'class-transformer';
+
+export class PlayerGameAccountResponse {
+  @Expose()
+  username!: string;
+
+  @Expose()
+  tagLine?: string;
+
+  @Expose()
+  region?: string;
+}
 
 export class PlayerGameModeRankResponse {
   @Expose()
-  @Type(() => RscGameModePresenter)
-  rscGameMode!: RscGameModePresenter;
+  @Type(() => RscGameModeResponsePresenter)
+  rscGameMode!: RscGameModeResponsePresenter;
 
   @Expose()
-  @Type(() => RscGameRankPresenter)
-  rscGameRank!: RscGameRankPresenter;
+  @Type(() => RscGameRankResponsePresenter)
+  rscGameRank!: RscGameRankResponsePresenter;
 
   @Expose()
   elo!: number | null;
@@ -38,22 +48,22 @@ export class PlayerGameResponse {
   trackerUrl!: string | null;
 
   @Expose()
-  @Type(() => RscGamePositionPresenter)
-  rscGamePositions!: RscGamePositionPresenter[];
+  @Type(() => RscGamePositionResponsePresenter)
+  rscGamePositions!: RscGamePositionResponsePresenter[];
 
   @Expose()
-  @Type(() => RscGamePlatformPresenter)
-  rscGamePlatforms!: RscGamePlatformPresenter[];
+  @Type(() => RscGamePlatformResponsePresenter)
+  rscGamePlatforms!: RscGamePlatformResponsePresenter[];
 
   @Expose()
-  @Type(() => RscGameCharacterPresenter)
-  rscGameCharacters!: RscGameCharacterPresenter[];
+  @Type(() => RscGameCharacterResponsePresenter)
+  rscGameCharacters!: RscGameCharacterResponsePresenter[];
 
   @Expose()
   @Type(() => PlayerGameModeRankResponse)
   modeRanks!: PlayerGameModeRankResponse[];
 
   @Expose()
-  @Type(() => PlayerGameAccountPresenter)
-  account!: PlayerGameAccountPresenter | null;
+  @Type(() => PlayerGameAccountResponse)
+  account!: PlayerGameAccountResponse | null;
 }
