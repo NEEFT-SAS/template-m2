@@ -23,6 +23,7 @@
 */
 
 import { BadRequestException, ValidationError, ValidationPipe } from '@nestjs/common';
+import { createRequire } from 'module';
 
 type FieldsErrorsMap = Record<string, string[]>;
 
@@ -49,11 +50,21 @@ function flattenToFieldsMap(errors: ValidationError[], parentPath = ''): FieldsE
 }
 
 export function buildGlobalValidationPipe() {
+  const sharedTransformerPackage = (() => {
+    try {
+      const sharedRequire = createRequire(require.resolve('@neeft-sas/shared'));
+      return sharedRequire('class-transformer');
+    } catch {
+      return undefined;
+    }
+  })();
+
   return new ValidationPipe({
     transform: true,
     whitelist: true,
     forbidNonWhitelisted: true,
     stopAtFirstError: false,
+    transformerPackage: sharedTransformerPackage,
     exceptionFactory: (errors) => {
       const fields = flattenToFieldsMap(errors);
 

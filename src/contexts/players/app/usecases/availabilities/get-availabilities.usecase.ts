@@ -1,8 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 import { PlayerAvailabilityPresenter } from '@neeft-sas/shared';
 import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
+import { plainToSharedInstance } from '@/core/utils/shared-transformer';
 
 @Injectable()
 export class GetPlayerAvailabilitiesUseCase {
@@ -18,7 +18,7 @@ export class GetPlayerAvailabilitiesUseCase {
 
     const availabilities = await this.repo.findAvailabilities(profileId);
 
-    return plainToInstance(PlayerAvailabilityPresenter, availabilities, {
+    return plainToSharedInstance(PlayerAvailabilityPresenter, availabilities, {
       excludeExtraneousValues: true,
     });
   }

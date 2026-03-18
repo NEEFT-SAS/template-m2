@@ -5,10 +5,10 @@ import { SocialLinkDuplicatePlatformError, SocialLinkInvalidPlatformError } from
 import { PlayerSocialLinkPresenter, PlayerSocialLinkToUpdateDTO } from '@neeft-sas/shared';
 import { ResourcesStore } from '@/contexts/resources/infra/cache/resources.store';
 import { SocialLinksNormalizer } from '@/contexts/players/infra/normalizers/social-links.normalizer';
-import { plainToInstance } from 'class-transformer';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
 import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
 import { PlayerSearchSyncEvent } from '@/contexts/players/domain/events/player-search-sync.event';
+import { plainToSharedInstance } from '@/core/utils/shared-transformer';
 
 @Injectable()
 export class UpdatePlayerSocialLinksUseCase {
@@ -46,6 +46,6 @@ export class UpdatePlayerSocialLinksUseCase {
 
     await this.eventBus.publish(PlayerSearchSyncEvent.create({ slug: userSlug }));
     
-    return plainToInstance(PlayerSocialLinkPresenter, newLinks, { excludeExtraneousValues: true });
+    return plainToSharedInstance(PlayerSocialLinkPresenter, newLinks, { excludeExtraneousValues: true });
   }
 }

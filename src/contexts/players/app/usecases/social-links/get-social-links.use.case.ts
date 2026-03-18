@@ -1,9 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { plainToInstance } from 'class-transformer';
 
 import { PlayerSocialLinkPresenter } from '@neeft-sas/shared';
 import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '@/contexts/players/domain/errors/player-profile.errors';
+import { plainToSharedInstance } from '@/core/utils/shared-transformer';
 
 @Injectable()
 export class GetPlayerSocialLinksUsecase {
@@ -19,7 +19,7 @@ export class GetPlayerSocialLinksUsecase {
 
     const links = await this.repo.findSocialLinks(profileId);
 
-    return plainToInstance(PlayerSocialLinkPresenter, links, {
+    return plainToSharedInstance(PlayerSocialLinkPresenter, links, {
       excludeExtraneousValues: true,
     });
   }
