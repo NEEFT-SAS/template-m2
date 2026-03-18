@@ -1,5 +1,5 @@
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
-import { PlayerGameCreateInput, PlayerGameUpdateInput, PlayerProfileContext, PlayerProfileUpdatePayload, PlayerRepositoryPort, RecommendationCreateInput, RecommendationListQuery, RecommendationListResult } from '@/contexts/players/app/ports/player.repository.port';
+import { PlayerGameCreateInput, PlayerGameUpdateInput, PlayerProfileContext, PlayerProfileUpdatePayload, PlayerRepositoryPort, PlayerStaffRoleCreateInput, PlayerStaffRoleUpdateInput, RecommendationCreateInput, RecommendationListQuery, RecommendationListResult } from '@/contexts/players/app/ports/player.repository.port';
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
@@ -26,6 +26,7 @@ import { UserGameModeRankEntity } from '../../entities/game/user-game-mode-rank.
 import { RscGameModeEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-modes.entity';
 import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-ranks.entity';
 import { RecommendationEntity } from '../../entities/recommendations/recommendation.entity';
+import { UserProfileStaffRoleEntity } from '../../entities/profile/user-profile-staff-role.entity';
 
 
 @Injectable()
@@ -40,6 +41,7 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     @InjectRepository(UserReportEntity) private readonly reportsRepo: Repository<UserReportEntity>,
     @InjectRepository(UserBadgeEntity) private readonly badgesRepo: Repository<UserBadgeEntity>,
     @InjectRepository(UserGameEntity) private readonly playerGamesRepo: Repository<UserGameEntity>,
+    @InjectRepository(UserProfileStaffRoleEntity) private readonly playerStaffRolesRepo: Repository<UserProfileStaffRoleEntity>,
     @InjectRepository(RecommendationEntity) private readonly recommendationsRepo: Repository<RecommendationEntity>,
     @InjectDataSource() private readonly dataSource: DataSource
   ) {}
@@ -1014,6 +1016,80 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     await this.playerGamesRepo.delete({
       profile: { id: userProfileId },
       rscGame: { id: gameId },
+    });
+  }
+
+  async findPlayerStaffRoleIdByProfileAndRole(
+    userProfileId: string,
+    roleId: string,
+  ): Promise<number | null> {
+    const entity = await this.playerStaffRolesRepo.findOne({
+      where: { profile: { id: userProfileId }, roleKey: roleId },
+      select: ['id'],
+    });
+
+    return entity ? entity.id : null;
+  }
+
+  async createPlayerStaffRole(
+    userProfileId: string,
+    input: PlayerStaffRoleCreateInput,
+  ): Promise<UserProfileStaffRoleEntity> {
+    const entity = this.playerStaffRolesRepo.create({
+      profile: { id: userProfileId },
+      roleKey: input.roleId,
+      payload: input.payload ?? null,
+    });
+
+    const saved = await this.playerStaffRolesRepo.save(entity);
+    return saved;
+  }
+
+  async findPlayerStaffRoles(
+    userProfileId: string,
+  ): Promise<UserProfileStaffRoleEntity[]> {
+    return this.playerStaffRolesRepo.find({
+      where: { profile: { id: userProfileId } },
+      order: { id: 'ASC' },
+    });
+  }
+
+  async findPlayerStaffRoleByProfileAndRole(
+    userProfileId: string,
+    roleId: string,
+  ): Promise<UserProfileStaffRoleEntity | null> {
+    const role = await this.playerStaffRolesRepo.findOne({
+      where: { profile: { id: userProfileId }, roleKey: roleId },
+    });
+
+    return role ?? null;
+  }
+
+  async updatePlayerStaffRole(
+    userProfileId: string,
+    roleId: string,
+    input: PlayerStaffRoleUpdateInput,
+  ): Promise<UserProfileStaffRoleEntity> {
+    const entity = await this.playerStaffRolesRepo.findOne({
+      where: { profile: { id: userProfileId }, roleKey: roleId },
+    });
+
+    if (!entity) {
+      throw new Error('Player staff role not found');
+    }
+
+    if (input.payload !== undefined) {
+      entity.payload = input.payload ?? null;
+      return this.playerStaffRolesRepo.save(entity);
+    }
+
+    return entity;
+  }
+
+  async deletePlayerStaffRole(userProfileId: string, roleId: string): Promise<void> {
+    await this.playerStaffRolesRepo.delete({
+      profile: { id: userProfileId },
+      roleKey: roleId,
     });
   }
 

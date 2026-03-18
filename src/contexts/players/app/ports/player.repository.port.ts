@@ -10,6 +10,7 @@ import type { UserReportEntity } from "../../infra/entities/profile/user-report.
 import type { UserSocialLinkEntity } from "../../infra/entities/profile/user-social-link.entity";
 import type { UserGameEntity } from "../../infra/entities/game/user-game.entity";
 import type { RecommendationEntity } from "../../infra/entities/recommendations/recommendation.entity";
+import type { UserProfileStaffRoleEntity } from "../../infra/entities/profile/user-profile-staff-role.entity";
 
 export const PLAYER_REPOSITORY = Symbol('PLAYER_REPOSITORY');
 
@@ -170,6 +171,15 @@ export type PlayerGameUpdateInput = {
   account?: PlayerGameAccountInput | null;
 };
 
+export type PlayerStaffRoleCreateInput = {
+  roleId: string;
+  payload?: Record<string, unknown> | null;
+};
+
+export type PlayerStaffRoleUpdateInput = {
+  payload?: Record<string, unknown> | null;
+};
+
 export type PlayerReportCreateInput = {
   reporterProfileId: string;
   targetProfileId: string;
@@ -253,6 +263,12 @@ export interface PlayerRepositoryPort {
   findPlayerGameByProfileAndGame(userProfileId: string, gameId: number): Promise<UserGameEntity | null>;
   updatePlayerGame(userProfileId: string, gameId: number, input: PlayerGameUpdateInput): Promise<UserGameEntity>;
   deletePlayerGame(userProfileId: string, gameId: number): Promise<void>;
+  findPlayerStaffRoleIdByProfileAndRole(userProfileId: string, roleId: string): Promise<number | null>;
+  createPlayerStaffRole(userProfileId: string, input: PlayerStaffRoleCreateInput): Promise<UserProfileStaffRoleEntity>;
+  findPlayerStaffRoles(userProfileId: string): Promise<UserProfileStaffRoleEntity[]>;
+  findPlayerStaffRoleByProfileAndRole(userProfileId: string, roleId: string): Promise<UserProfileStaffRoleEntity | null>;
+  updatePlayerStaffRole(userProfileId: string, roleId: string, input: PlayerStaffRoleUpdateInput): Promise<UserProfileStaffRoleEntity>;
+  deletePlayerStaffRole(userProfileId: string, roleId: string): Promise<void>;
 
   findPlayerBadgeContextBySlug(userSlug: string): Promise<any | null>;
   findAssignedBadgeIds(userProfileId: string): Promise<number[]>;

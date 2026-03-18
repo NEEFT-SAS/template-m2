@@ -4,6 +4,7 @@ import { UserCredentialsEntity } from '../auth/infra/persistence/entities/user-c
 import { UserProfileEntity } from '../auth/infra/persistence/entities/user-profile.entity';
 import { PlayerProfileController } from './api/player-profile.controller';
 import { PlayerGamesController } from './api/player-games.controller';
+import { PlayerStaffRolesController } from './api/player-staff-roles.controller';
 import { PlayerExperiencesController } from './api/player-experiences.controller';
 import { PlayerReportsController } from './api/player-reports.controller';
 import { PlayerSocialsController } from './api/player-socials.controller';
@@ -60,6 +61,7 @@ import { UserGameRocketLeagueEntity } from './infra/entities/game/user-game-rock
 import { UserGameValorantEntity } from './infra/entities/game/user-game-valorant.entity';
 import { UserGameBrawlStarsEntity } from './infra/entities/game/user-game-brawl-stars.entity';
 import { UserGameFortniteEntity } from './infra/entities/game/user-game-fortnite.entity';
+import { UserProfileStaffRoleEntity } from './infra/entities/profile/user-profile-staff-role.entity';
 import { RecommendationEntity } from './infra/entities/recommendations/recommendation.entity';
 import { RecommendationHelpfulVoteEntity } from './infra/entities/recommendations/recommendation-helpful-vote.entity';
 import { RecommendationRequestEntity } from './infra/entities/recommendations/recommendation-request.entity';
@@ -68,6 +70,11 @@ import { DeletePlayerGameUseCase } from './app/usecases/games/delete-player-game
 import { GetPlayerGamesUseCase } from './app/usecases/games/get-player-games.usecase';
 import { GetPlayerGameUseCase } from './app/usecases/games/get-player-game.usecase';
 import { UpdatePlayerGameUseCase } from './app/usecases/games/update-player-game.usecase';
+import { CreatePlayerStaffRoleUseCase } from './app/usecases/staff-roles/create-player-staff-role.usecase';
+import { DeletePlayerStaffRoleUseCase } from './app/usecases/staff-roles/delete-player-staff-role.usecase';
+import { GetPlayerStaffRoleUseCase } from './app/usecases/staff-roles/get-player-staff-role.usecase';
+import { GetPlayerStaffRolesUseCase } from './app/usecases/staff-roles/get-player-staff-roles.usecase';
+import { UpdatePlayerStaffRoleUseCase } from './app/usecases/staff-roles/update-player-staff-role.usecase';
 import { CreateRecommendationUseCase } from './app/usecases/recommendations/create-recommendation.usecase';
 import { DeleteRecommendationUseCase } from './app/usecases/recommendations/delete-recommendation.usecase';
 import { ListPlayerReceivedRecommendationsUseCase } from './app/usecases/recommendations/list-player-received-recommendations.usecase';
@@ -100,6 +107,7 @@ import { PlayerScoreService } from '../search/app/services/player-score.service'
       UserGameValorantEntity,
       UserGameBrawlStarsEntity,
       UserGameFortniteEntity,
+      UserProfileStaffRoleEntity,
       RecommendationEntity,
       RecommendationHelpfulVoteEntity,
       RecommendationRequestEntity,
@@ -111,6 +119,7 @@ import { PlayerScoreService } from '../search/app/services/player-score.service'
   controllers: [
     PlayerProfileController,
     PlayerGamesController,
+    PlayerStaffRolesController,
     PlayerExperiencesController,
     PlayerReportsController,
     PlayerSocialsController,
@@ -159,6 +168,11 @@ import { PlayerScoreService } from '../search/app/services/player-score.service'
     GetPlayerGamesUseCase,
     GetPlayerGameUseCase,
     UpdatePlayerGameUseCase,
+    CreatePlayerStaffRoleUseCase,
+    DeletePlayerStaffRoleUseCase,
+    GetPlayerStaffRolesUseCase,
+    GetPlayerStaffRoleUseCase,
+    UpdatePlayerStaffRoleUseCase,
     CreateRecommendationUseCase,
     DeleteRecommendationUseCase,
     ListPlayerReceivedRecommendationsUseCase,
