@@ -20,6 +20,7 @@ import { MarkNotificationReadUseCase } from '../../app/usecases/mark-notificatio
 import { MarkAllNotificationsReadUseCase } from '../../app/usecases/mark-all-notifications-read.usecase';
 import { DeleteNotificationUseCase } from '../../app/usecases/delete-notification.usecase';
 import { MockNotificationsUseCase } from '../../app/usecases/mock-notifications.usecase';
+import { ExecuteNotificationActionUseCase } from '../../app/usecases/execute-notification-action.usecase';
 
 type JwtUser = {
   pid?: string;
@@ -37,6 +38,7 @@ export class NotificationsController {
     private readonly markAllNotificationsReadUseCase: MarkAllNotificationsReadUseCase,
     private readonly deleteNotificationUseCase: DeleteNotificationUseCase,
     private readonly mockNotificationsUseCase: MockNotificationsUseCase,
+    private readonly executeNotificationActionUseCase: ExecuteNotificationActionUseCase,
   ) {}
 
   @Get()
@@ -104,5 +106,20 @@ export class NotificationsController {
 
     const requesterProfileId = req.user?.pid ?? '';
     return this.mockNotificationsUseCase.execute(requesterProfileId, body ?? {});
+  }
+
+  @Post(':notificationId/actions/:actionKey')
+  @HttpCode(HttpStatus.OK)
+  executeAction(
+    @Req() req: RequestWithUser,
+    @Param('notificationId') notificationId: string,
+    @Param('actionKey') actionKey: string,
+  ) {
+    const requesterProfileId = req.user?.pid ?? '';
+    return this.executeNotificationActionUseCase.execute(
+      requesterProfileId,
+      notificationId,
+      actionKey,
+    );
   }
 }

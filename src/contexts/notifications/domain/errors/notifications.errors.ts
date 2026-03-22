@@ -27,3 +27,16 @@ export class NotificationInvalidFilterError extends DomainError {
     });
   }
 }
+
+export class NotificationInvalidActionError extends DomainError {
+  constructor(actionKey: string | null | undefined) {
+    const normalized = String(actionKey ?? '').trim();
+    super({
+      code: 'NOTIFICATION_INVALID_ACTION',
+      message: 'Invalid notification action',
+      statusCode: 400,
+      fields: { actionKey: ['invalid'] },
+      details: { actionKey: normalized || null },
+    });
+  }
+}

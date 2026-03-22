@@ -12,11 +12,19 @@ import {
 } from '../../domain/types/notification.types';
 import {
   NotificationInvalidFilterError,
+  NotificationInvalidActionError,
   NotificationNotFoundError,
 } from '../../domain/errors/notifications.errors';
 import { NotificationsRealtimeService } from '../../infra/realtime/notifications-realtime.service';
 import { MessagingMessageSentPayload } from '@/contexts/messaging/domain/events/message-sent.event';
 import { MessagingConversationReadPayload } from '@/contexts/messaging/domain/events/conversation-read.event';
+
+type NotificationActionDefinition = {
+  key: string;
+  label: string;
+  markAsRead: boolean;
+  deleteOnSelect: boolean;
+};
 
 @Injectable()
 export class NotificationsService {
@@ -150,6 +158,93 @@ export class NotificationsService {
     };
   }
 
+  async executeNotificationAction(
+    requesterProfileId: string,
+    notificationId: string,
+    actionKey: string,
+  ) {
+    const normalizedActionKey = String(actionKey ?? '')
+      .trim()
+      .toLowerCase();
+    if (!normalizedActionKey) {
+      throw new NotificationInvalidActionError(actionKey);
+    }
+
+    const existing = await this.notificationsRepo.findByIdForRecipient(
+      notificationId,
+      requesterProfileId,
+    );
+    if (!existing) {
+      throw new NotificationNotFoundError(notificationId);
+    }
+
+    const action = this.resolveActionFromPayload(
+      existing.payload,
+      normalizedActionKey,
+    );
+    if (!action) {
+      throw new NotificationInvalidActionError(actionKey);
+    }
+
+    let markedRead = false;
+    let deleted = false;
+
+    if (action.markAsRead && !existing.readAt) {
+      markedRead = await this.notificationsRepo.markAsRead(
+        notificationId,
+        requesterProfileId,
+      );
+    }
+
+    if (action.deleteOnSelect) {
+      deleted = await this.notificationsRepo.deleteByIdForRecipient(
+        notificationId,
+        requesterProfileId,
+      );
+    }
+
+    const unreadCount =
+      await this.notificationsRepo.countUnreadForRecipient(requesterProfileId);
+
+    if (markedRead) {
+      this.notificationsRealtime.emitToProfile(
+        requesterProfileId,
+        NOTIFICATIONS_SOCKET_EVENTS.READ,
+        {
+          notificationIds: [notificationId],
+          all: false,
+        },
+      );
+    }
+
+    if (deleted) {
+      this.notificationsRealtime.emitToProfile(
+        requesterProfileId,
+        NOTIFICATIONS_SOCKET_EVENTS.DELETED,
+        {
+          notificationIds: [notificationId],
+          all: false,
+        },
+      );
+    }
+
+    this.notificationsRealtime.emitToProfile(
+      requesterProfileId,
+      NOTIFICATIONS_SOCKET_EVENTS.UNREAD_COUNT_UPDATED,
+      { unreadCount },
+    );
+
+    return {
+      notificationId,
+      actionKey: action.key,
+      actionLabel: action.label,
+      executed: true,
+      markedRead,
+      deleted,
+      unreadCount,
+    };
+  }
+
   async markAllNotificationsRead(requesterProfileId: string) {
     const markedCount =
       await this.notificationsRepo.markAllAsRead(requesterProfileId);
@@ -190,7 +285,33 @@ export class NotificationsService {
       requesterProfileId,
     );
 
-    const templates = [
+    const templates: Array<{
+      title: string;
+      body: string;
+      payload?: Record<string, unknown>;
+    }> = [
+      {
+        title: 'Invitation equipe',
+        body: 'Une equipe souhaite vous ajouter a son effectif.',
+        payload: {
+          intent: 'TEAM_INVITATION',
+          teamName: 'NEEFT Academy',
+          actions: [
+            {
+              key: 'accept',
+              label: 'Accepter',
+              markAsRead: true,
+              deleteOnSelect: true,
+            },
+            {
+              key: 'reject',
+              label: 'Refuser',
+              markAsRead: true,
+              deleteOnSelect: true,
+            },
+          ],
+        },
+      },
       {
         title: 'Nouveau message recu',
         body: 'Un joueur vous a envoye un message a propos de votre profil.',
@@ -215,7 +336,7 @@ export class NotificationsService {
         title: 'Mise a jour de discussion',
         body: 'Un message est arrive pendant votre navigation.',
       },
-    ] as const;
+    ];
 
     const created = await this.notificationsRepo.createMany(
       Array.from({ length: count }, (_, index) => {
@@ -234,6 +355,7 @@ export class NotificationsService {
             index: index + 1,
             conversationId: contextConversationId,
             messageId: contextMessageId,
+            ...(template.payload ?? {}),
           },
           contextConversationId,
           contextMessageId,
@@ -432,6 +554,36 @@ export class NotificationsService {
     if (normalized === 'neeft') return 'Neeft';
     if (!normalized) return 'Systeme';
     return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }
+
+  private resolveActionFromPayload(
+    payload: Record<string, unknown> | null,
+    actionKey: string,
+  ): NotificationActionDefinition | null {
+    if (!payload || typeof payload !== 'object') return null;
+    const maybeActions = (payload as { actions?: unknown }).actions;
+    if (!Array.isArray(maybeActions)) return null;
+
+    for (const current of maybeActions) {
+      if (!current || typeof current !== 'object') continue;
+      const raw = current as Record<string, unknown>;
+      const key = String(raw.key ?? '')
+        .trim()
+        .toLowerCase();
+      if (!key || key !== actionKey) continue;
+
+      const label = String(raw.label ?? '')
+        .trim();
+
+      return {
+        key,
+        label: label || key,
+        markAsRead: raw.markAsRead === false ? false : true,
+        deleteOnSelect: raw.deleteOnSelect === true,
+      };
+    }
+
+    return null;
   }
 
   private toPresenter(row: {
