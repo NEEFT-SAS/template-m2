@@ -11,6 +11,7 @@ import { AddTeamRosterMemberUseCase } from '../app/usecases/rosters/add-team-ros
 import { UpdateTeamUseCase } from '../app/usecases/profile/update-team.usecase';
 import { CreateTeamDTO, DeleteTeamDTO, UpdateTeamDTO } from '@/typage';
 import { GetTeamProfileUseCase } from '../app/usecases/profile/get-team-profile.usecase';
+import { GetPlayerTeamsUseCase } from '../app/usecases/get-player-team.usecase';
 
 type JwtUser = {
   pid: string;
@@ -30,6 +31,7 @@ export class TeamController {
     private readonly createTeamMemberUseCase: CreateTeamMemberUseCase,
     private readonly createTeamRosterUseCase: CreateTeamRosterUseCase,
     private readonly addTeamRosterMemberUseCase: AddTeamRosterMemberUseCase,
+    private readonly getPlayerTeamsUseCase: GetPlayerTeamsUseCase,
   ) {}
 
   @Post()
@@ -38,6 +40,15 @@ export class TeamController {
   createTeam(@Req() req: RequestWithUser, @Body() body: CreateTeamDTO) {
     const ownerProfileId = req.user?.pid ?? '';
     return this.createTeamUseCase.execute(ownerProfileId, body);
+  }
+
+  @Get('/me')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ConnectedGuard)
+  async getMyTeams(@Req() req: RequestWithUser) {
+    const requesterProfileId = req.user?.pid ?? '';
+    const teams = await this.getPlayerTeamsUseCase.execute(requesterProfileId);
+    return teams
   }
 
   @Get(':slug/private')
@@ -62,16 +73,6 @@ export class TeamController {
     @Body() body: UpdateTeamDTO,
   ) {
     return this.updateTeamUseCase.execute(teamId, body);
-  }
-
-  @Post(':teamId/members')
-  @HttpCode(HttpStatus.CREATED)
-  @UseGuards(ConnectedGuard)
-  addTeamMember(
-    @Param('teamId', ParseUUIDPipe) teamId: string,
-    @Body() body: CreateTeamMemberDTO,
-  ) {
-    return this.createTeamMemberUseCase.execute(teamId, body);
   }
 
   @Post(':teamId/rosters')
@@ -105,4 +106,5 @@ export class TeamController {
     await this.deleteTeamUseCase.execute(teamId, body);
     return { deleted: true };
   }
+
 }

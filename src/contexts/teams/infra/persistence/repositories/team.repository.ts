@@ -7,7 +7,7 @@ import { TeamEntity } from '../../entities/team.entity';
 import { TeamMemberEntity } from '../../entities/team-member.entity';
 import { TeamRosterEntity } from '../../entities/team-roster.entity';
 import { TeamRosterMemberEntity } from '../../entities/team-roster-member.entity';
-import { CreateTeamInput, CreateTeamMemberInput, CreateTeamRosterInput, CreateTeamRosterMemberInput, TeamRepositoryPort, UpdateTeamInput } from '../../../app/ports/team.repository.port';
+import { CreateTeamInput, CreateTeamMemberInput, CreateTeamRosterInput, CreateTeamRosterMemberInput, TeamRepositoryPort, UpdateTeamInput, UpdateTeamMemberInput } from '../../../app/ports/team.repository.port';
 import { toLowerCaseTrim } from '@neeft-sas/shared';
 
 @Injectable()
@@ -65,6 +65,8 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
   async findTeamMemberByProfile(teamId: string, profileId: string): Promise<TeamMemberEntity | null> {
     const entity = await this.memberRepo.findOne({
       where: { team: { id: teamId }, profile: { id: profileId } },
+      withDeleted: true,
+      relations: ["profile"]
     });
     return entity ?? null;
   }
@@ -123,7 +125,7 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
       role: input.role ?? null,
       title: input.title ?? null,
       isHidden: input.isHidden ?? false,
-      permissions: input.permissions ?? 0,
+      permissions: input.permissions ?? 0n,
     });
 
     const saved = await this.memberRepo.save(entity);
@@ -192,5 +194,78 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
 
   async deleteTeam(teamId: string): Promise<void> {
     await this.teamRepo.delete({ id: teamId });
+  }
+
+  async findTeamsByProfile(profileId: string): Promise<TeamEntity[]> {
+    const entities = await this.teamRepo.find({
+      where: { members: { profile: { id: profileId } } },
+      relations: ['members', 'members.profile', 'country', 'languages', 'owner'],
+    });
+    return entities;
+  }
+
+  async findTeamMemberWithProfile(teamId: string, memberId: string): Promise<TeamMemberEntity | null> {
+    const entity = await this.memberRepo
+      .createQueryBuilder('member')
+      .withDeleted()
+      .leftJoinAndSelect('member.profile', 'profile')
+      .where('member.id = :memberId', { memberId })
+      .andWhere('member.team_id = :teamId', { teamId })
+      .getOne();
+    return entity ?? null;
+  }
+
+  async findTeamMembersWithProfile(teamId: string): Promise<TeamMemberEntity[]> {
+    const entity = await this.memberRepo.find({
+      where: {team: {id: teamId}},
+      withDeleted: true,
+      relations: ['profile', 'team', 'team.owner']
+    })
+    return entity ?? null;
+  }
+
+  async findTeamOwnerMember(teamId:string): Promise<TeamMemberEntity> {
+    const owner = await this.memberRepo
+      .createQueryBuilder('member')
+      .leftJoinAndSelect('member.team', 'team')
+      .leftJoinAndSelect('team.owner', 'owner')
+      .leftJoinAndSelect('member.profile', 'profile')
+      .where('owner.id = profile.id')
+      .getOne();
+    return owner
+  }
+
+  async updateTeamMember(teamId: string, memberId: string, input: UpdateTeamMemberInput): Promise<TeamMemberEntity | null> {
+    const member = await this.memberRepo.findOne({
+      where: { id: memberId, team: { id: teamId } },
+    });
+    if (!member) return null;
+
+    if (input.role !== undefined) member.role = input.role;
+    if (input.title !== undefined) member.title = input.title ?? null;
+    if (input.isHidden !== undefined) member.isHidden = input.isHidden;
+    if (input.permissions !== undefined) member.permissions = input.permissions;
+
+    await this.memberRepo.save(member);
+    return this.findTeamMemberWithProfile(teamId, memberId);
+  }
+
+  async deleteTeamMember(teamId: string, memberId: string): Promise<void> {
+    await this.memberRepo.update({id: memberId, team: { id: teamId }}, { status: 'former' });
+    await this.memberRepo.softDelete({ id: memberId, team: { id: teamId } });
+  }
+
+  async saveTeamMemberEntity(member: TeamMemberEntity): Promise<TeamMemberEntity> {
+    const saved = await this.memberRepo.save(member);
+    const reloaded = await this.memberRepo.findOne({ where: { id: saved.id } });
+    return reloaded ?? saved;
+  }
+
+  ensureTeamMemberIsValid(teamId: string, member: TeamMemberEntity): boolean {
+    if(!member) return false;
+    if(member.teamId !== teamId) return false;
+    if(member.status !== 'current') return false;
+    if(member.deletedAt !== null) return false;
+    return true
   }
 }

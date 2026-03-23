@@ -1,4 +1,4 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, RelationId, Unique, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, RelationId, Unique, UpdateDateColumn } from 'typeorm';
 import { TeamMemberRole, TEAM_MEMBER_ROLES } from '@neeft-sas/shared';
 import { TeamEntity } from './team.entity';
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
@@ -39,7 +39,13 @@ export class TeamMemberEntity {
   isHidden!: boolean;
 
   @Column({ type: 'int', unsigned: true, default: 0 })
-  permissions!: number;
+  permissions!: bigint;
+
+  @Column({name: "status", enum: ['current', 'former'], type: "enum", nullable: true})
+  status?: 'current' | 'former' | null;
+
+  @DeleteDateColumn({ name: 'deleted_at', select: false })
+  deletedAt?: Date;
 
   @CreateDateColumn({ name: 'created_at', select: false })
   createdAt!: Date;

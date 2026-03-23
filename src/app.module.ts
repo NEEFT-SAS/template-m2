@@ -14,6 +14,8 @@ import { TeamsModule } from './contexts/teams/teams.module';
 import { SocialGraphModule } from './contexts/follows/social-graph.module';
 import { MessagingModule } from './contexts/messaging/messaging.module';
 import { NotificationsModule } from './contexts/notifications/notifications.module';
+import { CalendarModule } from './contexts/calendar/calendar.module';
+import { FeedModule } from './contexts/feed/feed.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { NotificationsModule } from './contexts/notifications/notifications.modu
     SocialGraphModule,
     MessagingModule,
     NotificationsModule,
+    CalendarModule,
+    FeedModule,
   ],
   controllers: [AppController],
   providers: [AppService],

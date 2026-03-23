@@ -21,6 +21,7 @@ export const isPermissionBit = (value: PermissionMask): boolean =>
 export const hasPermissions = (mask: PermissionMask, required: PermissionMask): boolean =>
   (mask & required) === required;
 
+
 export const addPermissions = (mask: PermissionMask, add: PermissionMask): PermissionMask =>
   mask | add;
 

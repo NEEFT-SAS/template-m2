@@ -69,7 +69,7 @@ export function mapTeamResponse(
 
 export function mapTeamPrivateResponse(
   team: TeamEntity,
-  permissions: number | null,
+  permissions: bigint | null,
   teamScoreService: TeamScoreService,
 ): TeamPrivateResponse {
   return {
