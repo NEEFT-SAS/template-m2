@@ -93,3 +93,14 @@ export class FollowNotFoundError extends DomainError {
     });
   }
 }
+
+export class FollowMissingTeamPermission extends DomainError {
+  constructor() {
+    super({
+      code: 'FOLLOW_MISSING_TEAM_PERMISSION',
+      message: 'You must be a member of the team with manage follow permission to (un)follow as a team',
+      statusCode: 401,
+      fields: { follow: ['permission_denied'] },
+    });
+  }
+}

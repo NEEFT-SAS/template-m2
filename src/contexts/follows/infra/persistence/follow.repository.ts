@@ -1,20 +1,44 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { FollowEntity } from '../entities/follow.entity';
 import {
+  FOLLOW_REPOSITORY,
   FollowGraphNode,
   FollowPageResult,
   FollowRepositoryPort,
 } from '../../app/ports/follow.repository.port';
 import { FollowEntityType } from '../../domain/types/follow.types';
+import { FOLLOW_SUBJECTS_REPOSITORY, FollowSubjectsRepositoryPort } from '../../app/ports/follow-subjects.repository.port';
+import { TEAM_REPOSITORY, TeamRepositoryPort } from '@/contexts/teams/app/ports/team.repository.port';
 
 @Injectable()
 export class FollowRepositoryTypeorm implements FollowRepositoryPort {
   constructor(
     @InjectRepository(FollowEntity)
     private readonly followRepo: Repository<FollowEntity>,
+
+    @Inject(FOLLOW_SUBJECTS_REPOSITORY) private readonly followSubjectsRepo: FollowSubjectsRepositoryPort,
+    @Inject(TEAM_REPOSITORY) private readonly teamRepo: TeamRepositoryPort,
   ) {}
+
+  async resolveEntityIdBySlug(
+    entityType: FollowEntityType,
+    slug: string,
+  ): Promise<string> {
+    return (await this.resolveEntityByTypeAndSlug(entityType, slug)).id;
+  }
+  async resolveEntityByTypeAndSlug(
+    entityType: FollowEntityType,
+    slug: string,
+  ): Promise<{ id: string, slug: string, type: FollowEntityType }> {
+    const entity = entityType === 'PLAYER' ?
+      await this.followSubjectsRepo.findPlayerBySlug(slug) :
+      await this.followSubjectsRepo.findTeamBySlug(slug);
+
+    return { id: entity.id, slug: entity.slug, type: entityType };
+  }
+
 
   async createFollow(
     followerType: FollowEntityType,
@@ -114,6 +138,13 @@ export class FollowRepositoryTypeorm implements FollowRepositoryPort {
     };
   }
 
+  /**
+   * 
+   * @param teamIds 
+   * @param targetType 
+   * @param targetId 
+   * @returns List of team IDs that are following the target entity
+   */
   async listTeamFollowerIdsFollowingTarget(
     teamIds: string[],
     targetType: FollowEntityType,

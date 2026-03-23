@@ -1,0 +1,125 @@
+import { Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { FEED_REPOSITORY, FeedRepositoryPort, PostCreateInput } from '../ports/feed.repository.port';
+import { FeedForbiddenError, FeedNotFoundError } from '../../domain/errors/feed.errors';
+import { plainToInstance } from 'class-transformer';
+import { FeedPostPresenter } from '../../api/presenters/feed-post.response';
+import { GetAuthorPostsUseCase } from './get-author-posts.usecase';
+import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '@/contexts/players/app/ports/player.repository.port';
+import { TEAM_REPOSITORY, TeamRepositoryPort } from '@/contexts/teams/app/ports/team.repository.port';
+import { hasPermissions } from '@/core/security/permissions';
+import { TEAM_MEMBER_PERMISSIONS } from '@/contexts/teams/domain/team-member.permissions';
+
+@Injectable()
+export class CreatePostUseCase {
+  constructor(
+    @Inject(FEED_REPOSITORY) private readonly feedRepo: FeedRepositoryPort,
+    @Inject(PLAYER_REPOSITORY) private readonly playerRepo: PlayerRepositoryPort,
+    @Inject(TEAM_REPOSITORY) private readonly teamRepo: TeamRepositoryPort
+
+
+  ) { }
+
+  async execute(input: PostCreateInput, requesterProfileId: string) {
+    const requester = await this.playerRepo.findProfileById(requesterProfileId);
+    if (!requester) {
+      throw new NotFoundException(`Profile with id ${requesterProfileId} not found`);
+    }
+    let authorId;
+    if (input.authorType === 'PLAYER') {
+      authorId = requesterProfileId;
+    }
+    if(input.authorType === 'TEAM') {
+      const team = await this.teamRepo.findTeamBySlug(input.authorSlug);
+      if (!team) throw new NotFoundException(`Team with slug ${input.authorSlug} not found`);
+      const member = await this.teamRepo.findTeamMemberByProfile(team.id, requesterProfileId);
+      if (!member) throw new ForbiddenException(`You are not a member of the team ${input.authorSlug}`);
+      if(!hasPermissions(member.permissions, TEAM_MEMBER_PERMISSIONS.MANAGE_POSTS)) {
+        throw new ForbiddenException(`You do not have permission to manage posts in the team ${input.authorSlug}`);
+      }
+      authorId = team.id;
+    }
+
+    const post = await this.feedRepo.createPost(input, authorId);
+    return plainToInstance(FeedPostPresenter, post, { excludeExtraneousValues: true });
+  }
+}
+
+@Injectable()
+export class GetPostUseCase {
+  constructor(
+    @Inject(FEED_REPOSITORY) private readonly feedRepo: FeedRepositoryPort,
+  ) { }
+
+  async execute(postId: string, viewerProfileId?: string | null) {
+    const post = await this.feedRepo.findPostById(postId);
+    if (!post) throw new NotFoundException(`Post ${postId} not found`);
+
+    if (viewerProfileId) {
+      await this.feedRepo.incrementViewCount(postId);
+    }
+
+    return plainToInstance(FeedPostPresenter, post, { excludeExtraneousValues: true });
+  }
+}
+
+@Injectable()
+export class UpdatePostUseCase {
+  constructor(
+    @Inject(FEED_REPOSITORY) private readonly feedRepo: FeedRepositoryPort,
+    @Inject(TEAM_REPOSITORY) private readonly teamRepo: TeamRepositoryPort
+
+  ) { }
+
+  async execute(postId: string, requesterProfileId: string, input: { content?: string; gameId?: number | null; medias?: any[] }) {
+    const existing = await this.feedRepo.findPostById(postId);
+    if (!existing) throw new NotFoundException(`Post ${postId} not found`);
+
+    // Vérification propriété
+    if (existing.authorPlayer && existing.authorPlayer.id !== requesterProfileId) {
+      throw new ForbiddenException('You do not own this post');
+    }
+    else if(existing.authorTeam) {
+      const teamId = existing.authorTeam.id;
+      const member = await this.teamRepo.findTeamMemberByProfile(teamId, requesterProfileId);
+      if (!member) throw new ForbiddenException(`You are not a member of the team ${existing.authorTeam.slug}`);
+      if(!hasPermissions(member.permissions, TEAM_MEMBER_PERMISSIONS.MANAGE_POSTS)) {
+        throw new ForbiddenException(`You do not have permission to manage posts in the team ${existing.authorTeam.slug}`);
+      }
+    } else throw new ForbiddenException('You do not own this post');
+
+    const updated = await this.feedRepo.updatePost(postId, input);
+    if (!updated) throw new NotFoundException(`Post ${postId} not found`);
+
+    return plainToInstance(FeedPostPresenter, updated, { excludeExtraneousValues: true });
+  }
+}
+
+@Injectable()
+export class DeletePostUseCase {
+  constructor(
+    @Inject(FEED_REPOSITORY) private readonly feedRepo: FeedRepositoryPort,
+    @Inject(TEAM_REPOSITORY) private readonly teamRepo: TeamRepositoryPort
+
+  ) { }
+
+  async execute(postId: string, requesterProfileId: string) {
+    const existing = await this.feedRepo.findPostById(postId);
+    if (!existing) throw new NotFoundException(`Post ${postId} not found`);
+
+    if (existing.authorPlayer && existing.authorPlayer.id !== requesterProfileId) {
+      throw new ForbiddenException('You do not own this post');
+    }
+    else if(existing.authorTeam) {
+      const teamId = existing.authorTeam.id;
+      const member = await this.teamRepo.findTeamMemberByProfile(teamId, requesterProfileId);
+      if (!member) throw new ForbiddenException(`You are not a member of the team ${existing.authorTeam.slug}`);
+      if(!hasPermissions(member.permissions, TEAM_MEMBER_PERMISSIONS.MANAGE_POSTS)) {
+        throw new ForbiddenException(`You do not have permission to manage posts in the team ${existing.authorTeam.slug}`);
+      }
+    } else {
+      throw new ForbiddenException('You do not own this post');
+    }
+
+    await this.feedRepo.deletePost(postId);
+  }
+}

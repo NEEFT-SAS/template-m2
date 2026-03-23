@@ -155,3 +155,100 @@ export class TeamInvalidLanguagesError extends DomainError {
     });
   }
 }
+
+export class TeamMemberCannotEditSelfError extends DomainError {
+  constructor(memberId: string) {
+    super({
+      code: 'TEAM_MEMBER_CANNOT_EDIT_SELF',
+      message: 'You cannot edit your own internal role',
+      statusCode: 403,
+      fields: { memberId: ['forbidden_self_edit'] },
+      details: { memberId },
+    });
+  }
+}
+
+export class TeamMemberRoleForbiddenError extends DomainError {
+  constructor(actorRole: string, targetRole: string) {
+    super({
+      code: 'TEAM_MEMBER_ROLE_FORBIDDEN',
+      message: 'You cannot change the role of a member with equal or higher authority',
+      statusCode: 403,
+      fields: { role: ['forbidden'] },
+      details: { actorRole, targetRole },
+    });
+  }
+}
+
+export class TeamMemberOwnerImmutableError extends DomainError {
+  constructor() {
+    super({
+      code: 'TEAM_MEMBER_OWNER_IMMUTABLE',
+      message: 'Owner role, permissions and visibility cannot be changed',
+      statusCode: 403,
+      fields: { role: ['owner_immutable'] },
+      details: {},
+    });
+  }
+}
+
+export class TeamMemberIllegalPermissionGrantError extends DomainError {
+  constructor(illegalBits: bigint) {
+    super({
+      code: 'TEAM_MEMBER_ILLEGAL_PERMISSION_GRANT',
+      message: 'You cannot grant permissions you do not hold',
+      statusCode: 403,
+      fields: { permissions: ['illegal_grant'] },
+      details: { illegalBits: illegalBits.toString() },
+    });
+  }
+}
+
+export class TeamMemberIllegalPermissionRevokeError extends DomainError {
+  constructor(illegalBits: bigint) {
+    super({
+      code: 'TEAM_MEMBER_ILLEGAL_PERMISSION_REVOKE',
+      message: 'You cannot revoke permissions you do not hold',
+      statusCode: 403,
+      fields: { permissions: ['illegal_revoke'] },
+      details: { illegalBits: illegalBits.toString() },
+    });
+  }
+}
+
+export class TeamMemberCannotDeleteOwnerError extends DomainError {
+  constructor(teamId: string) {
+    super({
+      code: 'TEAM_MEMBER_CANNOT_DELETE_OWNER',
+      message: 'The team owner cannot be removed from the team',
+      statusCode: 403,
+      fields: { memberId: ['owner_protected'] },
+      details: { teamId },
+    });
+  }
+}
+
+export class TeamMemberEditPermissionError extends DomainError {
+  constructor(teamId: string, memberId: string, requesterId: string) {
+    super({
+      code: 'TEAM_MEMBER_EDIT_PERMISSION_ERROR',
+      message: 'Access denied',
+      statusCode: 403,
+      fields: { memberId: ['forbidden'] },
+      details: { teamId, memberId, requesterId },
+    });
+  }
+}
+
+
+export class TeamMemberManagePermissionError extends DomainError {
+  constructor(teamId: string, requesterId: string) {
+    super({
+      code: 'TEAM_MEMBER_MANAGE_PERMISSION_ERROR',
+      message: 'Access denied',
+      statusCode: 403,
+      fields: { memberId: ['forbidden'] },
+      details: { teamId, requesterId },
+    });
+  }
+}

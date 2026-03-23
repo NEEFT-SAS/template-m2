@@ -80,9 +80,6 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       where: { slug },
       select: ['id'],
     });
-
-    console.log('profileIdySlug:', slug, entity);
-    
     return entity ? entity.id : null;
   }
 
@@ -93,6 +90,15 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     });
 
     return entity ? { userProfileId: entity.id, userCredentialId: entity.userCredentialId } : null;
+  }
+
+  async findProfileById(profileId: string): Promise<UserProfileEntity | null> {
+    const entity = await this.repo.findOne({
+      where: { id: profileId },
+      relations: { nationality: true, languages: true,  },
+    });
+
+    return entity ?? null;
   }
 
   async updateProfile(context: PlayerProfileContext, payload: PlayerProfileUpdatePayload): Promise<void> {

@@ -11,7 +11,7 @@ export const FEED_REPOSITORY = Symbol('FEED_REPOSITORY');
 
 export type PostCreateInput = {
   authorType: FeedEntityType;
-  authorId: string;
+  authorSlug: string;
   content: string;
   gameId?: number | null;
   medias?: PostMediaInput[];
@@ -66,7 +66,7 @@ export type AuthorPostsResult = {
 
 export interface FeedRepositoryPort {
   // Posts
-  createPost(input: PostCreateInput): Promise<PostEntity>;
+  createPost(input: PostCreateInput, authorId: string): Promise<PostEntity>;
   findPostById(id: string): Promise<PostEntity | null>;
   updatePost(id: string, input: PostUpdateInput): Promise<PostEntity | null>;
   deletePost(id: string): Promise<void>;

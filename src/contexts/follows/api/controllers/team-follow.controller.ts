@@ -1,12 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
-import { OptionalAuthGuard } from '@/contexts/auth/infra/guards/optional-auth.guard';
-import { FollowActionDto, FollowListQueryDto } from '@neeft-sas/shared';
+import { FollowActionDto } from '@neeft-sas/shared';
 import { FollowEntityUseCase } from '../../app/usecases/follow-entity.usecase';
 import { UnfollowEntityUseCase } from '../../app/usecases/unfollow-entity.usecase';
-import { GetFollowingUseCase } from '../../app/usecases/get-following.usecase';
-import { GetFollowersUseCase } from '../../app/usecases/get-followers.usecase';
 import { GetFollowStatusUseCase } from '../../app/usecases/get-follow-status.usecase';
 
 type JwtUser = {
@@ -22,8 +19,6 @@ export class TeamFollowController {
   constructor(
     private readonly followEntityUseCase: FollowEntityUseCase,
     private readonly unfollowEntityUseCase: UnfollowEntityUseCase,
-    private readonly getFollowingUseCase: GetFollowingUseCase,
-    private readonly getFollowersUseCase: GetFollowersUseCase,
     private readonly getFollowStatusUseCase: GetFollowStatusUseCase,
   ) {}
 
@@ -33,7 +28,9 @@ export class TeamFollowController {
   followTeam(@Req() req: RequestWithUser, @Param('slug') slug: string, @Body() body: FollowActionDto) {
     const requesterProfileId = req.user?.pid ?? '';
     const requesterSlug = req.user?.slug;
-    return this.followEntityUseCase.execute(requesterProfileId, requesterSlug, 'TEAM', slug, body);
+    body.followedType = 'TEAM';
+    body.followedSlug = slug;
+    return this.followEntityUseCase.execute(requesterProfileId, requesterSlug, body);
   }
 
   @Delete(':slug/follow')
@@ -42,10 +39,12 @@ export class TeamFollowController {
   unfollowTeam(@Req() req: RequestWithUser, @Param('slug') slug: string, @Body() body: FollowActionDto) {
     const requesterProfileId = req.user?.pid ?? '';
     const requesterSlug = req.user?.slug;
-    return this.unfollowEntityUseCase.execute(requesterProfileId, requesterSlug, 'TEAM', slug, body);
+    body.followedType = 'TEAM';
+    body.followedSlug = slug;
+    return this.unfollowEntityUseCase.execute(requesterProfileId, requesterSlug, body);
   }
 
-  @Get(':slug/following')
+/*   @Get(':slug/following')
   @HttpCode(HttpStatus.OK)
   @UseGuards(OptionalAuthGuard)
   getTeamFollowing(
@@ -65,7 +64,7 @@ export class TeamFollowController {
     @Req() req: RequestWithUser,
   ) {
     return this.getFollowersUseCase.execute('TEAM', slug, req.user?.pid, query);
-  }
+  } */
 
   @Get(':slug/follow-status')
   @HttpCode(HttpStatus.OK)

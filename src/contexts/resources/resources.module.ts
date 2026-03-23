@@ -20,11 +20,14 @@ import { RscGamePlatformEntity } from './infra/persistence/entities/games/relati
 import { RscGamePositionEntity } from './infra/persistence/entities/games/relations/rsc-game-positions.entity';
 import { RscGameRankEntity } from './infra/persistence/entities/games/relations/rsc-game-ranks.entity';
 import { RscGameSeasonEntity } from './infra/persistence/entities/games/relations/rsc-game-seasons.entity';
+import { RscStaffEntity } from './infra/persistence/entities/staffs/base/rsc-staffs.entity';
+import { RscStaffCategoryEntity } from './infra/persistence/entities/staffs/base/rsc-staff-categories.entity';
+import { RscStaffCategoryOptionEntity } from './infra/persistence/entities/staffs/base/rsc-staff-category-options';
+import { RscStaffRoleEntity } from './infra/persistence/entities/staff/rsc-staff-role.entity';
 import { RscStaffOptionEntity } from './infra/persistence/entities/staff/rsc-staff-option.entity';
 import { RscStaffOptionGroupEntity } from './infra/persistence/entities/staff/rsc-staff-option-group.entity';
 import { RscStaffGroupOptionEntity } from './infra/persistence/entities/staff/rsc-staff-group-option.entity';
 import { RscStaffRoleOptionLinkEntity } from './infra/persistence/entities/staff/rsc-staff-role-option-link.entity';
-import { RscStaffRoleEntity } from './infra/persistence/entities/staff/rsc-staff-role.entity';
 
 
 @Module({
@@ -46,9 +49,12 @@ import { RscStaffRoleEntity } from './infra/persistence/entities/staff/rsc-staff
     RscGameRankEntity,
     RscGameSeasonEntity,
     RscGameCharacterEntity,
+    RscStaffEntity,
+    RscStaffCategoryEntity,
+    RscStaffCategoryOptionEntity,
     RscStaffRoleEntity,
-    RscStaffOptionGroupEntity,
     RscStaffOptionEntity,
+    RscStaffOptionGroupEntity,
     RscStaffGroupOptionEntity,
     RscStaffRoleOptionLinkEntity,
   ])],

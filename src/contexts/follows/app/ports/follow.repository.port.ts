@@ -16,6 +16,14 @@ export type FollowPageResult = {
 };
 
 export interface FollowRepositoryPort {
+  resolveEntityIdBySlug(
+    entityType: FollowEntityType,
+    slug: string,
+  ): Promise<string>;
+  resolveEntityByTypeAndSlug(
+    entityType: FollowEntityType,
+    slug: string,
+  ): Promise<{ id: string, slug: string, type: FollowEntityType }>;
   createFollow(
     followerType: FollowEntityType,
     followerId: string,

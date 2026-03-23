@@ -13,6 +13,7 @@ import {
 import { CreateTeamDTO, TeamPresenter } from '@/typage';
 import { TeamScoreService } from '../../services/team-score.service';
 import { mapTeamResponse } from '../../services/team-response.mapper';
+import { TEAM_MEMBER_PERMISSIONS_ALL } from '@/contexts/teams/domain/team-member.permissions';
 
 @Injectable()
 export class CreateTeamUseCase {
@@ -57,10 +58,21 @@ export class CreateTeamUseCase {
       throw new TeamInvalidLanguagesError(invalidLanguageIds);
     }
 
+    const isFoundedAtPresent = dto.foundedAt !== undefined && dto.foundedAt !== null;
+    if (isFoundedAtPresent) {
+      const foundedAtDate = new Date(dto.foundedAt);
+      if (isNaN(foundedAtDate.getTime())) {
+        throw new Error('Invalid foundedAt date');
+      }
+      if(foundedAtDate > new Date()) {
+        throw new Error('Founded date cannot be in the future');
+      }
+    }
+
     const slug = await slugifyUnique(
       dto.name,
-      async (candidate) => this.repo.existsSlug(candidate),
-      { allowBaseSlug: true, suffixDigits: 4, maxRetries: 12 },
+      async (candidate) => await this.repo.existsSlug(candidate),
+      { allowBaseSlug: false, suffixDigits: 4, maxRetries: 12 },
     );
 
     const created = await this.repo.createTeam({
@@ -76,6 +88,13 @@ export class CreateTeamUseCase {
       city: dto.city ?? null,
       countryId: dto.countryId ?? null,
       languageIds,
+    });
+    await this.repo.createTeamMember(created.id, {
+      profileId: ownerProfileId,
+      role: 'OWNER',
+      isHidden: false,
+      title: "Team owner",
+      permissions: TEAM_MEMBER_PERMISSIONS_ALL
     });
     await this.teamScoreService.recomputeTeamScores(created.id);
     const withScores = await this.repo.findTeamById(created.id);

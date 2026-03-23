@@ -39,7 +39,14 @@ export type CreateTeamMemberInput = {
   role?: TeamMemberRole | null;
   title?: string | null;
   isHidden?: boolean;
-  permissions?: number;
+  permissions?: bigint;
+};
+
+export type UpdateTeamMemberInput = {
+  role?: TeamMemberRole | null;
+  title?: string | null;
+  isHidden?: boolean;
+  permissions?: bigint;
 };
 
 export type CreateTeamRosterInput = {
@@ -75,5 +82,13 @@ export interface TeamRepositoryPort {
   createRoster(teamId: string, input: CreateTeamRosterInput): Promise<TeamRosterEntity>;
   createRosterMember(rosterId: string, input: CreateTeamRosterMemberInput): Promise<TeamRosterMemberEntity>;
   updateTeam(teamId: string, input: UpdateTeamInput): Promise<TeamEntity | null>;
+  updateTeamMember(teamId: string, memberId: string, input: UpdateTeamMemberInput): Promise<TeamMemberEntity | null>;
   deleteTeam(teamId: string): Promise<void>;
+  deleteTeamMember(teamId: string, memberId: string): Promise<void>;
+  findTeamsByProfile(profileId: string): Promise<TeamEntity[]>;
+  findTeamMemberWithProfile(teamId: string, memberId: string): Promise<TeamMemberEntity | null>;
+  findTeamMembersWithProfile(teamId: string): Promise<TeamMemberEntity[] | null>;
+  findTeamOwnerMember(teamId: string): Promise<TeamMemberEntity | null>;
+  ensureTeamMemberIsValid(teamId: string, member: TeamMemberEntity): boolean;
+  saveTeamMemberEntity(member: TeamMemberEntity): Promise<TeamMemberEntity>;
 }

@@ -101,7 +101,7 @@ export class FollowSubjectsRepositoryTypeorm implements FollowSubjectsRepository
     const permittedMembers = memberTeams
       .filter(
         (member) =>
-          (member.permissions & TEAM_MEMBER_PERMISSIONS.MANAGE_FOLLOW) ===
+          (BigInt(member.permissions) & TEAM_MEMBER_PERMISSIONS.MANAGE_FOLLOW) ===
           TEAM_MEMBER_PERMISSIONS.MANAGE_FOLLOW,
       )
       .map((member) => ({
@@ -117,7 +117,6 @@ export class FollowSubjectsRepositoryTypeorm implements FollowSubjectsRepository
     for (const team of permittedMembers) {
       map.set(team.id, team.slug);
     }
-
     return Array.from(map.entries()).map(([id, slug]) => ({ id, slug }));
   }
 }

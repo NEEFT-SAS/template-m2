@@ -235,6 +235,7 @@ export interface PlayerRepositoryPort {
   findPrivateProfileBySlug(slug: string): Promise<PlayerPrivateProfileSnapshot | null>; // public info + email + birthDate
   findProfileIdBySlug(slug: string): Promise<string | null>; // profileId only
   findProfileContextBySlug(slug: string): Promise<PlayerProfileContext | null>; // profileId + credentialId
+  findProfileById(profileId: string): Promise<UserProfileEntity | null>;
   updateProfile(context: PlayerProfileContext, payload: PlayerProfileUpdatePayload): Promise<void>; // update profile and optionally credentials
 
   findSocialLinks(userProfileId: string): Promise<UserSocialLinkEntity[]>;

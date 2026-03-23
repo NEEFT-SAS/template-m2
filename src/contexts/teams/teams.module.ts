@@ -10,6 +10,9 @@ import { UpdateTeamUseCase } from './app/usecases/profile/update-team.usecase';
 import { DeleteTeamUseCase } from './app/usecases/profile/delete-team.usecase';
 import { GetTeamProfileUseCase } from './app/usecases/profile/get-team-profile.usecase';
 import { CreateTeamMemberUseCase } from './app/usecases/members/create-team-member.usecase';
+import { GetTeamMembersUseCase } from './app/usecases/members/get-team-members.usecase';
+import { UpdateTeamMemberUseCase } from './app/usecases/members/update-team-member.usecase';
+import { DeleteTeamMemberUseCase } from './app/usecases/members/delete-team-member.usecase';
 import { CreateTeamRosterUseCase } from './app/usecases/rosters/create-team-roster.usecase';
 import { AddTeamRosterMemberUseCase } from './app/usecases/rosters/add-team-roster-member.usecase';
 import { TEAM_REPOSITORY } from './app/ports/team.repository.port';
@@ -24,6 +27,9 @@ import { TeamReportsController } from './api/team-reports.controller';
 import { CreateRecommendationUseCase } from '@/contexts/players/app/usecases/recommendations/create-recommendation.usecase';
 import { DeleteRecommendationUseCase } from '@/contexts/players/app/usecases/recommendations/delete-recommendation.usecase';
 import { TeamScoreService } from './app/services/team-score.service';
+import { GetPlayerTeamsUseCase } from './app/usecases/get-player-team.usecase';
+import { TeamMembersController } from './api/team-member.controller';
+import { RestoreTeamMemberUseCase } from './app/usecases/members/restore-team-member.usecase';
 
 @Module({
   imports: [
@@ -42,6 +48,7 @@ import { TeamScoreService } from './app/services/team-score.service';
     TeamController,
     TeamRecommendationsController,
     TeamReportsController,
+    TeamMembersController,
   ],
   providers: [
     CreateTeamUseCase,
@@ -49,12 +56,17 @@ import { TeamScoreService } from './app/services/team-score.service';
     UpdateTeamUseCase,
     DeleteTeamUseCase,
     CreateTeamMemberUseCase,
+    GetTeamMembersUseCase,
+    UpdateTeamMemberUseCase,
+    DeleteTeamMemberUseCase,
     CreateTeamRosterUseCase,
+    RestoreTeamMemberUseCase,
     AddTeamRosterMemberUseCase,
     TeamScoreService,
     TeamOwnerOrAdminGuard,
     CreateRecommendationUseCase,
     DeleteRecommendationUseCase,
+    GetPlayerTeamsUseCase,
     { provide: TEAM_REPOSITORY, useClass: TeamRepositoryTypeorm },
   ],
   exports: [TEAM_REPOSITORY, TeamScoreService],
