@@ -261,11 +261,10 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
     return reloaded ?? saved;
   }
 
-  ensureTeamMemberIsValid(teamId: string, member: TeamMemberEntity): boolean {
+  ensureTeamMemberIsValid(member: TeamMemberEntity): boolean {
     if(!member) return false;
-    if(member.teamId !== teamId) return false;
     if(member.status !== 'current') return false;
-    if(member.deletedAt !== null) return false;
+    if(member.deletedAt && member.deletedAt !== null) return false;
     return true
   }
 }

@@ -57,9 +57,10 @@ export class UpdateTeamMemberUseCase {
     if (!team) throw new TeamNotFoundError(teamSlug);
 
     const requester = await this.repo.findTeamMemberByProfile(team.id, requesterProfileId);
-    if (!this.repo.ensureTeamMemberIsValid(team.id, requester)) throw new TeamMemberNotFoundError(team.id, requesterProfileId);
+    console.log('Requester:', requester, requester.status, requester.deletedAt != null, this.repo.ensureTeamMemberIsValid(requester));
+    if (!this.repo.ensureTeamMemberIsValid(requester)) throw new TeamMemberNotFoundError(team.id, requesterProfileId);
     const target = await this.repo.findTeamMemberWithProfile(team.id, targetMemberId);
-    if (!this.repo.ensureTeamMemberIsValid(team.id, target)) throw new TeamMemberNotFoundError(team.id, targetMemberId);
+    if (!this.repo.ensureTeamMemberIsValid(target)) throw new TeamMemberNotFoundError(team.id, targetMemberId);
 
     const isOwner = requesterProfileId == team.owner.id;
     const canManageMembers = hasPermissions(BigInt(requester.permissions) ?? 0n, TEAM_MEMBER_PERMISSIONS.MANAGE_MEMBERS) || isOwner;

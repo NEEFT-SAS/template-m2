@@ -48,11 +48,11 @@ export class DeleteTeamMemberUseCase {
     if (!team) throw new TeamNotFoundError(teamSlug);
 
     const requester = await this.repo.findTeamMemberByProfile(team.id, requesterProfileId);
-    if (!this.repo.ensureTeamMemberIsValid(team.id, requester)) {
+    if (!this.repo.ensureTeamMemberIsValid(requester)) {
       throw new TeamMemberNotFoundError(team.id, requesterProfileId);
     }
     const target = await this.repo.findTeamMemberWithProfile(team.id, targetMemberId);
-    if (!this.repo.ensureTeamMemberIsValid(team.id, target)) {
+    if (!this.repo.ensureTeamMemberIsValid(target)) {
       throw new TeamMemberNotFoundError(team.id, targetMemberId);
     }
 

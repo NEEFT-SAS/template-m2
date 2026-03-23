@@ -89,6 +89,6 @@ export interface TeamRepositoryPort {
   findTeamMemberWithProfile(teamId: string, memberId: string): Promise<TeamMemberEntity | null>;
   findTeamMembersWithProfile(teamId: string): Promise<TeamMemberEntity[] | null>;
   findTeamOwnerMember(teamId: string): Promise<TeamMemberEntity | null>;
-  ensureTeamMemberIsValid(teamId: string, member: TeamMemberEntity): boolean;
+  ensureTeamMemberIsValid(member: TeamMemberEntity): boolean;
   saveTeamMemberEntity(member: TeamMemberEntity): Promise<TeamMemberEntity>;
 }

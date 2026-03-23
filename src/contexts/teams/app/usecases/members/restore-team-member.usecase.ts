@@ -43,7 +43,7 @@ export class RestoreTeamMemberUseCase {
     }
 
     const requester = await this.repo.findTeamMemberByProfile(team.id, requesterProfileId);
-    if (!this.repo.ensureTeamMemberIsValid(team.id, requester)) {
+    if (!this.repo.ensureTeamMemberIsValid(requester)) {
       throw new TeamMemberNotFoundError(team.id, requesterProfileId);
     }
 
