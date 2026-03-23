@@ -3,6 +3,8 @@ import { plainToInstance } from 'class-transformer';
 import { RecommendationPresenter } from '@neeft-sas/shared';
 import { PLAYER_REPOSITORY, PlayerRepositoryPort } from '../../ports/player.repository.port';
 import { PlayerNotFoundError } from '../../../domain/errors/player-profile.errors';
+import { TEAM_REPOSITORY, TeamRepositoryPort } from '@/contexts/teams/app/ports/team.repository.port';
+import { TeamNotFoundError } from '@/contexts/teams/domain/errors/team.errors';
 
 export type ListPlayerRecommendationsResult = {
   data: {
@@ -22,22 +24,41 @@ export type ListPlayerRecommendationsResult = {
 export class ListPlayerGivenRecommendationsUseCase {
   constructor(
     @Inject(PLAYER_REPOSITORY) private readonly repo: PlayerRepositoryPort,
+    @Inject(TEAM_REPOSITORY) private readonly teamRepo: TeamRepositoryPort,
   ) {}
 
   async execute(
     authorSlug: string,
     query: { page: number; perPage: number },
     _viewer: { slug?: string; roles?: string[] } | undefined,
+    authorType: 'player' | 'team' = 'player',
   ): Promise<ListPlayerRecommendationsResult> {
-    const authorProfileId = await this.repo.findProfileIdBySlug(authorSlug);
-    if (!authorProfileId) {
-      throw new PlayerNotFoundError(authorSlug);
+    let authorProfileId: string | null = null;
+    let authorTeamId: string | null = null;
+
+    if (authorType === 'team') {
+      const normalizedSlug = String(authorSlug ?? '').trim().toLowerCase();
+      const team = normalizedSlug ? await this.teamRepo.findTeamBySlug(normalizedSlug) : null;
+      if (!team) {
+        throw new TeamNotFoundError(authorSlug);
+      }
+      authorTeamId = team.id;
+    } else {
+      authorProfileId = await this.repo.findProfileIdBySlug(authorSlug);
+      if (!authorProfileId) {
+        throw new PlayerNotFoundError(authorSlug);
+      }
     }
 
-    const { items, total, ratingAverage, ratingCount, ratingSum } = await this.repo.findPlayerRecommendationsGiven(authorProfileId, {
-      page: query.page,
-      perPage: query.perPage,
-    });
+    const { items, total, ratingAverage, ratingCount, ratingSum } = authorTeamId
+      ? await this.repo.findTeamRecommendationsGiven(authorTeamId, {
+          page: query.page,
+          perPage: query.perPage,
+        })
+      : await this.repo.findPlayerRecommendationsGiven(authorProfileId!, {
+          page: query.page,
+          perPage: query.perPage,
+        });
 
     return {
       data: {

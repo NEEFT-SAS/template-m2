@@ -281,8 +281,11 @@ export interface PlayerRepositoryPort {
 
   createRecommendation(input: RecommendationCreateInput): Promise<RecommendationEntity>;
   existsPlayerToPlayerRecommendation(authorProfileId: string, targetProfileId: string): Promise<boolean>;
+  existsPlayerToTeamRecommendation(authorProfileId: string, targetTeamId: string): Promise<boolean>;
   findRecommendationSnapshotById(recommendationId: string): Promise<RecommendationSnapshot | null>;
   deleteRecommendation(recommendationId: string): Promise<void>;
   findPlayerRecommendationsReceived(userProfileId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
   findPlayerRecommendationsGiven(userProfileId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
+  findTeamRecommendationsReceived(teamId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
+  findTeamRecommendationsGiven(teamId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
 }

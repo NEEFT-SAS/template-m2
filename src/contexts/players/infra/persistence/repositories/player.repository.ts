@@ -476,6 +476,19 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
     return !!exists;
   }
 
+  async existsPlayerToTeamRecommendation(authorProfileId: string, targetTeamId: string): Promise<boolean> {
+    const exists = await this.recommendationsRepo.exists({
+      where: {
+        authorType: 'player',
+        targetType: 'team',
+        authorProfile: { id: authorProfileId },
+        targetTeam: { id: targetTeamId },
+      },
+    });
+
+    return !!exists;
+  }
+
   async findRecommendationSnapshotById(recommendationId: string): Promise<{
     id: string;
     targetType: 'player' | 'team';
@@ -599,6 +612,94 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       .addSelect('COALESCE(SUM(r.rating), 0)', 'ratingSum')
       .where('r.authorType = :authorType', { authorType: 'player' })
       .andWhere('authorProfile.id = :userProfileId', { userProfileId })
+      .andWhere('r.rating IS NOT NULL');
+
+    const stats = await statsQuery.getRawOne<{
+      ratingAverage: string | null;
+      ratingCount: string | null;
+      ratingSum: string | null;
+    }>();
+
+    const ratingAverage = stats?.ratingAverage ? Number(stats.ratingAverage) : null;
+    const ratingCount = stats?.ratingCount ? Number(stats.ratingCount) : 0;
+    const ratingSum = stats?.ratingSum ? Number(stats.ratingSum) : 0;
+
+    return { items, total, ratingAverage, ratingCount, ratingSum };
+  }
+
+  async findTeamRecommendationsReceived(teamId: string, query: RecommendationListQuery): Promise<RecommendationListResult> {
+    const page = query.page ?? 1;
+    const perPage = query.perPage ?? 20;
+    const skip = (page - 1) * perPage;
+
+    const base = this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.targetProfile', 'targetProfile')
+      .leftJoinAndSelect('r.targetTeam', 'targetTeam')
+      .leftJoinAndSelect('r.authorProfile', 'authorProfile')
+      .leftJoinAndSelect('r.authorTeam', 'authorTeam')
+      .where('r.targetType = :targetType', { targetType: 'team' })
+      .andWhere('targetTeam.id = :teamId', { teamId });
+
+    const [items, total] = await base
+      .orderBy('r.createdAt', 'DESC')
+      .addOrderBy('r.id', 'DESC')
+      .skip(skip)
+      .take(perPage)
+      .getManyAndCount();
+
+    const statsQuery = this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoin('r.targetTeam', 'targetTeam')
+      .select('AVG(r.rating)', 'ratingAverage')
+      .addSelect('COUNT(r.rating)', 'ratingCount')
+      .addSelect('COALESCE(SUM(r.rating), 0)', 'ratingSum')
+      .where('r.targetType = :targetType', { targetType: 'team' })
+      .andWhere('targetTeam.id = :teamId', { teamId })
+      .andWhere('r.rating IS NOT NULL');
+
+    const stats = await statsQuery.getRawOne<{
+      ratingAverage: string | null;
+      ratingCount: string | null;
+      ratingSum: string | null;
+    }>();
+
+    const ratingAverage = stats?.ratingAverage ? Number(stats.ratingAverage) : null;
+    const ratingCount = stats?.ratingCount ? Number(stats.ratingCount) : 0;
+    const ratingSum = stats?.ratingSum ? Number(stats.ratingSum) : 0;
+
+    return { items, total, ratingAverage, ratingCount, ratingSum };
+  }
+
+  async findTeamRecommendationsGiven(teamId: string, query: RecommendationListQuery): Promise<RecommendationListResult> {
+    const page = query.page ?? 1;
+    const perPage = query.perPage ?? 20;
+    const skip = (page - 1) * perPage;
+
+    const base = this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoinAndSelect('r.targetProfile', 'targetProfile')
+      .leftJoinAndSelect('r.targetTeam', 'targetTeam')
+      .leftJoinAndSelect('r.authorProfile', 'authorProfile')
+      .leftJoinAndSelect('r.authorTeam', 'authorTeam')
+      .where('r.authorType = :authorType', { authorType: 'team' })
+      .andWhere('authorTeam.id = :teamId', { teamId });
+
+    const [items, total] = await base
+      .orderBy('r.createdAt', 'DESC')
+      .addOrderBy('r.id', 'DESC')
+      .skip(skip)
+      .take(perPage)
+      .getManyAndCount();
+
+    const statsQuery = this.recommendationsRepo
+      .createQueryBuilder('r')
+      .leftJoin('r.authorTeam', 'authorTeam')
+      .select('AVG(r.rating)', 'ratingAverage')
+      .addSelect('COUNT(r.rating)', 'ratingCount')
+      .addSelect('COALESCE(SUM(r.rating), 0)', 'ratingSum')
+      .where('r.authorType = :authorType', { authorType: 'team' })
+      .andWhere('authorTeam.id = :teamId', { teamId })
       .andWhere('r.rating IS NOT NULL');
 
     const stats = await statsQuery.getRawOne<{

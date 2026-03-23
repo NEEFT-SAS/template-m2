@@ -26,6 +26,8 @@ import { TeamRecommendationsController } from './api/team-recommendations.contro
 import { TeamReportsController } from './api/team-reports.controller';
 import { CreateRecommendationUseCase } from '@/contexts/players/app/usecases/recommendations/create-recommendation.usecase';
 import { DeleteRecommendationUseCase } from '@/contexts/players/app/usecases/recommendations/delete-recommendation.usecase';
+import { ListPlayerReceivedRecommendationsUseCase } from '@/contexts/players/app/usecases/recommendations/list-player-received-recommendations.usecase';
+import { ListPlayerGivenRecommendationsUseCase } from '@/contexts/players/app/usecases/recommendations/list-player-given-recommendations.usecase';
 import { TeamScoreService } from './app/services/team-score.service';
 import { GetPlayerTeamsUseCase } from './app/usecases/get-player-team.usecase';
 import { TeamMembersController } from './api/team-member.controller';
@@ -66,6 +68,8 @@ import { RestoreTeamMemberUseCase } from './app/usecases/members/restore-team-me
     TeamOwnerOrAdminGuard,
     CreateRecommendationUseCase,
     DeleteRecommendationUseCase,
+    ListPlayerReceivedRecommendationsUseCase,
+    ListPlayerGivenRecommendationsUseCase,
     GetPlayerTeamsUseCase,
     { provide: TEAM_REPOSITORY, useClass: TeamRepositoryTypeorm },
   ],
