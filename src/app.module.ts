@@ -14,6 +14,7 @@ import { TeamsModule } from './contexts/teams/teams.module';
 import { SocialGraphModule } from './contexts/follows/social-graph.module';
 import { MessagingModule } from './contexts/messaging/messaging.module';
 import { NotificationsModule } from './contexts/notifications/notifications.module';
+import { RecruitmentModule } from './contexts/recruitment/recruitment.module';
 import { CalendarModule } from './contexts/calendar/calendar.module';
 import { FeedModule } from './contexts/feed/feed.module';
 
@@ -32,10 +33,11 @@ import { FeedModule } from './contexts/feed/feed.module';
     SocialGraphModule,
     MessagingModule,
     NotificationsModule,
+    RecruitmentModule,
     CalendarModule,
     FeedModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
