@@ -11,13 +11,13 @@ import {
   Unique,
   UpdateDateColumn,
 } from 'typeorm';
-import { TeamMemberRole, TEAM_MEMBER_ROLES } from '@neeft-sas/shared';
 import { TeamEntity } from '@/contexts/teams/infra/entities/team.entity';
 import { RscGameEntity } from '@/contexts/resources/infra/persistence/entities/games/rsc-games.entity';
 import { RscGamePositionEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-positions.entity';
 import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-ranks.entity';
 import { RecruitmentQuestionEntity } from './recruitment-question.entity';
 import { RecruitmentApplicationEntity } from './recruitment-application.entity';
+import { TEAM_RECRUITMENT_TARGETS, TeamRecruitmentTarget } from '../../../domain/types/recruitment.types';
 
 @Entity('team_recruitments')
 @Unique(['team', 'slug'])
@@ -55,11 +55,11 @@ export class RecruitmentEntity {
 
   @Column({
     type: 'enum',
-    enum: TEAM_MEMBER_ROLES,
-    enumName: 'team_member_role_enum',
-    default: 'PLAYER',
+    enum: TEAM_RECRUITMENT_TARGETS,
+    enumName: 'team_recruitment_target_enum',
+    default: 'MEMBER',
   })
-  target!: TeamMemberRole;
+  target!: TeamRecruitmentTarget;
 
   @ManyToOne(() => RscGameEntity, { eager: true, nullable: true })
   @JoinColumn({ name: 'game_id' })

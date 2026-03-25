@@ -40,7 +40,7 @@ async function seed() {
       'recherche-jungler-diamant-' + Math.floor(Math.random() * 10000),
       'Nous recherchons un Jungler sérieux pour tryhard le prochain split de la ligue régionale.',
       'Description très détaillée du poste : entrainement 3 fois par semaine, VOD reviews le week-end, coach à disposition.',
-      'PLAYER',
+      'MEMBER',
       gameId,
       true, // urgent
       false, // is_paid
