@@ -7,6 +7,7 @@ import { CreateRecommendationUseCase } from "@/contexts/players/app/usecases/rec
 import { DeleteRecommendationUseCase } from "@/contexts/players/app/usecases/recommendations/delete-recommendation.usecase";
 import { ListPlayerReceivedRecommendationsUseCase } from "@/contexts/players/app/usecases/recommendations/list-player-received-recommendations.usecase";
 import { ListPlayerGivenRecommendationsUseCase } from "@/contexts/players/app/usecases/recommendations/list-player-given-recommendations.usecase";
+import { TeamOwnerOrAdminGuard } from "../infra/guards/team-owner-or-admin.guard";
 
 type JwtUser = {
   pid?: string;
@@ -68,7 +69,7 @@ export class TeamRecommendationsController {
 
   @Delete(':slug/recommendations/:recommendationId')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(ConnectedGuard)
+  @UseGuards(ConnectedGuard, TeamOwnerOrAdminGuard)
   async deleteRecommendation(@Req() req: RequestWithUser,@Param('slug') _slug: string,@Param('recommendationId', ParseUUIDPipe) recommendationId: string) {
     const requesterProfileId = req.user?.pid ?? '';
     const isAdmin = Array.isArray(req.user?.roles) && req.user?.roles.includes('admin');

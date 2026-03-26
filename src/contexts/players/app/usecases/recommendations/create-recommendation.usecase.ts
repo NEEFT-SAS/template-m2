@@ -90,6 +90,13 @@ export class CreateRecommendationUseCase {
     const authorPublicSlug = authorProfile.slug;
     const authorAvatarUrl = authorProfile.profilePicture ?? null;
 
+    if (targetType === 'team' && targetTeamId) {
+      const alreadyExists = await this.repo.existsPlayerToTeamRecommendation(authorProfileId, targetTeamId);
+      if (alreadyExists) {
+        throw new RecommendationAlreadyExistsError();
+      }
+    }
+
     const recommendation = await this.repo.createRecommendation({
       targetType,
       targetProfileId,
