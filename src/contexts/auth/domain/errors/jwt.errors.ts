@@ -5,7 +5,7 @@ export class JwtMalformedError extends DomainError {
     super({
       code: 'JWT_MALFORMED',
       message: 'Malformed JWT token',
-      statusCode: 400,
+      statusCode: 401,
       fields: {
         token: ['Malformed JWT token'],
       },

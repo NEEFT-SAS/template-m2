@@ -34,8 +34,9 @@ async function bootstrap() {
     credentials: true, // Autorise les cookies et credentials
   })
 
+  const exceptionFilter = app.get(HttpExceptionFilter)
   app.useGlobalPipes(buildGlobalValidationPipe()); // -> transforme les erreurs DTO en { code, message, fields }
-  app.useGlobalFilters(new HttpExceptionFilter()); // -> transforme toutes les erreurs (DomainError, HttpException...) en { code, message, fields?, details? }
+  app.useGlobalFilters(exceptionFilter); // -> transforme toutes les erreurs (DomainError, HttpException...) en { code, message, fields?, details? }
   app.useGlobalInterceptors(new ResponseInterceptor()); // -> transforme toutes les reponses OK en { data, meta? }
 
   await app.listen(process.env.PORT ?? 4000);
