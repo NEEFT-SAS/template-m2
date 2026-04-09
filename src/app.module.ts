@@ -17,6 +17,7 @@ import { NotificationsModule } from './contexts/notifications/notifications.modu
 import { RecruitmentModule } from './contexts/recruitment/recruitment.module';
 import { CalendarModule } from './contexts/calendar/calendar.module';
 import { FeedModule } from './contexts/feed/feed.module';
+import { AdsModule } from './contexts/ads/ads.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { FeedModule } from './contexts/feed/feed.module';
     RecruitmentModule,
     CalendarModule,
     FeedModule,
+    AdsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

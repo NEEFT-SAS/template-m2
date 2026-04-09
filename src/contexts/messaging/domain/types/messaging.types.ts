@@ -58,3 +58,9 @@ export const MESSAGING_SOCKET_EVENTS = {
   CONVERSATION_READ: 'messaging.conversation.read',
   UNREAD_COUNT_UPDATED: 'messaging.unread-count.updated',
 } as const;
+
+export const MESSAGING_SOCKET_COMMANDS = {
+  START_CONVERSATION: 'messaging.start-conversation',
+  SEND_MESSAGE: 'messaging.send-message',
+  MARK_CONVERSATION_READ: 'messaging.mark-conversation-read',
+} as const;
