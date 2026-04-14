@@ -45,6 +45,18 @@ $ yarn run start:dev
 $ yarn run start:prod
 ```
 
+## Local dependencies
+
+The search endpoints require Typesense (`TYPESENSE_HOST/TYPESENSE_PORT`).
+
+- In local development (`start:dev` and `start:debug`), the backend now auto-starts `typesense` with Docker Compose from the workspace root before booting Nest.
+- If Docker is not running, startup will fail with an explicit error.
+- Manual command (if needed):
+
+```bash
+docker compose up -d typesense
+```
+
 ## Run tests
 
 ```bash

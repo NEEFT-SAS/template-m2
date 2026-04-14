@@ -8,9 +8,10 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "dev:ensure-typesense": "node scripts/ensure-typesense.mjs",
     "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
+    "start:dev": "npm run dev:ensure-typesense && nest start --watch",
+    "start:debug": "npm run dev:ensure-typesense && nest start --debug --watch",
     "start:prod": "node dist/main",
     "seed": "ts-node -r tsconfig-paths/register src/core/database/seeds/seed.ts",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
@@ -18,7 +19,15 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "seed:new": "ts-node -r tsconfig-paths/register src/new_seeders/run-seeders.ts",
+    "seed:new:backfill-scores": "ts-node -r tsconfig-paths/register src/new_seeders/backfill-profile-scores.ts",
+    "seed:new:cleanup-orphans": "ts-node -r tsconfig-paths/register src/new_seeders/cleanup-orphan-users.ts",
+    "seed:new:normalize-slugs": "ts-node -r tsconfig-paths/register src/new_seeders/normalize-slugs.ts",
+    "seed:new:process-affiliate-statuses": "ts-node -r tsconfig-paths/register src/new_seeders/process-affiliate-statuses.ts",
+    "seed:new:legacy-player-migration": "ts-node -r tsconfig-paths/register src/new_seeders/legacy-player-migration/run-player-migration.ts",
+    "seed:new:legacy-team-migration": "ts-node -r tsconfig-paths/register src/new_seeders/legacy-team-migration/run-team-migration.ts",
+    "seed:new:legacy-team-social-migration": "ts-node -r tsconfig-paths/register src/new_seeders/legacy-team-social-migration/run-team-social-migration.ts"
   },
   "dependencies": {
     "@neeft-sas/shared": "^0.0.89",

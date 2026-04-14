@@ -36,6 +36,7 @@ type CollectionState = 'ready' | 'empty' | 'created' | 'recreated';
 @Injectable()
 export class PlayerSearchIndexer implements OnModuleInit {
   private readonly logger = new Logger(PlayerSearchIndexer.name);
+  private readonly initRetryDelayMs = 10_000;
 
   constructor(
     private readonly typesense: TypesenseService,
@@ -46,6 +47,10 @@ export class PlayerSearchIndexer implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
+    void this.runInitSyncWithRetry();
+  }
+
+  private async runInitSyncWithRetry(): Promise<void> {
     try {
       const state = await this.ensureCollection();
       const shouldSyncByState = state !== 'ready';
@@ -59,6 +64,9 @@ export class PlayerSearchIndexer implements OnModuleInit {
       );
     } catch (err: any) {
       this.logger.error(`Typesense init failed: ${err?.message ?? err}`);
+      setTimeout(() => {
+        void this.runInitSyncWithRetry();
+      }, this.initRetryDelayMs);
     }
   }
 

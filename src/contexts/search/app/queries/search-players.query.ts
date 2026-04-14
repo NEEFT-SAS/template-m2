@@ -60,8 +60,8 @@ export class SearchPlayersQuery {
     const filterBy = this.buildFilters(query);
     const sortBy =
       q === '*'
-        ? 'hasRecruitableGame:desc,hasGame:desc,profileScore:desc'
-        : '_text_match:desc,hasRecruitableGame:desc,hasGame:desc,profileScore:desc';
+        ? 'hasRecruitableGame:desc,profileScore:desc,createdAt:desc'
+        : '_text_match:desc,hasRecruitableGame:desc,profileScore:desc';
 
     let response: {
       hits?: Array<{ document: unknown }>;
