@@ -14,10 +14,10 @@ export class JwtTokenService implements TokenPort {
 
   constructor(private readonly jwt: JwtService, private readonly config: ConfigService) {
     this.accessSecret = this.config.get<string>('JWT_ACCESS_SECRET') ?? '';
-    this.accessExpiresIn = (this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '15m') as StringValue;
+    this.accessExpiresIn = (this.config.get<string>('JWT_ACCESS_EXPIRES_IN') ?? '1m') as StringValue;
 
     this.refreshSecret = this.config.get<string>('JWT_REFRESH_SECRET') ?? '';
-    this.refreshExpiresIn = (this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '30d') as StringValue;
+    this.refreshExpiresIn = (this.config.get<string>('JWT_REFRESH_EXPIRES_IN') ?? '15m') as StringValue;
   }
 
   async createAccessToken(payload: AccessTokenPayload): Promise<string> {

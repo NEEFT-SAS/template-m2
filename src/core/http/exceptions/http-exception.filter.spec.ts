@@ -7,6 +7,7 @@
 import { BadRequestException, HttpException, UnauthorizedException } from '@nestjs/common';
 import { DomainError } from '../../errors/domain-error';
 import { HttpExceptionFilter } from './http-exception.filter';
+import { EventBusPort } from '../../events/event-bus.port';
 
 function createHostMocks(params?: { method?: string; url?: string }) {
   const request = { method: params?.method ?? 'POST', url: params?.url ?? '/test' };
@@ -28,9 +29,13 @@ function createHostMocks(params?: { method?: string; url?: string }) {
 
 describe('HttpExceptionFilter', () => {
   let filter: HttpExceptionFilter;
+  let eventBus: jest.Mocked<EventBusPort>;
 
   beforeEach(() => {
-    filter = new HttpExceptionFilter();
+    eventBus = {
+      publish: jest.fn().mockResolvedValue(undefined)
+    };
+    filter = new HttpExceptionFilter(eventBus);
   });
 
   it('handles DomainError (no fields)', () => {

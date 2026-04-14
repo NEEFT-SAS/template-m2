@@ -1,5 +1,8 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Inject, Injectable, Logger } from '@nestjs/common';
 import { DomainError } from '../../errors/domain-error';
+import { EVENT_BUS, EventBusPort } from '@/core/events/event-bus.port';
+import { Request } from 'express';
+import { InternalServerErrorEvent, InternalServerErrorEventPayload } from '../events/internal-server-error.event';
 
 type ApiErrorBody = {
   code: string;
@@ -7,15 +10,21 @@ type ApiErrorBody = {
   fields?: Record<string, string[]>;
   details?: unknown;
 };
+type RequestWithUser = Request & { user?: { slug: string, pid: string, sub: string, username: string} };
 
 @Catch()
+@Injectable()
 export class HttpExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(HttpExceptionFilter.name);
 
+  constructor(
+    @Inject(EVENT_BUS) private readonly eventBus: EventBusPort
+  ) {}
+ 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
 
-    const request = ctx.getRequest<any>();
+    const request = ctx.getRequest<RequestWithUser>();
     const response = ctx.getResponse<any>();
 
     const method = request?.method ?? 'UNKNOWN';
@@ -41,6 +50,19 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const raw = exception.getResponse();
       const normalized = this.normalizeHttpException(raw, statusCode);
 
+      if(statusCode >= 500) {
+        this.sendInternalServerErrorEvent({
+          method,
+          path,
+          code: normalized.code,
+          message: normalized.message,
+          request,
+          authenticated: !!request.user,
+          userProfileId: request.user?.pid || '',
+          userProfileSlug: request.user?.slug || ''
+        });
+      }
+
       const payload: ApiErrorBody = {
         code: normalized.code,
         message: normalized.message,
@@ -60,6 +82,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       code: 'INTERNAL_SERVER_ERROR',
       message: (exception as any)?.message ?? 'Unexpected error',
     };
+
+    this.sendInternalServerErrorEvent({
+      method,
+      path,
+      code: payload.code,
+      message: payload.message,
+      request,
+      authenticated: !!request.user,
+      userProfileId: request.user?.pid || '',
+      userProfileSlug: request.user?.slug || ''
+    });
 
     this.log(statusCode, method, path, payload.code, payload.message, exception);
 
@@ -101,6 +134,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
     if (statusCode === 422) return 'UNPROCESSABLE_ENTITY';
     if (statusCode === 429) return 'TOO_MANY_REQUESTS';
     return 'HTTP_ERROR';
+  }
+
+  private sendInternalServerErrorEvent(payload: InternalServerErrorEventPayload) {
+    this.eventBus.publish(InternalServerErrorEvent.create(payload));
   }
 
   private log(statusCode: number, method: string, path: string, code: string, message: string, exception: unknown) {

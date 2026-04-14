@@ -18,6 +18,8 @@ import { RecruitmentModule } from './contexts/recruitment/recruitment.module';
 import { CalendarModule } from './contexts/calendar/calendar.module';
 import { FeedModule } from './contexts/feed/feed.module';
 import { AdsModule } from './contexts/ads/ads.module';
+import { HttpExceptionFilter } from './core/http/exceptions/http-exception.filter';
+import { SendInternalServerErrorEmailHandler } from './core/http/handlers/send-internal-server-error-email.handler';
 
 @Module({
   imports: [
@@ -40,6 +42,6 @@ import { AdsModule } from './contexts/ads/ads.module';
     AdsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, HttpExceptionFilter, SendInternalServerErrorEmailHandler],
 })
 export class AppModule { }

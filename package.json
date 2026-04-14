@@ -30,7 +30,7 @@
     "seed:new:legacy-team-social-migration": "ts-node -r tsconfig-paths/register src/new_seeders/legacy-team-social-migration/run-team-social-migration.ts"
   },
   "dependencies": {
-    "@neeft-sas/shared": "^0.0.89",
+    "@neeft-sas/shared": "^0.0.94",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^10.0.0",
