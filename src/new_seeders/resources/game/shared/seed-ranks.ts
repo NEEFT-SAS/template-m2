@@ -2,6 +2,44 @@ import { RscRankEntity } from '@/contexts/resources/infra/persistence/entities/g
 import { logSection, seedIfNotExists } from '@/new_seeders/helpers/seeder-utils';
 import { DataSource } from 'typeorm';
 
+const cs2Ranks: Partial<RscRankEntity>[] = [
+  { name: 'Silver I', slug: 'cs2-silver-i', division: 'Silver', tier: 'I', order: 1, icon: null },
+  { name: 'Silver II', slug: 'cs2-silver-ii', division: 'Silver', tier: 'II', order: 2, icon: null },
+  { name: 'Silver III', slug: 'cs2-silver-iii', division: 'Silver', tier: 'III', order: 3, icon: null },
+  { name: 'Silver IV', slug: 'cs2-silver-iv', division: 'Silver', tier: 'IV', order: 4, icon: null },
+  { name: 'Silver Elite', slug: 'cs2-silver-elite', division: 'Silver Elite', tier: null, order: 5, icon: null },
+  { name: 'Silver Elite Master', slug: 'cs2-silver-elite-master', division: 'Silver Elite Master', tier: null, order: 6, icon: null },
+  { name: 'Gold Nova I', slug: 'cs2-gold-nova-i', division: 'Gold Nova', tier: 'I', order: 7, icon: null },
+  { name: 'Gold Nova II', slug: 'cs2-gold-nova-ii', division: 'Gold Nova', tier: 'II', order: 8, icon: null },
+  { name: 'Gold Nova III', slug: 'cs2-gold-nova-iii', division: 'Gold Nova', tier: 'III', order: 9, icon: null },
+  { name: 'Gold Nova Master', slug: 'cs2-gold-nova-master', division: 'Gold Nova Master', tier: null, order: 10, icon: null },
+  { name: 'Master Guardian I', slug: 'cs2-master-guardian-i', division: 'Master Guardian', tier: 'I', order: 11, icon: null },
+  { name: 'Master Guardian II', slug: 'cs2-master-guardian-ii', division: 'Master Guardian', tier: 'II', order: 12, icon: null },
+  { name: 'Master Guardian Elite', slug: 'cs2-master-guardian-elite', division: 'Master Guardian Elite', tier: null, order: 13, icon: null },
+  { name: 'Distinguished Master Guardian', slug: 'cs2-distinguished-master-guardian', division: 'Distinguished Master Guardian', tier: null, order: 14, icon: null },
+  { name: 'Legendary Eagle', slug: 'cs2-legendary-eagle', division: 'Legendary Eagle', tier: null, order: 15, icon: null },
+  { name: 'Legendary Eagle Master', slug: 'cs2-legendary-eagle-master', division: 'Legendary Eagle Master', tier: null, order: 16, icon: null },
+  { name: 'Supreme Master First Class', slug: 'cs2-supreme-master-first-class', division: 'Supreme Master First Class', tier: null, order: 17, icon: null },
+  { name: 'Global Elite', slug: 'cs2-global-elite', division: 'Global Elite', tier: null, order: 18, icon: null },
+];
+
+const r6Divisions = ['Copper', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond'] as const;
+const r6Tiers = ['V', 'IV', 'III', 'II', 'I'] as const;
+
+const r6Ranks: Partial<RscRankEntity>[] = [
+  ...r6Divisions.flatMap((division, divisionIndex) =>
+    r6Tiers.map((tier, tierIndex) => ({
+      name: `${division} ${tier}`,
+      slug: `r6-${division.toLowerCase()}-${tier.toLowerCase()}`,
+      division,
+      tier,
+      order: divisionIndex * r6Tiers.length + tierIndex + 1,
+      icon: null,
+    })),
+  ),
+  { name: 'Champion', slug: 'r6-champion', division: 'Champion', tier: null, order: 36, icon: null },
+];
+
 
 export async function seedRanks(dataSource: DataSource) {
   const repo = dataSource.getRepository(RscRankEntity);
@@ -142,6 +180,16 @@ export async function seedRanks(dataSource: DataSource) {
     { name: 'Legendary II', slug: 'brawl-legendary-ii', division: 'Legendary', tier: 'II', order: 17, icon: 'https://firebasestorage.googleapis.com/v0/b/gamerlink-1d7db.firebasestorage.app/o/images%2Fgames%2Fbrawl-stars%2Franks%2Flegendary.png?alt=media&token=a9360547-e300-49d2-98b8-82e87a30ffec' },
     { name: 'Legendary III', slug: 'brawl-legendary-iii', division: 'Legendary', tier: 'III', order: 18, icon: 'https://firebasestorage.googleapis.com/v0/b/gamerlink-1d7db.firebasestorage.app/o/images%2Fgames%2Fbrawl-stars%2Franks%2Flegendary.png?alt=media&token=a9360547-e300-49d2-98b8-82e87a30ffec' },
     { name: 'Master', slug: 'brawl-master', division: 'Master', tier: null, order: 19, icon: 'https://firebasestorage.googleapis.com/v0/b/gamerlink-1d7db.firebasestorage.app/o/images%2Fgames%2Fbrawl-stars%2Franks%2Fmasters.png?alt=media&token=499f8d7f-1d37-48e2-a215-cb4d8330c5df' },
+
+    /* -------------------------------------------------------------------------- */
+    /* COUNTER-STRIKE 2                                                           */
+    /* -------------------------------------------------------------------------- */
+    ...cs2Ranks,
+
+    /* -------------------------------------------------------------------------- */
+    /* RAINBOW SIX SIEGE                                                          */
+    /* -------------------------------------------------------------------------- */
+    ...r6Ranks,
   ];
 
   for (const r of ranks) {

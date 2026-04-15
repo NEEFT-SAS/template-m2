@@ -26,6 +26,7 @@ export type RecruitmentPresenter = {
   missions: string[];
   target: TeamRecruitmentTarget;
   gameId: number | null;
+  platformIds: number[];
   positionIds: number[];
   rankIds: number[];
   minElo: number | null;

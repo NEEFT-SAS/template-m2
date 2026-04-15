@@ -27,6 +27,8 @@ export class SearchRecruitmentsUseCase {
       title: item.title,
       slug: item.slug,
       summary: item.summary,
+      description: item.description,
+      missions: item.missions,
       urgent: item.urgent,
       isPaid: item.isPaid,
       target: item.target,
@@ -42,6 +44,62 @@ export class SearchRecruitmentsUseCase {
         slug: item.game.slug,
         icon: item.game.icon,
       } : null,
+      platforms: (item.platforms || [])
+        .slice()
+        .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+        .map((p: any) => ({
+          id: p.id,
+          name: p.platform?.name || 'Platform',
+          slug: p.platform?.slug || null,
+          icon: p.platform?.icon || null,
+          order: p.order ?? 0,
+        })),
+      positions: (item.positions || [])
+        .slice()
+        .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+        .map((p: any) => ({
+          id: p.id,
+          name: p.position?.name || 'Position',
+          slug: p.position?.slug || null,
+          icon: p.position?.icon || null,
+          order: p.order ?? 0,
+        })),
+      ranks: (item.ranks || [])
+        .slice()
+        .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+        .map((r: any) => ({
+          id: r.id,
+          name: r.rank?.name || 'Rank',
+          slug: r.rank?.slug || null,
+          icon: r.rank?.icon || null,
+          division: r.rank?.division || null,
+          tier: r.rank?.tier || null,
+          order: r.order ?? 0,
+        })),
+      minRankId: item.minRank?.id ?? null,
+      maxRankId: item.maxRank?.id ?? null,
+      minRank: item.minRank
+        ? {
+            id: item.minRank.id,
+            name: item.minRank.rank?.name || 'Rank',
+            slug: item.minRank.rank?.slug || null,
+            icon: item.minRank.rank?.icon || null,
+            division: item.minRank.rank?.division || null,
+            tier: item.minRank.rank?.tier || null,
+            order: item.minRank.order ?? 0,
+          }
+        : null,
+      maxRank: item.maxRank
+        ? {
+            id: item.maxRank.id,
+            name: item.maxRank.rank?.name || 'Rank',
+            slug: item.maxRank.rank?.slug || null,
+            icon: item.maxRank.rank?.icon || null,
+            division: item.maxRank.rank?.division || null,
+            tier: item.maxRank.rank?.tier || null,
+            order: item.maxRank.order ?? 0,
+          }
+        : null,
       createdAt: item.createdAt,
     };
   }

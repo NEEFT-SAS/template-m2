@@ -9,6 +9,8 @@ import { UserGameRocketLeagueEntity } from './user-game-rocket-league.entity';
 import { UserGameValorantEntity } from './user-game-valorant.entity';
 import { UserGameBrawlStarsEntity } from './user-game-brawl-stars.entity';
 import { UserGameFortniteEntity } from './user-game-fortnite.entity';
+import { UserGameCounterStrike2Entity } from './user-game-counter-strike-2.entity';
+import { UserGameRainbowSixSiegeEntity } from './user-game-rainbow-six-siege.entity';
 import { UserGameModeRankEntity } from './user-game-mode-rank.entity';
 
 @Entity('player_games')
@@ -89,6 +91,20 @@ export class UserGameEntity {
     nullable: true,
   })
   fortniteProfile?: UserGameFortniteEntity | null;
+
+  @OneToOne(() => UserGameCounterStrike2Entity, (profile) => profile.game, {
+    cascade: true,
+    eager: true,
+    nullable: true,
+  })
+  counterStrike2Profile?: UserGameCounterStrike2Entity | null;
+
+  @OneToOne(() => UserGameRainbowSixSiegeEntity, (profile) => profile.game, {
+    cascade: true,
+    eager: true,
+    nullable: true,
+  })
+  rainbowSixSiegeProfile?: UserGameRainbowSixSiegeEntity | null;
 
   @OneToMany(() => UserGameModeRankEntity, (modeRank) => modeRank.game, {
     cascade: true,

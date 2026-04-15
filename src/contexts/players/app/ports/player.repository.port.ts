@@ -146,6 +146,14 @@ export type PlayerGameAccountInput =
   | {
       type: 'fortnite';
       username: string;
+    }
+  | {
+      type: 'counter-strike-2';
+      username: string;
+    }
+  | {
+      type: 'rainbow-six-siege';
+      username: string;
     };
 
 export type PlayerGameCreateInput = {

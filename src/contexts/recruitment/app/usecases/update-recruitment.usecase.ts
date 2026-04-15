@@ -58,6 +58,7 @@ export class UpdateRecruitmentUseCase {
       missions: dto.missions,
       target: dto.target,
       gameId: dto.gameId,
+      platformIds: dto.platformIds,
       positionIds: dto.positionIds,
       rankIds: dto.rankIds,
       minElo: dto.minElo,

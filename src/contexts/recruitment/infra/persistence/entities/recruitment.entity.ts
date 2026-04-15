@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { TeamEntity } from '@/contexts/teams/infra/entities/team.entity';
 import { RscGameEntity } from '@/contexts/resources/infra/persistence/entities/games/rsc-games.entity';
+import { RscGamePlatformEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-platforms.entity';
 import { RscGamePositionEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-positions.entity';
 import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-ranks.entity';
 import { RecruitmentQuestionEntity } from './recruitment-question.entity';
@@ -67,6 +68,14 @@ export class RecruitmentEntity {
 
   @Column({ name: 'game_id', type: 'int', nullable: true })
   gameId!: number | null;
+
+  @ManyToMany(() => RscGamePlatformEntity, { eager: true })
+  @JoinTable({
+    name: 'team_recruitment_platforms',
+    joinColumn: { name: 'recruitment_id' },
+    inverseJoinColumn: { name: 'game_platform_id' },
+  })
+  platforms?: RscGamePlatformEntity[];
 
   @ManyToMany(() => RscGamePositionEntity, { eager: true })
   @JoinTable({

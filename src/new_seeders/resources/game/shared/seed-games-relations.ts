@@ -45,6 +45,7 @@ export async function seedGameRelations(dataSource: DataSource) {
       if (game.slug === 'brawl-stars') return p.slug === 'mobile';
       if (game.slug === 'league-of-legends') return p.slug === 'pc';
       if (game.slug === 'counter-strike-2') return p.slug === 'pc';
+      if (game.slug === 'rainbow-six-siege') return ['pc', 'ps4', 'ps5', 'xbox-one', 'xbox-series'].includes(p.slug);
 
       // Valorant: PC + PS5 + Xbox Series
       if (game.slug === 'valorant') return ['pc', 'ps5', 'xbox-series'].includes(p.slug);
@@ -82,6 +83,7 @@ export async function seedGameRelations(dataSource: DataSource) {
       if (game.slug === 'brawl-stars') return p.slug.startsWith('brawl-');
       if (game.slug === 'rocket-league') return p.slug.startsWith('rl-');
       if (game.slug === 'counter-strike-2') return p.slug.startsWith('cs2-');
+      if (game.slug === 'rainbow-six-siege') return p.slug.startsWith('r6-');
       if (game.slug === 'the-finals') return p.slug.startsWith('finals-');
       if (game.slug === 'fortnite') return p.slug.startsWith('ftn-');
       return false;
@@ -108,6 +110,7 @@ export async function seedGameRelations(dataSource: DataSource) {
         if (game.slug === 'valorant') return r.slug.startsWith('val-');
         if (game.slug === 'rocket-league') return r.slug.startsWith('rl-');
         if (game.slug === 'counter-strike-2') return r.slug.startsWith('cs2-');
+        if (game.slug === 'rainbow-six-siege') return r.slug.startsWith('r6-');
         if (game.slug === 'fortnite') return r.slug.startsWith('ftn-');
         if (game.slug === 'brawl-stars') return r.slug.startsWith('brawl-');
         return false;
@@ -136,6 +139,7 @@ export async function seedGameRelations(dataSource: DataSource) {
         if (game.slug === 'apex-legends') return mode.slug.startsWith('apex-');
         if (game.slug === 'rocket-league') return mode.slug.startsWith('rl-');
         if (game.slug === 'counter-strike-2') return mode.slug.startsWith('cs2-');
+        if (game.slug === 'rainbow-six-siege') return mode.slug.startsWith('r6-');
         if (game.slug === 'the-finals') return mode.slug.startsWith('the-finals');
         if (game.slug === 'fortnite') return mode.slug.startsWith('ftn-');
         if (game.slug === 'brawl-stars') return mode.slug.startsWith('brawl-');

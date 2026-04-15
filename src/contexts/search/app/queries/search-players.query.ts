@@ -551,6 +551,14 @@ export class SearchPlayersQuery {
         const profile = entity.fortniteProfile;
         return profile?.username ? { username: profile.username } : null;
       }
+      case 'counter-strike-2': {
+        const profile = entity.counterStrike2Profile;
+        return profile?.username ? { username: profile.username } : null;
+      }
+      case 'rainbow-six-siege': {
+        const profile = entity.rainbowSixSiegeProfile;
+        return profile?.username ? { username: profile.username } : null;
+      }
       default:
         return null;
     }

@@ -87,6 +87,24 @@ export const buildAccountInput = (
       }
       return { type: 'fortnite', username };
     }
+    case 'counter-strike-2': {
+      const username = toNonEmptyString(data.username);
+      if (!username) {
+        throw new PlayerGameInvalidPayloadError(slug, 'missing_required_fields', {
+          required: ['username'],
+        });
+      }
+      return { type: 'counter-strike-2', username };
+    }
+    case 'rainbow-six-siege': {
+      const username = toNonEmptyString(data.username);
+      if (!username) {
+        throw new PlayerGameInvalidPayloadError(slug, 'missing_required_fields', {
+          required: ['username'],
+        });
+      }
+      return { type: 'rainbow-six-siege', username };
+    }
     default:
       throw new PlayerGameInvalidPayloadError(slug, 'unsupported_game');
   }

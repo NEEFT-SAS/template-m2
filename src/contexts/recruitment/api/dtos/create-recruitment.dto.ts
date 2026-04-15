@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEnum, IsInt, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { TEAM_RECRUITMENT_TARGETS, TeamRecruitmentTarget, TEAM_RECRUITMENT_QUESTION_TYPES, TeamRecruitmentQuestionType } from '../../domain/types/recruitment.types';
 
 export class UpsertRecruitmentQuestionDto {
@@ -47,6 +47,11 @@ export class CreateRecruitmentDto {
   @IsInt()
   @IsOptional()
   gameId?: number;
+
+  @IsArray()
+  @IsInt({ each: true })
+  @IsOptional()
+  platformIds?: number[];
 
   @IsArray()
   @IsInt({ each: true })

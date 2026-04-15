@@ -13,6 +13,7 @@ export type CreateRecruitmentInput = {
   missions?: string[] | null;
   target: string;
   gameId?: number | null;
+  platformIds?: number[];
   positionIds?: number[];
   rankIds?: number[];
   minElo?: number | null;

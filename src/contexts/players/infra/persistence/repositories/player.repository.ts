@@ -19,6 +19,8 @@ import { UserGameRocketLeagueEntity } from '../../entities/game/user-game-rocket
 import { UserGameValorantEntity } from '../../entities/game/user-game-valorant.entity';
 import { UserGameBrawlStarsEntity } from '../../entities/game/user-game-brawl-stars.entity';
 import { UserGameFortniteEntity } from '../../entities/game/user-game-fortnite.entity';
+import { UserGameCounterStrike2Entity } from '../../entities/game/user-game-counter-strike-2.entity';
+import { UserGameRainbowSixSiegeEntity } from '../../entities/game/user-game-rainbow-six-siege.entity';
 import { UserGamePositionEntity } from '../../entities/game/user-game-position.entity';
 import { UserGamePlatformEntity } from '../../entities/game/user-game-platform.entity';
 import { UserGameCharacterEntity } from '../../entities/game/user-game-character.entity';
@@ -776,6 +778,8 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       const valorantRepo = manager.getRepository(UserGameValorantEntity);
       const brawlRepo = manager.getRepository(UserGameBrawlStarsEntity);
       const fortniteRepo = manager.getRepository(UserGameFortniteEntity);
+      const cs2Repo = manager.getRepository(UserGameCounterStrike2Entity);
+      const r6Repo = manager.getRepository(UserGameRainbowSixSiegeEntity);
 
       const modeRanks = input.modeRanks ?? [];
       const modeIds = [...new Set(modeRanks.map((item) => item.modeId))];
@@ -907,6 +911,22 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
               }),
             );
             break;
+          case 'counter-strike-2':
+            await cs2Repo.save(
+              cs2Repo.create({
+                game: saved,
+                username: input.account.username,
+              }),
+            );
+            break;
+          case 'rainbow-six-siege':
+            await r6Repo.save(
+              r6Repo.create({
+                game: saved,
+                username: input.account.username,
+              }),
+            );
+            break;
         }
       }
 
@@ -948,6 +968,8 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
       const valorantRepo = manager.getRepository(UserGameValorantEntity);
       const brawlRepo = manager.getRepository(UserGameBrawlStarsEntity);
       const fortniteRepo = manager.getRepository(UserGameFortniteEntity);
+      const cs2Repo = manager.getRepository(UserGameCounterStrike2Entity);
+      const r6Repo = manager.getRepository(UserGameRainbowSixSiegeEntity);
 
       const entity = await gameRepo.findOne({
         where: { profile: { id: userProfileId }, rscGame: { id: gameId } },
@@ -1061,6 +1083,8 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
         await valorantRepo.delete({ game: { id: entity.id } });
         await brawlRepo.delete({ game: { id: entity.id } });
         await fortniteRepo.delete({ game: { id: entity.id } });
+        await cs2Repo.delete({ game: { id: entity.id } });
+        await r6Repo.delete({ game: { id: entity.id } });
 
         if (input.account) {
           switch (input.account.type) {
@@ -1103,6 +1127,22 @@ export class PlayerRepositoryTypeorm implements PlayerRepositoryPort {
             case 'fortnite':
               await fortniteRepo.save(
                 fortniteRepo.create({
+                  game: entity,
+                  username: input.account.username,
+                }),
+              );
+              break;
+            case 'counter-strike-2':
+              await cs2Repo.save(
+                cs2Repo.create({
+                  game: entity,
+                  username: input.account.username,
+                }),
+              );
+              break;
+            case 'rainbow-six-siege':
+              await r6Repo.save(
+                r6Repo.create({
                   game: entity,
                   username: input.account.username,
                 }),

@@ -61,6 +61,8 @@ import { UserGameRocketLeagueEntity } from './infra/entities/game/user-game-rock
 import { UserGameValorantEntity } from './infra/entities/game/user-game-valorant.entity';
 import { UserGameBrawlStarsEntity } from './infra/entities/game/user-game-brawl-stars.entity';
 import { UserGameFortniteEntity } from './infra/entities/game/user-game-fortnite.entity';
+import { UserGameCounterStrike2Entity } from './infra/entities/game/user-game-counter-strike-2.entity';
+import { UserGameRainbowSixSiegeEntity } from './infra/entities/game/user-game-rainbow-six-siege.entity';
 import { UserProfileStaffRoleEntity } from './infra/entities/profile/user-profile-staff-role.entity';
 import { RecommendationEntity } from './infra/entities/recommendations/recommendation.entity';
 import { RecommendationHelpfulVoteEntity } from './infra/entities/recommendations/recommendation-helpful-vote.entity';
@@ -107,6 +109,8 @@ import { PlayerScoreService } from '../search/app/services/player-score.service'
       UserGameValorantEntity,
       UserGameBrawlStarsEntity,
       UserGameFortniteEntity,
+      UserGameCounterStrike2Entity,
+      UserGameRainbowSixSiegeEntity,
       UserProfileStaffRoleEntity,
       RecommendationEntity,
       RecommendationHelpfulVoteEntity,

@@ -1,13 +1,44 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { RecruitmentEntity } from '../entities/recruitment.entity';
 import { RecruitmentQuestionEntity } from '../entities/recruitment-question.entity';
 import { RecruitmentApplicationEntity } from '../entities/recruitment-application.entity';
-import { RecruitmentRepositoryPort, CreateRecruitmentInput, UpdateRecruitmentInput } from '@/contexts/recruitment/app/ports/recruitment.repository.port';
+import {
+  RecruitmentRepositoryPort,
+  CreateRecruitmentInput,
+  UpdateRecruitmentInput,
+} from '@/contexts/recruitment/app/ports/recruitment.repository.port';
+import { RscGamePlatformEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-platforms.entity';
+import { RscGamePositionEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-positions.entity';
+import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-ranks.entity';
+import {
+  RecruitmentGameRequiredError,
+  RecruitmentInvalidGameSelectionError,
+} from '@/contexts/recruitment/domain/errors/recruitment.errors';
 
 @Injectable()
 export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
+  private readonly recruitmentListRelations = [
+    'team',
+    'game',
+    'platforms',
+    'platforms.platform',
+    'positions',
+    'positions.position',
+    'ranks',
+    'ranks.rank',
+    'minRank',
+    'minRank.rank',
+    'maxRank',
+    'maxRank.rank',
+  ] as const;
+
+  private readonly recruitmentDetailsRelations = [
+    ...this.recruitmentListRelations,
+    'questions',
+  ] as const;
+
   constructor(
     @InjectRepository(RecruitmentEntity)
     private readonly recruitmentRepo: Repository<RecruitmentEntity>,
@@ -15,12 +46,11 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
     private readonly applicationRepo: Repository<RecruitmentApplicationEntity>,
     @InjectRepository(RecruitmentQuestionEntity)
     private readonly questionRepo: Repository<RecruitmentQuestionEntity>,
-  ) { }
+  ) {}
 
   async search(query: any): Promise<{ items: any[]; total: number }> {
     const qb = this.recruitmentRepo.createQueryBuilder('recruitment');
-    qb.leftJoinAndSelect('recruitment.team', 'team');
-    qb.leftJoinAndSelect('recruitment.game', 'game');
+    qb.leftJoin('recruitment.team', 'team');
 
     qb.andWhere('recruitment.is_published = true');
 
@@ -50,14 +80,23 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
       qb.orderBy('recruitment.urgent', 'DESC');
       qb.addOrderBy('recruitment.createdAt', 'DESC');
     } else {
-      // By default or "recent"
       qb.orderBy('recruitment.createdAt', 'DESC');
     }
 
-    const [items, total] = await qb
-      .skip(query.offset || 0)
-      .take(query.limit || 20)
-      .getManyAndCount();
+    const [rows, total] = await qb.skip(query.offset || 0).take(query.limit || 20).getManyAndCount();
+
+    if (!rows.length) {
+      return { items: [], total };
+    }
+
+    const orderedIds = rows.map((row) => row.id);
+    const detailedRows = await this.recruitmentRepo.find({
+      where: { id: In(orderedIds) },
+      relations: [...this.recruitmentListRelations],
+    });
+
+    const byId = new Map(detailedRows.map((row) => [row.id, row]));
+    const items = orderedIds.map((id) => byId.get(id)).filter((row): row is RecruitmentEntity => Boolean(row));
 
     return { items, total };
   }
@@ -65,7 +104,7 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
   async findById(id: string): Promise<any | null> {
     return this.recruitmentRepo.findOne({
       where: { id },
-      relations: ['team', 'questions', 'game', 'positions', 'ranks', 'minRank', 'maxRank'],
+      relations: [...this.recruitmentDetailsRelations],
     });
   }
 
@@ -74,6 +113,12 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
   }
 
   async create(input: CreateRecruitmentInput): Promise<any> {
+    const resolvedPlatformIds = await this.resolveGamePlatformRelationIds(input.gameId, input.platformIds);
+    const resolvedPositionIds = await this.resolveGamePositionRelationIds(input.gameId, input.positionIds);
+    const resolvedRankIds = await this.resolveGameRankRelationIds(input.gameId, input.rankIds, 'rankIds');
+    const resolvedMinRankId = await this.resolveSingleGameRankRelationId(input.gameId, input.minRankId, 'minRankId');
+    const resolvedMaxRankId = await this.resolveSingleGameRankRelationId(input.gameId, input.maxRankId, 'maxRankId');
+
     const recruitment = this.recruitmentRepo.create({
       teamId: input.teamId,
       title: input.title,
@@ -83,27 +128,40 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
       urgent: input.urgent,
       isPaid: input.isPaid,
       missions: input.missions,
-      target: input.target as any, // Enum mapping
+      target: input.target as any,
       gameId: input.gameId,
       minElo: input.minElo,
       maxElo: input.maxElo,
       isPublished: input.isPublished,
-      questions: (input.questions || []).map(q => this.questionRepo.create({
-        prompt: q.prompt,
-        type: q.type as any,
-        isRequired: q.isRequired,
-        order: q.order,
-      })),
+      questions: (input.questions || []).map((q) =>
+        this.questionRepo.create({
+          prompt: q.prompt,
+          type: q.type as any,
+          isRequired: q.isRequired,
+          order: q.order,
+        }),
+      ),
     });
 
-    if (input.positionIds) {
-      recruitment.positions = input.positionIds.map(id => ({ id } as any));
+    if (resolvedPlatformIds !== undefined) {
+      recruitment.platforms = resolvedPlatformIds.map((id) => ({ id } as any));
     }
-    if (input.rankIds) {
-      recruitment.ranks = input.rankIds.map(id => ({ id } as any));
+
+    if (resolvedPositionIds !== undefined) {
+      recruitment.positions = resolvedPositionIds.map((id) => ({ id } as any));
     }
-    if (input.minRankId) recruitment.minRank = { id: input.minRankId } as any;
-    if (input.maxRankId) recruitment.maxRank = { id: input.maxRankId } as any;
+
+    if (resolvedRankIds !== undefined) {
+      recruitment.ranks = resolvedRankIds.map((id) => ({ id } as any));
+    }
+
+    if (resolvedMinRankId !== undefined) {
+      recruitment.minRank = resolvedMinRankId ? ({ id: resolvedMinRankId } as any) : null;
+    }
+
+    if (resolvedMaxRankId !== undefined) {
+      recruitment.maxRank = resolvedMaxRankId ? ({ id: resolvedMaxRankId } as any) : null;
+    }
 
     return this.recruitmentRepo.save(recruitment);
   }
@@ -112,7 +170,16 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
     const existing = await this.findById(id);
     if (!existing) return null;
 
-    // Direct updates
+    const previousGameId = existing.gameId;
+    const effectiveGameId = input.gameId !== undefined ? input.gameId : previousGameId;
+    const gameChanged = input.gameId !== undefined && input.gameId !== previousGameId;
+
+    const resolvedPlatformIds = await this.resolveGamePlatformRelationIds(effectiveGameId, input.platformIds);
+    const resolvedPositionIds = await this.resolveGamePositionRelationIds(effectiveGameId, input.positionIds);
+    const resolvedRankIds = await this.resolveGameRankRelationIds(effectiveGameId, input.rankIds, 'rankIds');
+    const resolvedMinRankId = await this.resolveSingleGameRankRelationId(effectiveGameId, input.minRankId, 'minRankId');
+    const resolvedMaxRankId = await this.resolveSingleGameRankRelationId(effectiveGameId, input.maxRankId, 'maxRankId');
+
     if (input.title !== undefined) existing.title = input.title;
     if (input.summary !== undefined) existing.summary = input.summary;
     if (input.description !== undefined) existing.description = input.description;
@@ -125,27 +192,47 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
     if (input.maxElo !== undefined) existing.maxElo = input.maxElo;
     if (input.isPublished !== undefined) existing.isPublished = input.isPublished;
 
-    // Relations
-    if (input.positionIds) {
-      existing.positions = input.positionIds.map(id => ({ id } as any));
+    if (resolvedPlatformIds !== undefined) {
+      existing.platforms = resolvedPlatformIds.map((id) => ({ id } as any));
+    } else if (gameChanged) {
+      existing.platforms = [];
     }
-    if (input.rankIds) {
-      existing.ranks = input.rankIds.map(id => ({ id } as any));
-    }
-    if (input.minRankId !== undefined) existing.minRank = input.minRankId ? { id: input.minRankId } as any : null;
-    if (input.maxRankId !== undefined) existing.maxRank = input.maxRankId ? { id: input.maxRankId } as any : null;
 
-    // For questions, it's more complex (cascade/overwrite). 
-    // In V3 it was often an overwrite.
+    if (resolvedPositionIds !== undefined) {
+      existing.positions = resolvedPositionIds.map((id) => ({ id } as any));
+    } else if (gameChanged) {
+      existing.positions = [];
+    }
+
+    if (resolvedRankIds !== undefined) {
+      existing.ranks = resolvedRankIds.map((id) => ({ id } as any));
+    } else if (gameChanged) {
+      existing.ranks = [];
+    }
+
+    if (resolvedMinRankId !== undefined) {
+      existing.minRank = resolvedMinRankId ? ({ id: resolvedMinRankId } as any) : null;
+    } else if (gameChanged) {
+      existing.minRank = null;
+    }
+
+    if (resolvedMaxRankId !== undefined) {
+      existing.maxRank = resolvedMaxRankId ? ({ id: resolvedMaxRankId } as any) : null;
+    } else if (gameChanged) {
+      existing.maxRank = null;
+    }
+
     if (input.questions) {
       await this.questionRepo.delete({ recruitmentId: id });
-      existing.questions = input.questions.map(q => this.questionRepo.create({
-        recruitmentId: id,
-        prompt: q.prompt,
-        type: q.type as any,
-        isRequired: q.isRequired,
-        order: q.order,
-      }));
+      existing.questions = input.questions.map((q) =>
+        this.questionRepo.create({
+          recruitmentId: id,
+          prompt: q.prompt,
+          type: q.type as any,
+          isRequired: q.isRequired,
+          order: q.order,
+        }),
+      );
     }
 
     return this.recruitmentRepo.save(existing);
@@ -180,5 +267,188 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
       relations: ['recruitment', 'recruitment.team'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  private normalizeIds(ids: number[]): number[] {
+    const seen = new Set<number>();
+    const unique: number[] = [];
+
+    for (const id of ids) {
+      if (!Number.isInteger(id)) continue;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      unique.push(id);
+    }
+
+    return unique;
+  }
+
+  private async resolveGamePlatformRelationIds(
+    gameId: number | null | undefined,
+    rawIds?: number[],
+  ): Promise<number[] | undefined> {
+    if (rawIds === undefined) return undefined;
+
+    const ids = this.normalizeIds(rawIds);
+    if (!ids.length) return [];
+
+    if (!gameId) {
+      throw new RecruitmentGameRequiredError('platformIds');
+    }
+
+    const relationRepo = this.recruitmentRepo.manager.getRepository(RscGamePlatformEntity);
+
+    const byBaseRows = await relationRepo.find({
+      where: { gameId, rscPlatformId: In(ids) },
+      select: ['id', 'rscPlatformId'],
+    });
+    const byBase = new Map<number, number>(byBaseRows.map((row) => [row.rscPlatformId, row.id]));
+
+    const resolved: number[] = [];
+    const unresolved: number[] = [];
+    for (const id of ids) {
+      const mapped = byBase.get(id);
+      if (mapped) resolved.push(mapped);
+      else unresolved.push(id);
+    }
+
+    if (!unresolved.length) {
+      return resolved;
+    }
+
+    const byRelationRows = await relationRepo.find({
+      where: { gameId, id: In(unresolved) },
+      select: ['id'],
+    });
+    const byRelation = new Set(byRelationRows.map((row) => row.id));
+
+    const invalidIds: number[] = [];
+    for (const id of unresolved) {
+      if (byRelation.has(id)) resolved.push(id);
+      else invalidIds.push(id);
+    }
+
+    if (invalidIds.length) {
+      throw new RecruitmentInvalidGameSelectionError('platformIds', gameId, invalidIds);
+    }
+
+    return resolved;
+  }
+
+  private async resolveGamePositionRelationIds(
+    gameId: number | null | undefined,
+    rawIds?: number[],
+  ): Promise<number[] | undefined> {
+    if (rawIds === undefined) return undefined;
+
+    const ids = this.normalizeIds(rawIds);
+    if (!ids.length) return [];
+
+    if (!gameId) {
+      throw new RecruitmentGameRequiredError('positionIds');
+    }
+
+    const relationRepo = this.recruitmentRepo.manager.getRepository(RscGamePositionEntity);
+
+    const byBaseRows = await relationRepo.find({
+      where: { gameId, rscPositionId: In(ids) },
+      select: ['id', 'rscPositionId'],
+    });
+    const byBase = new Map<number, number>(byBaseRows.map((row) => [row.rscPositionId, row.id]));
+
+    const resolved: number[] = [];
+    const unresolved: number[] = [];
+    for (const id of ids) {
+      const mapped = byBase.get(id);
+      if (mapped) resolved.push(mapped);
+      else unresolved.push(id);
+    }
+
+    if (!unresolved.length) {
+      return resolved;
+    }
+
+    const byRelationRows = await relationRepo.find({
+      where: { gameId, id: In(unresolved) },
+      select: ['id'],
+    });
+    const byRelation = new Set(byRelationRows.map((row) => row.id));
+
+    const invalidIds: number[] = [];
+    for (const id of unresolved) {
+      if (byRelation.has(id)) resolved.push(id);
+      else invalidIds.push(id);
+    }
+
+    if (invalidIds.length) {
+      throw new RecruitmentInvalidGameSelectionError('positionIds', gameId, invalidIds);
+    }
+
+    return resolved;
+  }
+
+  private async resolveGameRankRelationIds(
+    gameId: number | null | undefined,
+    rawIds: number[] | undefined,
+    field: 'rankIds' | 'minRankId' | 'maxRankId',
+  ): Promise<number[] | undefined> {
+    if (rawIds === undefined) return undefined;
+
+    const ids = this.normalizeIds(rawIds);
+    if (!ids.length) return [];
+
+    if (!gameId) {
+      throw new RecruitmentGameRequiredError(field);
+    }
+
+    const relationRepo = this.recruitmentRepo.manager.getRepository(RscGameRankEntity);
+
+    const byBaseRows = await relationRepo.find({
+      where: { gameId, rscRankId: In(ids) },
+      select: ['id', 'rscRankId'],
+    });
+    const byBase = new Map<number, number>(byBaseRows.map((row) => [row.rscRankId, row.id]));
+
+    const resolved: number[] = [];
+    const unresolved: number[] = [];
+    for (const id of ids) {
+      const mapped = byBase.get(id);
+      if (mapped) resolved.push(mapped);
+      else unresolved.push(id);
+    }
+
+    if (!unresolved.length) {
+      return resolved;
+    }
+
+    const byRelationRows = await relationRepo.find({
+      where: { gameId, id: In(unresolved) },
+      select: ['id'],
+    });
+    const byRelation = new Set(byRelationRows.map((row) => row.id));
+
+    const invalidIds: number[] = [];
+    for (const id of unresolved) {
+      if (byRelation.has(id)) resolved.push(id);
+      else invalidIds.push(id);
+    }
+
+    if (invalidIds.length) {
+      throw new RecruitmentInvalidGameSelectionError(field, gameId, invalidIds);
+    }
+
+    return resolved;
+  }
+
+  private async resolveSingleGameRankRelationId(
+    gameId: number | null | undefined,
+    rawId: number | null | undefined,
+    field: 'minRankId' | 'maxRankId',
+  ): Promise<number | null | undefined> {
+    if (rawId === undefined) return undefined;
+    if (rawId === null) return null;
+
+    const resolved = await this.resolveGameRankRelationIds(gameId, [rawId], field);
+    return resolved?.[0] ?? null;
   }
 }
