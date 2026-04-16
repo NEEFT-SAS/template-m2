@@ -78,7 +78,7 @@ export class AddTeamRosterMemberUseCase {
       title: dto.title ?? null,
       positionId,
       isHidden: dto.isHidden ?? false,
-      permissions: dto.permissions ?? 0,
+      permissions: Number(dto.permissions ?? 0),
     });
 
     await this.teamScoreService.recomputeTeamScores(teamId);

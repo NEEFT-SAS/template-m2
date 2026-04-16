@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const backendRoot = path.resolve(__dirname, '..');
-const workspaceRoot = path.resolve(backendRoot, '..');
+const composeFile = path.join(backendRoot, 'docker-compose.yml');
 
 const protocol = String(process.env.TYPESENSE_PROTOCOL ?? 'http').trim().toLowerCase();
 const host = String(process.env.TYPESENSE_HOST ?? 'localhost').trim();
@@ -82,7 +82,7 @@ const runDockerComposeUp = () => {
   const command = process.platform === 'win32' ? 'docker.exe' : 'docker';
 
   const info = spawnSync(command, ['info'], {
-    cwd: workspaceRoot,
+    cwd: backendRoot,
     stdio: 'pipe',
     encoding: 'utf8'
   });
@@ -99,8 +99,8 @@ const runDockerComposeUp = () => {
     );
   }
 
-  const result = spawnSync(command, ['compose', 'up', '-d', 'typesense'], {
-    cwd: workspaceRoot,
+  const result = spawnSync(command, ['compose', '-f', composeFile, 'up', '-d', 'typesense'], {
+    cwd: backendRoot,
     stdio: 'inherit'
   });
 

@@ -12,15 +12,26 @@ export class GetRecruitmentUseCase {
     private readonly repo: RecruitmentRepositoryPort,
   ) { }
 
-  async execute(id: string) {
+  async execute(id: string, requesterProfileId?: string | null) {
     const recruitment = await this.repo.findById(id);
     if (!recruitment) {
       throw new RecruitmentNotFoundError(id);
     }
-    return this.mapToFullPresenter(recruitment);
+
+    const [applicationCounts, appliedRecruitmentIds] = await Promise.all([
+      this.repo.countApplicationsByRecruitmentIds([recruitment.id]),
+      requesterProfileId
+        ? this.repo.findAppliedRecruitmentIds([recruitment.id], requesterProfileId)
+        : Promise.resolve(new Set<string>()),
+    ]);
+
+    return this.mapToFullPresenter(recruitment, {
+      candidateCount: applicationCounts.get(recruitment.id) ?? 0,
+      hasCandidated: appliedRecruitmentIds.has(recruitment.id),
+    });
   }
 
-  private mapToFullPresenter(item: any) {
+  private mapToFullPresenter(item: any, applicationState: { candidateCount: number; hasCandidated: boolean }) {
     return {
       id: item.id,
       title: item.title,
@@ -31,6 +42,8 @@ export class GetRecruitmentUseCase {
       isPaid: item.isPaid,
       missions: item.missions,
       target: item.target,
+      candidateCount: applicationState.candidateCount,
+      hasCandidated: applicationState.hasCandidated,
       team: item.team ? {
         id: item.team.id,
         name: item.team.name,

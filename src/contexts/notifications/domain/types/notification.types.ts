@@ -1,4 +1,7 @@
-export const NOTIFICATION_TYPES = ['MESSAGING_MESSAGE_RECEIVED'] as const;
+export const NOTIFICATION_TYPES = [
+  'MESSAGING_MESSAGE_RECEIVED',
+  'RECRUITMENT_APPLICATION_RECEIVED',
+] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export const NOTIFICATION_FILTERS = ['ALL', 'UNREAD'] as const;

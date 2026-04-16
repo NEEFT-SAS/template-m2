@@ -28,7 +28,7 @@ export class TeamRosterMemberEntity {
     type: 'enum',
     enum: TEAM_ROSTER_MEMBER_ROLES,
     enumName: 'team_roster_member_role_enum',
-    default: 'MEMBER',
+    default: 'PLAYER',
   })
   role!: TeamRosterMemberRole;
 

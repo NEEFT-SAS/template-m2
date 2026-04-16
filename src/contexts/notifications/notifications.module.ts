@@ -15,6 +15,7 @@ import { DeleteNotificationUseCase } from './app/usecases/delete-notification.us
 import { MockNotificationsUseCase } from './app/usecases/mock-notifications.usecase';
 import { ExecuteNotificationActionUseCase } from './app/usecases/execute-notification-action.usecase';
 import { CreateMessageReceivedNotificationHandler } from './app/handlers/create-message-received-notification.handler';
+import { CreateRecruitmentApplicationNotificationHandler } from './app/handlers/create-recruitment-application-notification.handler';
 import { MarkConversationNotificationsReadHandler } from './app/handlers/mark-conversation-notifications-read.handler';
 import { NOTIFICATIONS_REPOSITORY } from './app/ports/notifications.repository.port';
 import { NotificationsRepositoryTypeorm } from './infra/persistence/notifications.repository';
@@ -37,6 +38,7 @@ import { NotificationsRepositoryTypeorm } from './infra/persistence/notification
     MockNotificationsUseCase,
     ExecuteNotificationActionUseCase,
     CreateMessageReceivedNotificationHandler,
+    CreateRecruitmentApplicationNotificationHandler,
     MarkConversationNotificationsReadHandler,
     {
       provide: NOTIFICATIONS_REPOSITORY,

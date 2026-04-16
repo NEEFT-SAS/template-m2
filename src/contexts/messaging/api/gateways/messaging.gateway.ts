@@ -36,7 +36,12 @@ type JwtUser = {
 @WebSocketGateway({
   namespace: 'messaging',
   cors: {
-    origin: ['http://localhost:3000', 'https://neeft.fr', 'https://www.neeft.fr'],
+    origin: [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'https://neeft.fr',
+      'https://www.neeft.fr',
+    ],
     credentials: true,
   },
 })

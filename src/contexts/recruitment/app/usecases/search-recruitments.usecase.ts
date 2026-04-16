@@ -11,17 +11,30 @@ export class SearchRecruitmentsUseCase {
     private readonly repo: RecruitmentRepositoryPort,
   ) { }
 
-  async execute(query: any) {
+  async execute(query: any, requesterProfileId?: string | null) {
     const { items, total } = await this.repo.search(query);
+    const recruitmentIds = items.map((item) => item.id);
+    const [applicationCounts, appliedRecruitmentIds] = await Promise.all([
+      this.repo.countApplicationsByRecruitmentIds(recruitmentIds),
+      requesterProfileId
+        ? this.repo.findAppliedRecruitmentIds(recruitmentIds, requesterProfileId)
+        : Promise.resolve(new Set<string>()),
+    ]);
+
     return {
-      items: items.map((item) => this.mapToPresenter(item)),
+      items: items.map((item) =>
+        this.mapToPresenter(item, {
+          candidateCount: applicationCounts.get(item.id) ?? 0,
+          hasCandidated: appliedRecruitmentIds.has(item.id),
+        }),
+      ),
       total,
       limit: query.limit || 20,
       offset: query.offset || 0,
     };
   }
 
-  private mapToPresenter(item: any) {
+  private mapToPresenter(item: any, applicationState: { candidateCount: number; hasCandidated: boolean }) {
     return {
       id: item.id,
       title: item.title,
@@ -32,6 +45,8 @@ export class SearchRecruitmentsUseCase {
       urgent: item.urgent,
       isPaid: item.isPaid,
       target: item.target,
+      candidateCount: applicationState.candidateCount,
+      hasCandidated: applicationState.hasCandidated,
       team: item.team ? {
         id: item.team.id,
         name: item.team.name,

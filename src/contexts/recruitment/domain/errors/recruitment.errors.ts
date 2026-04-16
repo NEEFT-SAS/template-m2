@@ -54,6 +54,30 @@ export class RecruitmentNotPublishedError extends DomainError {
   }
 }
 
+export class RecruitmentCandidateNotFoundError extends DomainError {
+  constructor(candidateId?: string) {
+    super({
+      code: 'RECRUITMENT_CANDIDATE_NOT_FOUND',
+      message: 'Profil candidat introuvable.',
+      statusCode: 404,
+      fields: { candidateId: ['not_found'] },
+      details: candidateId ? { candidateId } : {},
+    });
+  }
+}
+
+export class RecruitmentInvalidApplicationError extends DomainError {
+  constructor(message: string, fields?: Record<string, string[]>, details?: Record<string, unknown>) {
+    super({
+      code: 'RECRUITMENT_INVALID_APPLICATION',
+      message,
+      statusCode: 400,
+      fields,
+      details,
+    });
+  }
+}
+
 export class RecruitmentGameRequiredError extends DomainError {
   constructor(field: 'platformIds' | 'positionIds' | 'rankIds' | 'minRankId' | 'maxRankId') {
     super({

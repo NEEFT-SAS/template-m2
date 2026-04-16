@@ -14,6 +14,14 @@ export const TEAM_RECRUITMENT_APPLICATION_STATUSES = [
 ] as const;
 export type TeamRecruitmentApplicationStatus = (typeof TEAM_RECRUITMENT_APPLICATION_STATUSES)[number];
 
+export const TEAM_RECRUITMENT_APPLICATION_REVIEW_STATUSES = [
+  'PENDING',
+  'GOOD_FIT',
+  'INTERVIEW_SCHEDULED',
+] as const;
+export type TeamRecruitmentApplicationReviewStatus =
+  (typeof TEAM_RECRUITMENT_APPLICATION_REVIEW_STATUSES)[number];
+
 export type RecruitmentPresenter = {
   id: string;
   teamId: string;

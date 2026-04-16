@@ -6,12 +6,18 @@ import { RecruitmentQuestionEntity } from '../entities/recruitment-question.enti
 import { RecruitmentApplicationEntity } from '../entities/recruitment-application.entity';
 import {
   RecruitmentRepositoryPort,
+  CreateRecruitmentApplicationInput,
   CreateRecruitmentInput,
   UpdateRecruitmentInput,
 } from '@/contexts/recruitment/app/ports/recruitment.repository.port';
+import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
+import { UserGameEntity } from '@/contexts/players/infra/entities/game/user-game.entity';
 import { RscGamePlatformEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-platforms.entity';
 import { RscGamePositionEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-positions.entity';
 import { RscGameRankEntity } from '@/contexts/resources/infra/persistence/entities/games/relations/rsc-game-ranks.entity';
+import { TeamEntity } from '@/contexts/teams/infra/entities/team.entity';
+import { TeamMemberEntity } from '@/contexts/teams/infra/entities/team-member.entity';
+import { TEAM_MEMBER_PERMISSIONS } from '@/contexts/teams/domain/team-member.permissions';
 import {
   RecruitmentGameRequiredError,
   RecruitmentInvalidGameSelectionError,
@@ -245,8 +251,124 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
   async findApplicationById(id: string): Promise<any | null> {
     return this.applicationRepo.findOne({
       where: { id },
-      relations: ['candidate', 'answers', 'answers.question', 'recruitment', 'recruitment.team'],
+      relations: [
+        'candidate',
+        'answers',
+        'answers.question',
+        'position',
+        'position.position',
+        'recruitment',
+        'recruitment.team',
+        'recruitment.game',
+      ],
     });
+  }
+
+  async findApplicationByRecruitmentAndCandidate(recruitmentId: string, candidateId: string): Promise<any | null> {
+    return this.applicationRepo.findOne({
+      where: { recruitmentId, candidateId },
+    });
+  }
+
+  async findCandidateProfileById(candidateId: string): Promise<any | null> {
+    return this.recruitmentRepo.manager.getRepository(UserProfileEntity).findOne({
+      where: { id: candidateId },
+    });
+  }
+
+  async findRecruitmentManagerProfileIds(teamId: string, excludedProfileIds: string[] = []): Promise<string[]> {
+    const excluded = new Set(
+      excludedProfileIds
+        .map((profileId) => String(profileId ?? '').trim())
+        .filter(Boolean),
+    );
+    const recipients = new Set<string>();
+
+    const team = await this.recruitmentRepo.manager.getRepository(TeamEntity).findOne({
+      where: { id: teamId },
+      relations: ['owner'],
+    });
+
+    const ownerId = String(team?.owner?.id ?? '').trim();
+    if (ownerId && !excluded.has(ownerId)) {
+      recipients.add(ownerId);
+    }
+
+    const members = await this.recruitmentRepo.manager.getRepository(TeamMemberEntity).find({
+      where: { team: { id: teamId }, status: 'current' },
+      relations: ['profile'],
+    });
+
+    members.forEach((member) => {
+      const permissions = BigInt(member.permissions ?? 0);
+      const canManageRecruitment =
+        (permissions & TEAM_MEMBER_PERMISSIONS.MANAGE_RECRUITMENT) ===
+        TEAM_MEMBER_PERMISSIONS.MANAGE_RECRUITMENT;
+      const profileId = String(member.profile?.id ?? member.profileId ?? '').trim();
+
+      if (canManageRecruitment && profileId && !excluded.has(profileId)) {
+        recipients.add(profileId);
+      }
+    });
+
+    return Array.from(recipients);
+  }
+
+  async findPlayerGameForCandidate(candidateId: string, gameId: number): Promise<any | null> {
+    const gamesByCandidate = await this.findPlayerGamesForCandidates([candidateId], gameId);
+    return gamesByCandidate.get(candidateId) ?? null;
+  }
+
+  async findPlayerGamesForCandidates(candidateIds: string[], gameId: number): Promise<Map<string, any>> {
+    const normalizedCandidateIds = Array.from(new Set(
+      candidateIds
+        .map((candidateId) => String(candidateId ?? '').trim())
+        .filter(Boolean),
+    ));
+
+    if (!normalizedCandidateIds.length || !Number.isInteger(gameId)) {
+      return new Map();
+    }
+
+    const playerGames = await this.recruitmentRepo.manager
+      .getRepository(UserGameEntity)
+      .createQueryBuilder('playerGame')
+      .leftJoinAndSelect('playerGame.profile', 'profile')
+      .leftJoinAndSelect('playerGame.rscGame', 'rscGame')
+      .leftJoinAndSelect('playerGame.positions', 'positions')
+      .leftJoinAndSelect('positions.position', 'position')
+      .leftJoinAndSelect('playerGame.modeRanks', 'modeRanks')
+      .leftJoinAndSelect('modeRanks.mode', 'mode')
+      .leftJoinAndSelect('mode.mode', 'baseMode')
+      .leftJoinAndSelect('modeRanks.rank', 'rank')
+      .leftJoinAndSelect('rank.rank', 'baseRank')
+      .where('profile.id IN (:...candidateIds)', { candidateIds: normalizedCandidateIds })
+      .andWhere('rscGame.id = :gameId', { gameId })
+      .getMany();
+
+    return new Map(
+      playerGames
+        .map((playerGame) => [String(playerGame.profile?.id ?? ''), playerGame] as const)
+        .filter(([candidateId]) => Boolean(candidateId)),
+    );
+  }
+
+  async createApplication(input: CreateRecruitmentApplicationInput): Promise<any> {
+    const application = this.applicationRepo.create({
+      recruitmentId: input.recruitmentId,
+      candidateId: input.candidateId,
+      status: 'PENDING',
+      motivation: input.motivation ?? null,
+      positionId: input.positionId ?? null,
+      answers: (input.answers || []).map((answer) => ({
+        questionId: answer.questionId,
+        answerText: answer.answerText ?? null,
+        answerBoolean: answer.answerBoolean ?? null,
+      })) as any,
+    });
+
+    const saved = await this.applicationRepo.save(application);
+    return this.findApplicationById(saved.id);
   }
 
   async saveApplication(application: any): Promise<any> {
@@ -256,7 +378,16 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
   async listApplications(recruitmentId: string): Promise<any[]> {
     return this.applicationRepo.find({
       where: { recruitment: { id: recruitmentId } },
-      relations: ['candidate', 'answers', 'answers.question'],
+      relations: [
+        'candidate',
+        'answers',
+        'answers.question',
+        'position',
+        'position.position',
+        'recruitment',
+        'recruitment.team',
+        'recruitment.game',
+      ],
       order: { createdAt: 'DESC' },
     });
   }
@@ -267,6 +398,37 @@ export class RecruitmentRepositoryTypeorm implements RecruitmentRepositoryPort {
       relations: ['recruitment', 'recruitment.team'],
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async countApplicationsByRecruitmentIds(recruitmentIds: string[]): Promise<Map<string, number>> {
+    if (!recruitmentIds.length) {
+      return new Map();
+    }
+
+    const rows = await this.applicationRepo
+      .createQueryBuilder('application')
+      .select('application.recruitmentId', 'recruitmentId')
+      .addSelect('COUNT(application.id)', 'count')
+      .where('application.recruitmentId IN (:...recruitmentIds)', { recruitmentIds })
+      .groupBy('application.recruitmentId')
+      .getRawMany<{ recruitmentId: string; count: string }>();
+
+    return new Map(rows.map((row) => [row.recruitmentId, Number(row.count) || 0]));
+  }
+
+  async findAppliedRecruitmentIds(recruitmentIds: string[], candidateId: string): Promise<Set<string>> {
+    if (!recruitmentIds.length || !candidateId) {
+      return new Set();
+    }
+
+    const rows = await this.applicationRepo
+      .createQueryBuilder('application')
+      .select('application.recruitmentId', 'recruitmentId')
+      .where('application.recruitmentId IN (:...recruitmentIds)', { recruitmentIds })
+      .andWhere('application.candidateId = :candidateId', { candidateId })
+      .getRawMany<{ recruitmentId: string }>();
+
+    return new Set(rows.map((row) => row.recruitmentId));
   }
 
   private normalizeIds(ids: number[]): number[] {

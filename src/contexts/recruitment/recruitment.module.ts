@@ -15,6 +15,12 @@ import { GetRecruitmentUseCase } from './app/usecases/get-recruitment.usecase';
 import { CreateRecruitmentUseCase } from './app/usecases/create-recruitment.usecase';
 import { UpdateRecruitmentUseCase } from './app/usecases/update-recruitment.usecase';
 import { DeleteRecruitmentUseCase } from './app/usecases/delete-recruitment.usecase';
+import { ApplyToRecruitmentUseCase } from './app/usecases/apply-to-recruitment.usecase';
+import { ListRecruitmentApplicationsUseCase } from './app/usecases/list-recruitment-applications.usecase';
+import { UpdateRecruitmentApplicationStatusUseCase } from './app/usecases/update-recruitment-application-status.usecase';
+import { AcceptRecruitmentApplicationUseCase } from './app/usecases/accept-recruitment-application.usecase';
+import { RejectRecruitmentApplicationUseCase } from './app/usecases/reject-recruitment-application.usecase';
+import { RecruitmentAccessService } from './app/services/recruitment-access.service';
 import { TeamsModule } from '@/contexts/teams/teams.module';
 import { AuthModule } from '@/contexts/auth/auth.module';
 
@@ -39,6 +45,12 @@ import { AuthModule } from '@/contexts/auth/auth.module';
     CreateRecruitmentUseCase,
     UpdateRecruitmentUseCase,
     DeleteRecruitmentUseCase,
+    ApplyToRecruitmentUseCase,
+    ListRecruitmentApplicationsUseCase,
+    UpdateRecruitmentApplicationStatusUseCase,
+    AcceptRecruitmentApplicationUseCase,
+    RejectRecruitmentApplicationUseCase,
+    RecruitmentAccessService,
     {
       provide: RECRUITMENT_REPOSITORY,
       useClass: RecruitmentRepositoryTypeorm,
@@ -50,6 +62,11 @@ import { AuthModule } from '@/contexts/auth/auth.module';
     CreateRecruitmentUseCase,
     UpdateRecruitmentUseCase,
     DeleteRecruitmentUseCase,
+    ApplyToRecruitmentUseCase,
+    ListRecruitmentApplicationsUseCase,
+    UpdateRecruitmentApplicationStatusUseCase,
+    AcceptRecruitmentApplicationUseCase,
+    RejectRecruitmentApplicationUseCase,
   ],
 })
 export class RecruitmentModule { }

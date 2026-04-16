@@ -18,6 +18,7 @@ import {
 import { NotificationsRealtimeService } from '../../infra/realtime/notifications-realtime.service';
 import { MessagingMessageSentPayload } from '@/contexts/messaging/domain/events/message-sent.event';
 import { MessagingConversationReadPayload } from '@/contexts/messaging/domain/events/conversation-read.event';
+import { RecruitmentApplicationCreatedPayload } from '@/contexts/recruitment/domain/events/recruitment-application-created.event';
 
 type NotificationActionDefinition = {
   key: string;
@@ -544,6 +545,96 @@ export class NotificationsService {
       payload.readerProfileId,
       NOTIFICATIONS_SOCKET_EVENTS.UNREAD_COUNT_UPDATED,
       { unreadCount },
+    );
+  }
+
+  async handleRecruitmentApplicationCreated(payload: RecruitmentApplicationCreatedPayload) {
+    const recipientProfileIds = Array.from(
+      new Set(
+        payload.recipientProfileIds
+          .map((profileId) => String(profileId ?? '').trim())
+          .filter(Boolean)
+          .filter((profileId) => profileId !== payload.candidateId),
+      ),
+    );
+    if (!recipientProfileIds.length) return;
+
+    const targetPath = `/teams/${payload.teamSlug}/recruitment/${payload.recruitmentSlug}/candidates?applicationId=${encodeURIComponent(payload.applicationId)}`;
+    const candidateLabel = payload.candidateUsername || 'Un candidat';
+    const teamLabel = payload.teamName || 'votre equipe';
+
+    const created = await this.notificationsRepo.createMany(
+      recipientProfileIds.map((recipientProfileId) => ({
+        recipientProfileId,
+        actorProfileId: payload.candidateId,
+        type: 'RECRUITMENT_APPLICATION_RECEIVED',
+        title: 'Nouvelle candidature',
+        body: `${candidateLabel} a candidate a l'offre "${payload.recruitmentTitle}" pour ${teamLabel}.`,
+        payload: {
+          intent: 'RECRUITMENT_APPLICATION_RECEIVED',
+          targetPath,
+          applicationId: payload.applicationId,
+          recruitmentId: payload.recruitmentId,
+          recruitmentSlug: payload.recruitmentSlug,
+          recruitmentTitle: payload.recruitmentTitle,
+          teamId: payload.teamId,
+          teamSlug: payload.teamSlug,
+          teamName: payload.teamName,
+          candidateId: payload.candidateId,
+          candidateSlug: payload.candidateSlug,
+          candidateUsername: payload.candidateUsername,
+        },
+        contextConversationId: null,
+        contextMessageId: null,
+      })),
+    );
+
+    const actor = await this.notificationsRepo.findProfileSnapshotById(payload.candidateId);
+    const createdByRecipient = new Map<string, NotificationPresenter[]>();
+
+    created.forEach((item) => {
+      const list = createdByRecipient.get(item.recipientProfileId) ?? [];
+      list.push({
+        id: item.id,
+        type: item.type,
+        title: item.title,
+        body: item.body,
+        payload: item.payload,
+        contextConversationId: item.contextConversationId,
+        contextMessageId: item.contextMessageId,
+        readAt: item.readAt ? item.readAt.toISOString() : null,
+        createdAt: item.createdAt.toISOString(),
+        actor: actor
+          ? {
+              id: actor.id,
+              username: actor.username,
+              slug: actor.slug,
+              profilePicture: actor.profilePicture,
+            }
+          : null,
+      });
+      createdByRecipient.set(item.recipientProfileId, list);
+    });
+
+    await Promise.all(
+      Array.from(createdByRecipient.entries()).map(
+        async ([recipientProfileId, notifications]) => {
+          const unreadCount =
+            await this.notificationsRepo.countUnreadForRecipient(recipientProfileId);
+
+          this.notificationsRealtime.emitToProfile(
+            recipientProfileId,
+            NOTIFICATIONS_SOCKET_EVENTS.CREATED,
+            { items: notifications },
+          );
+
+          this.notificationsRealtime.emitToProfile(
+            recipientProfileId,
+            NOTIFICATIONS_SOCKET_EVENTS.UNREAD_COUNT_UPDATED,
+            { unreadCount },
+          );
+        },
+      ),
     );
   }
 

@@ -1,9 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
   HttpStatus,
   Param,
+  Post,
   Query,
   Req,
   UseGuards,
@@ -13,11 +15,17 @@ import { ConnectedGuard } from '@/contexts/auth/infra/guards/connected.guard';
 import {
   GetConversationMessagesQueryDto,
   GetConversationsQueryDto,
+  MarkConversationReadDto,
+  SendConversationMessageDto,
+  StartConversationDto,
 } from '@neeft-sas/shared';
 import { GetConversationsUseCase } from '../../app/usecases/get-conversations.usecase';
 import { GetConversationMessagesUseCase } from '../../app/usecases/get-conversation-messages.usecase';
 import { GetUnreadCountUseCase } from '../../app/usecases/get-unread-count.usecase';
 import { GetTeamContextsUseCase } from '../../app/usecases/get-team-contexts.usecase';
+import { StartConversationUseCase } from '../../app/usecases/start-conversation.usecase';
+import { SendConversationMessageUseCase } from '../../app/usecases/send-conversation-message.usecase';
+import { MarkConversationReadUseCase } from '../../app/usecases/mark-conversation-read.usecase';
 
 type JwtUser = {
   pid?: string;
@@ -34,6 +42,9 @@ export class MessagingController {
     private readonly getConversationMessagesUseCase: GetConversationMessagesUseCase,
     private readonly getUnreadCountUseCase: GetUnreadCountUseCase,
     private readonly getTeamContextsUseCase: GetTeamContextsUseCase,
+    private readonly startConversationUseCase: StartConversationUseCase,
+    private readonly sendConversationMessageUseCase: SendConversationMessageUseCase,
+    private readonly markConversationReadUseCase: MarkConversationReadUseCase,
   ) {}
 
   @Get('unread-count')
@@ -72,6 +83,46 @@ export class MessagingController {
       requesterProfileId,
       conversationId,
       query,
+    );
+  }
+
+  @Post('conversations')
+  @HttpCode(HttpStatus.CREATED)
+  startConversation(
+    @Req() req: RequestWithUser,
+    @Body() body: StartConversationDto,
+  ) {
+    const requesterProfileId = req.user?.pid ?? '';
+    return this.startConversationUseCase.execute(requesterProfileId, body);
+  }
+
+  @Post('conversations/:conversationId/messages')
+  @HttpCode(HttpStatus.CREATED)
+  sendConversationMessage(
+    @Req() req: RequestWithUser,
+    @Param('conversationId') conversationId: string,
+    @Body() body: SendConversationMessageDto,
+  ) {
+    const requesterProfileId = req.user?.pid ?? '';
+    return this.sendConversationMessageUseCase.execute(
+      requesterProfileId,
+      conversationId,
+      body,
+    );
+  }
+
+  @Post('conversations/:conversationId/read')
+  @HttpCode(HttpStatus.OK)
+  markConversationRead(
+    @Req() req: RequestWithUser,
+    @Param('conversationId') conversationId: string,
+    @Body() body: MarkConversationReadDto,
+  ) {
+    const requesterProfileId = req.user?.pid ?? '';
+    return this.markConversationReadUseCase.execute(
+      requesterProfileId,
+      conversationId,
+      body,
     );
   }
 }

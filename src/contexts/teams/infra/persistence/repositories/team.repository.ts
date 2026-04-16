@@ -152,7 +152,7 @@ export class TeamRepositoryTypeorm implements TeamRepositoryPort {
     const entity = this.rosterMemberRepo.create({
       roster: { id: rosterId } as TeamRosterEntity,
       member: { id: input.memberId } as TeamMemberEntity,
-      role: input.role ?? 'MEMBER',
+      role: input.role ?? 'PLAYER',
       title: input.title ?? null,
       position: input.positionId ? ({ id: input.positionId } as TeamRosterMemberEntity['position']) : null,
       isHidden: input.isHidden ?? false,
