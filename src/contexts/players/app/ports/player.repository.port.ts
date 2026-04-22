@@ -251,49 +251,8 @@ export interface PlayerRepositoryPort {
   findAvailabilities(userProfileId: string): Promise<UserProfileAvailabilityEntity[]>;
   replaceAvailabilities(userProfileId: string, availabilities: PlayerAvailabilityPresenter[]): Promise<UserProfileAvailabilityEntity[]>;
   
-  addExperience(userProfileId: string, input: PlayerExperienceInput): Promise<UserProfileExperienceEntity>;
-  findExperiences(userProfileId: string): Promise<UserProfileExperienceEntity[]>;
-  findExperienceById(userProfileId: string, experienceId: number): Promise<UserProfileExperienceEntity | null>;
-  updateExperience(userProfileId: string, experienceId: number, input: PlayerExperienceUpdateInput): Promise<UserProfileExperienceEntity>;
-  deleteExperience(userProfileId: string, experienceId: number): Promise<void>;
-  addEducationExperience(userProfileId: string, input: PlayerEducationExperienceInput): Promise<UserProfileSchoolExperienceEntity>;
-  findEducationExperiences(userProfileId: string): Promise<UserProfileSchoolExperienceEntity[]>;
-  findEducationExperienceById(userProfileId: string, experienceId: string): Promise<UserProfileSchoolExperienceEntity | null>;
-  updateEducationExperience(userProfileId: string, experienceId: string, input: PlayerEducationExperienceUpdateInput): Promise<UserProfileSchoolExperienceEntity>;
-  deleteEducationExperience(userProfileId: string, experienceId: string): Promise<void>;
-  addProfessionalExperience(userProfileId: string, input: PlayerProfessionalExperienceInput): Promise<UserProfileProfessionalExperienceEntity>;
-  findProfessionalExperiences(userProfileId: string): Promise<UserProfileProfessionalExperienceEntity[]>;
-  findProfessionalExperienceById(userProfileId: string, experienceId: string): Promise<UserProfileProfessionalExperienceEntity | null>;
-  updateProfessionalExperience(userProfileId: string, experienceId: string, input: PlayerProfessionalExperienceUpdateInput): Promise<UserProfileProfessionalExperienceEntity>;
-  deleteProfessionalExperience(userProfileId: string, experienceId: string): Promise<void>;
-  findPlayerGameIdByProfileAndGame(userProfileId: string, gameId: number): Promise<number | null>;
-  createPlayerGame(userProfileId: string, input: PlayerGameCreateInput): Promise<UserGameEntity>;
-  findPlayerGames(userProfileId: string): Promise<UserGameEntity[]>;
-  findPlayerGameByProfileAndGame(userProfileId: string, gameId: number): Promise<UserGameEntity | null>;
-  updatePlayerGame(userProfileId: string, gameId: number, input: PlayerGameUpdateInput): Promise<UserGameEntity>;
-  deletePlayerGame(userProfileId: string, gameId: number): Promise<void>;
-  findPlayerStaffRoleIdByProfileAndRole(userProfileId: string, roleId: string): Promise<number | null>;
-  createPlayerStaffRole(userProfileId: string, input: PlayerStaffRoleCreateInput): Promise<UserProfileStaffRoleEntity>;
-  findPlayerStaffRoles(userProfileId: string): Promise<UserProfileStaffRoleEntity[]>;
-  findPlayerStaffRoleByProfileAndRole(userProfileId: string, roleId: string): Promise<UserProfileStaffRoleEntity | null>;
-  updatePlayerStaffRole(userProfileId: string, roleId: string, input: PlayerStaffRoleUpdateInput): Promise<UserProfileStaffRoleEntity>;
-  deletePlayerStaffRole(userProfileId: string, roleId: string): Promise<void>;
-
-  findPlayerBadgeContextBySlug(userSlug: string): Promise<any | null>;
-  findAssignedBadgeIds(userProfileId: string): Promise<number[]>;
-
   findPlayerReports(userProfileId: string): Promise<UserReportEntity[]>;
   findPlayerReportById(userProfileId: string, reportId: string): Promise<UserReportEntity | null>;
   createPlayerReport(input: PlayerReportCreateInput): Promise<UserReportEntity>;
   updatePlayerReportStatus(userProfileId: string, reportId: string, status: PlayerReportStatus): Promise<UserReportEntity | null>;
-
-  createRecommendation(input: RecommendationCreateInput): Promise<RecommendationEntity>;
-  existsPlayerToPlayerRecommendation(authorProfileId: string, targetProfileId: string): Promise<boolean>;
-  existsPlayerToTeamRecommendation(authorProfileId: string, targetTeamId: string): Promise<boolean>;
-  findRecommendationSnapshotById(recommendationId: string): Promise<RecommendationSnapshot | null>;
-  deleteRecommendation(recommendationId: string): Promise<void>;
-  findPlayerRecommendationsReceived(userProfileId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
-  findPlayerRecommendationsGiven(userProfileId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
-  findTeamRecommendationsReceived(teamId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
-  findTeamRecommendationsGiven(teamId: string, query: RecommendationListQuery): Promise<RecommendationListResult>;
 }

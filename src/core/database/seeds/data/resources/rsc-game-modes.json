@@ -1,5 +1,0 @@
-[
-  { "gameSlug": "league-of-legends", "rscModeSlug": "solo-duo", "order": 10 },
-  { "gameSlug": "league-of-legends", "rscModeSlug": "flex", "order": 20 },
-  { "gameSlug": "league-of-legends", "rscModeSlug": "aram", "order": 30 }
-]

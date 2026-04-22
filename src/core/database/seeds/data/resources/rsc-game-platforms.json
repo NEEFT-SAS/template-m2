@@ -1,7 +1,0 @@
-[
-  { "gameSlug": "league-of-legends", "rscPlatformSlug": "pc", "order": 10 },
-  { "gameSlug": "valorant", "rscPlatformSlug": "pc", "order": 10 },
-  { "gameSlug": "apex-legends", "rscPlatformSlug": "pc", "order": 10 },
-  { "gameSlug": "apex-legends", "rscPlatformSlug": "ps5", "order": 20 },
-  { "gameSlug": "apex-legends", "rscPlatformSlug": "xbox", "order": 30 }
-]

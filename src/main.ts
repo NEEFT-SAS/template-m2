@@ -28,10 +28,10 @@ async function bootstrap() {
   app.use(cookieParser(config.get<string>('app.cookieSecret')));
 
   app.enableCors({
-    origin: ['http://localhost:3000', 'https://neeft.fr', 'https://www.neeft.fr'], // Origines autorisées
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Toutes les méthodes HTTP
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'], // Headers autorisés
-    credentials: true, // Autorise les cookies et credentials
+    origin: ['http://localhost:3000', 'https://.fr', 'https://www..fr'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'], 
+    credentials: true, 
   })
 
   const exceptionFilter = app.get(HttpExceptionFilter)

@@ -2,7 +2,7 @@ import { PlayerReportReason, PlayerReportStatus } from '@neeft-sas/shared';
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { UserProfileEntity } from '@/contexts/auth/infra/persistence/entities/user-profile.entity';
 
-@Entity('player_reports')
+@Entity('user_reports')
 export class UserReportEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

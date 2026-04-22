@@ -1,8 +1,0 @@
-[
-  { "key": "twitter", "label": "Twitter", "baseUrl": "https://twitter.com/", "type": "HANDLE", "placeholder": "@username", "example": "neeft", "icon": "uil:twitter" },
-  { "key": "twitch", "label": "Twitch", "baseUrl": "https://twitch.tv/", "type": "USERNAME", "placeholder": "username", "example": "neeft", "icon": "uil:twitch" },
-  { "key": "instagram", "label": "Instagram", "baseUrl": "https://instagram.com/", "type": "HANDLE", "placeholder": "@username", "example": "neeft", "icon": "uil:instagram" },
-  { "key": "youtube", "label": "YouTube", "baseUrl": "https://youtube.com/@", "type": "URL", "placeholder": "channel url or @handle", "example": "https://youtube.com/@neeft", "icon": "uil:youtube" },
-  { "key": "tiktok", "label": "TikTok", "baseUrl": "https://tiktok.com/@", "type": "HANDLE", "placeholder": "@username", "example": "neeft", "icon": "uil:tiktok" },
-  { "key": "discord", "label": "Discord", "baseUrl": "https://discord.gg/", "type": "URL", "placeholder": "invite url or code", "example": "https://discord.gg/neeft", "icon": "uil:discord" }
-]
